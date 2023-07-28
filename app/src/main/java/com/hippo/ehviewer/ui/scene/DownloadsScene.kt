@@ -662,7 +662,7 @@ class DownloadsScene :
         }
         val index = mList!!.indexOf(info)
         if (index >= 0) {
-            mAdapter?.notifyItemChanged(index)
+            mAdapter?.notifyItemChanged(index, PAYLOAD_STATE)
         }
     }
 
@@ -1148,6 +1148,18 @@ class DownloadsScene :
             }
         }
 
+        override fun onBindViewHolder(
+            holder: DownloadHolder,
+            position: Int,
+            payloads: MutableList<Any>,
+        ) {
+            if (payloads.any { it == PAYLOAD_STATE }) {
+                mList?.let { bindForState(holder, it[position]) }
+            } else {
+                super.onBindViewHolder(holder, position, payloads)
+            }
+        }
+
         override fun getItemCount(): Int {
             return if (mList == null) 0 else mList!!.size
         }
@@ -1341,6 +1353,7 @@ class DownloadsScene :
         private val PATTERN_NAME = Regex("^(?:\\([^\\[\\]()]+\\))?\\s*(?:\\[[^\\[\\]]+])?\\s*(.+)")
         private const val KEY_LABEL = "label"
         private const val LABEL_OFFSET = 2
+        private const val PAYLOAD_STATE = 0
 
         private fun getAuthor(title: String): String {
             val matcher = PATTERN_AUTHOR.find(title) ?: return ""
