@@ -26,6 +26,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
@@ -39,6 +40,9 @@ import com.hippo.easyrecyclerview.LayoutManagerUtils
 import com.hippo.easyrecyclerview.LayoutManagerUtils.OnScrollToPositionListener
 import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.R
+import com.hippo.ehviewer.client.EhUrl
+import com.hippo.ehviewer.client.exception.CloudflareBypassException
+import com.hippo.ehviewer.ui.WebViewActivity
 import com.hippo.util.ExceptionUtils
 import com.hippo.util.getParcelableCompat
 import com.hippo.view.ViewTransition
@@ -648,16 +652,21 @@ class ContentLayout @JvmOverloads constructor(
             if (mCurrentTaskId == taskId) {
                 mRefreshLayout!!.isRefreshing = false
                 mBottomProgress!!.hide()
-                val readableError = if (e != null) {
-                    e.printStackTrace()
-                    ExceptionUtils.getReadableString(e)
-                } else {
-                    context.getString(R.string.error_unknown)
-                }
+                val readableError = ExceptionUtils.getReadableString(e)
                 if (mViewTransition!!.shownViewIndex == 0) {
                     Toast.makeText(context, readableError, Toast.LENGTH_SHORT).show()
                 } else {
                     showText(readableError)
+                }
+                if (e?.cause is CloudflareBypassException) {
+                    val dialog = AlertDialog.Builder(context)
+                        .setTitle(R.string.cloudflare_bypass_failed)
+                        .setMessage(R.string.open_in_webview)
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .setPositiveButton(android.R.string.ok) { _, _ ->
+                            context.startActivity(WebViewActivity.newIntent(context, EhUrl.host))
+                        }
+                    dialog.show()
                 }
             }
         }

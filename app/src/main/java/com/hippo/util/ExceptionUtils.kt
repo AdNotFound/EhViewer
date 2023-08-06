@@ -30,7 +30,6 @@ import javax.net.ssl.SSLException
 object ExceptionUtils {
     fun getReadableString(e: Throwable?): String {
         e?.printStackTrace()
-
         if (e?.cause is CloudflareBypassException) {
             return e.cause!!.message!!
         }

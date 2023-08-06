@@ -57,6 +57,7 @@ import com.hippo.util.launchIO
 import com.hippo.util.loadHtml
 import com.hippo.yorozuya.FileUtils
 import com.hippo.yorozuya.IntIdGenerator
+import eu.kanade.tachiyomi.network.interceptor.CloudflareInterceptor
 import kotlinx.coroutines.DelicateCoroutinesApi
 import okhttp3.Cache
 import okhttp3.OkHttpClient
@@ -275,6 +276,7 @@ class EhApplication :
                     sslSocketFactory(EhSSLSocketFactory, trustManager)
                     proxy(Proxy.NO_PROXY)
                 }
+                addInterceptor(CloudflareInterceptor(application))
             }.build()
         }
         val noRedirectOkHttpClient by lazy {
