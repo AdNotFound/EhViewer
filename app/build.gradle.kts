@@ -180,7 +180,7 @@ dependencies {
     implementation("io.coil-kt:coil:2.3.0")
 
     implementation("io.ktor:ktor-client-okhttp:2.3.5")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jsoup:jsoup:1.16.1")
 }
 
