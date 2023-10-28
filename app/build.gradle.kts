@@ -55,8 +55,8 @@ android {
         applicationId = "org.error.ehviewer"
         minSdk = 28
         targetSdk = 33
-        versionCode = 173201
-        versionName = "1.7.32.1"
+        versionCode = 173300
+        versionName = "1.7.33.0"
         resourceConfigurations.addAll(
             listOf(
                 "zh",
