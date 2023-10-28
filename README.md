@@ -62,8 +62,7 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护
 本仓库原协议为 APL2.0，于 [#8cd551e](https://github.com/EhViewer-NekoInverter/EhViewer/commit/8cd551ecb8444abdd9642f30002c8a8fe7eec103) 变更为 GPL3.0
 
     Copyright 2014-2019 Hippo Seven
-    Copyright 2020-2022 NekoInverter
-    Copyright 2022-2023 Moedog, Tarsin Norbin, and other contributors
+    Copyright 2020-2023 NekoInverter, Moedog, Tarsin Norbin, and other contributors
 
     EhViewer is free software:
     you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation,
