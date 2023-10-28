@@ -52,11 +52,11 @@ android {
     }
 
     defaultConfig {
-        applicationId = "org.moedog.ehviewer"
+        applicationId = "org.error.ehviewer"
         minSdk = 28
         targetSdk = 33
-        versionCode = 172904
-        versionName = "1.7.29.4"
+        versionCode = 173100
+        versionName = "1.7.31.0"
         resourceConfigurations.addAll(
             listOf(
                 "zh",
