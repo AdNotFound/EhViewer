@@ -175,7 +175,7 @@ object Settings {
     const val KEY_DOMAIN_FRONTING = "domain_fronting"
     private const val DEFAULT_DOMAIN_FRONTING = false
     const val KEY_BYPASS_VPN = "bypass_vpn"
-    private const val DEFAULT_BYPASS_VPN = true
+    private const val DEFAULT_BYPASS_VPN = false
     private const val KEY_APP_LINK_VERIFY_TIP = "app_link_verify_tip"
     private const val DEFAULT_APP_LINK_VERIFY_TIP = false
 
