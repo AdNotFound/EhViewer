@@ -1,4 +1,10 @@
+<h1 align="center">
+  <img src="https://github.com/AdNotFound/EhViewer-Neko/raw/2a248efa398e0691e78d37f3c7cccb11bfefb740/app/src/main/ic_launcher_night-playstore.webp" width="150">
+  <br>EhViewer-NekoInverter<br>
+</h1>
 
+<p align="center">
+</p>
 <div align="center">
   <h3>
     <a href="#描述">
@@ -35,7 +41,7 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护
 
 # 截图
 
-暂无
+<img src="https://github.com/AdNotFound/EhViewer-Neko/blob/test/app/pic/Screenshot_EHV.jpg?raw=true" width="720" />
 
 # 感谢
 
