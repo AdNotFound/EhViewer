@@ -22,14 +22,16 @@ jobs:
         run: |
           echo "y" | sudo ${ANDROID_HOME}/tools/bin/sdkmanager --install "ndk;25.2.9519653" --sdk_root=${ANDROID_SDK_ROOT} &> /dev/null
 
-      - name: Ktlint Check
-        run: ./gradlew ktlintCheck
-
-      - name: Gradle Build
+      - name: Setup Gradle
         uses: gradle/gradle-build-action@v2
         with:
           gradle-home-cache-cleanup: true
-          arguments: assembleRelease
+
+      - name: Spotless Check
+        run: ./gradlew spotlessCheck
+
+      - name: Gradle Build
+        run: ./gradlew assembleRelease
 
       - name: Upload ARM64
         uses: actions/upload-artifact@v3
@@ -54,3 +56,10 @@ jobs:
         with:
           name: x86-${{ github.sha }}
           path: app/build/outputs/apk/release/app-x86-release.apk
+
+      - name: Upload mapping
+        uses: actions/upload-artifact@v3
+        with:
+          name: mapping-${{ github.sha }}
+          path: app/build/outputs/mapping/release/mapping.txt
+          retention-days: 5
