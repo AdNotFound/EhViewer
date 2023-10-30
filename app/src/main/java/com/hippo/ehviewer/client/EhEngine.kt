@@ -162,7 +162,7 @@ object EhEngine {
         var hasPages = false
         var hasRated = false
         for (gi in list) {
-            if (!gi.simpleTags.isNullOrEmpty()) {
+            if (gi.simpleTags != null) {
                 hasTags = true
             }
             if (gi.pages != 0) {
