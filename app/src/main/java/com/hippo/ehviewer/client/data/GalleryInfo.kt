@@ -24,24 +24,62 @@ interface GalleryInfo : AbstractGalleryInfo, Parcelable {
             ?: title?.let { generateSLangFromTitle(it) }
     }
 
+    private fun generateSLangFromTags(simpleTags: Array<String>): String? {
+        for (tag in simpleTags) {
+            for (i in S_LANGS.indices) {
+                if (S_LANG_TAGS[i] == tag) {
+                    return S_LANGS[i]
+                }
+            }
+        }
+        return null
+    }
+
+    private fun generateSLangFromTitle(title: String): String? {
+        for (i in S_LANGS.indices) {
+            if (S_LANG_PATTERNS[i].matcher(title).find()) {
+                return S_LANGS[i]
+            }
+        }
+        return null
+    }
+
     companion object {
+        /**
+         * ISO 639-1
+         */
+        private const val S_LANG_JA = "JA"
+        private const val S_LANG_EN = "EN"
+        private const val S_LANG_ZH = "ZH"
+        private const val S_LANG_NL = "NL"
+        private const val S_LANG_FR = "FR"
+        private const val S_LANG_DE = "DE"
+        private const val S_LANG_HU = "HU"
+        private const val S_LANG_IT = "IT"
+        private const val S_LANG_KO = "KO"
+        private const val S_LANG_PL = "PL"
+        private const val S_LANG_PT = "PT"
+        private const val S_LANG_RU = "RU"
+        private const val S_LANG_ES = "ES"
+        private const val S_LANG_TH = "TH"
+        private const val S_LANG_VI = "VI"
         val S_LANGS = arrayOf(
-            "EN",
-            "ZH",
-            "ES",
-            "KO",
-            "RU",
-            "FR",
-            "PT",
-            "TH",
-            "DE",
-            "IT",
-            "VI",
-            "PL",
-            "HU",
-            "NL",
+            S_LANG_EN,
+            S_LANG_ZH,
+            S_LANG_ES,
+            S_LANG_KO,
+            S_LANG_RU,
+            S_LANG_FR,
+            S_LANG_PT,
+            S_LANG_TH,
+            S_LANG_DE,
+            S_LANG_IT,
+            S_LANG_VI,
+            S_LANG_PL,
+            S_LANG_HU,
+            S_LANG_NL,
         )
-        private val S_LANG_PATTERNS = arrayOf(
+        val S_LANG_PATTERNS = arrayOf(
             Pattern.compile(
                 "[(\\[]eng(?:lish)?[)\\]]|英訳",
                 Pattern.CASE_INSENSITIVE,
@@ -72,7 +110,7 @@ interface GalleryInfo : AbstractGalleryInfo, Parcelable {
             Pattern.compile("[(\\[]hun(?:garian)?[)\\]]|ハンガリー翻訳", Pattern.CASE_INSENSITIVE),
             Pattern.compile("[(\\[]dutch[)\\]]|オランダ翻訳", Pattern.CASE_INSENSITIVE),
         )
-        private val S_LANG_TAGS = arrayOf(
+        val S_LANG_TAGS = arrayOf(
             "language:english",
             "language:chinese",
             "language:spanish",
@@ -88,28 +126,5 @@ interface GalleryInfo : AbstractGalleryInfo, Parcelable {
             "language:hungarian",
             "language:dutch",
         )
-
-        private fun generateSLangFromTags(simpleTags: List<String>): String? {
-            for (tag in simpleTags) {
-                for (i in S_LANGS.indices) {
-                    if (S_LANG_TAGS[i] == tag) {
-                        return S_LANGS[i]
-                    }
-                }
-            }
-            return null
-        }
-
-        private fun generateSLangFromTitle(title: String): String? {
-            for (i in S_LANGS.indices) {
-                if (S_LANG_PATTERNS[i].matcher(title).find()) {
-                    return S_LANGS[i]
-                }
-            }
-            return null
-        }
-
-        const val NOT_FAVORITED = -2
-        const val LOCAL_FAVORITED = -1
     }
 }
