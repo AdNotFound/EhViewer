@@ -604,8 +604,6 @@
     <string name="error_something_wrong_happened">被玩壞了</string>
     <string name="kokomade_tip">設定-&gt;Eh-&gt;圖庫站台-&gt;e-hentai</string>
     <string name="no_browser_installed">請安裝一個瀏覽器。</string>
-    <string name="cloudflare_bypass_failed">未能繞過 Cloudflare 驗證</string>
-    <string name="open_in_webview">在 WebView 中開啟網址以完成驗證？</string>
 
     <!-- Readable Time -->
     <string name="from_the_future">來自未來</string>
