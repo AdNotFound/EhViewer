@@ -12,9 +12,9 @@ plugins {
 }
 
 android {
-    compileSdk = 33
-    buildToolsVersion = "33.0.2"
-    ndkVersion = "25.2.9519653"
+    compileSdk = 34
+    buildToolsVersion = "34.0"
+    ndkVersion = "26.1.10909125"
 
     splits {
         abi {
@@ -155,10 +155,9 @@ dependencies {
     implementation("androidx.recyclerview:recyclerview:1.3.0")
 
     // https://developer.android.com/jetpack/androidx/releases/room
-    val room_version = "2.6.0-alpha01"
-    ksp("androidx.room:room-compiler:$room_version")
-    implementation("androidx.room:room-paging:$room_version")
-
+    val room = "2.6.0-rc01"
+    ksp("androidx.room:room-compiler:$room")
+    implementation("androidx.room:room-paging:$room")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
     implementation("com.drakeet.drawer:drawer:1.0.3")
     implementation("com.google.android.material:material:1.9.0")
@@ -199,6 +198,10 @@ spotless {
         ktlint()
     }
     kotlinGradle {
-        ktlint()
+        ktlint().editorConfigOverride(
+            mapOf(
+                "ktlint_standard_multiline-expression-wrapping" to "disabled",
+            ),
+        )
     }
 }
