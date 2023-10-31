@@ -33,6 +33,8 @@
 
 NekoInverter 版的 EhViewer [白E]，原作者已不再维护
 
+自用，故关闭Issue区，相关问题可在其它区域讨论
+
 # 下载
 
 **注：需要 Android 9 及以上版本系统**
@@ -58,6 +60,7 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护
 - [OkHttp](https://square.github.io/okhttp/)
 - [RikkaX](https://github.com/RikkaApps/RikkaX)
 - [XZ Utils](https://tukaani.org/xz/)
+- [Ktor](https://ktor.io/)
 
 标签翻译数据
 
