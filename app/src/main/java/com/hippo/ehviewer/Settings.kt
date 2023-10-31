@@ -276,9 +276,9 @@ object Settings {
                 putShowTagTranslations(true)
             }
             // Enable builtInHosts if the language is zh
-            putbuiltInHosts(true)
-            // Enable dF if the language is zh
-            putdF(true)
+            putBuiltInHosts(true)
+            // Enable DoF if the language is zh
+            putDoF(true)
         }
     }
 
@@ -659,9 +659,15 @@ object Settings {
 
     val builtInHosts: Boolean
         get() = getBoolean(KEY_BUILT_IN_HOSTS, DEFAULT_BUILT_IN_HOSTS)
+    fun putBuiltInHosts(value: Boolean) {
+        putBoolean(KEY_BUILT_IN_HOSTS, value)
+    }
 
     val dF: Boolean
         get() = getBoolean(KEY_DOMAIN_FRONTING, DEFAULT_DOMAIN_FRONTING)
+    fun putDoF(value: Boolean) {
+        putBoolean(KEY_DOMAIN_FRONTING, value)
+    }
 
     val bypassVpn: Boolean
         get() = getBoolean(KEY_BYPASS_VPN, DEFAULT_BYPASS_VPN)
