@@ -1003,7 +1003,7 @@ class GalleryDetailScene :
         }
         try {
             val key = EhCacheKeyFactory.getThumbKey(gid)
-            val path = imageLoader(context).diskCache!![key]!!.use { it.data }
+            val path = imageLoader(context).diskCache!!.openSnapshot(key)!!.use { it.data }
             val lub = ListUrlBuilder()
             lub.mode = ListUrlBuilder.MODE_IMAGE_SEARCH
             lub.imagePath = path.toString()
