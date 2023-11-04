@@ -530,6 +530,7 @@
     <string name="settings_advanced_thumb_cache_size">Thumb cache size</string>
     <string name="settings_advanced_read_cache_size">Read cache size</string>
     <string name="settings_advanced_app_language_title">App language</string>
+    <string name="settings_advanced_custom_useragent_title">Custom User-Agent</string>
     <string name="settings_advanced_proxy">Proxy</string>
     <string name="settings_advanced_proxy_summary_1" translatable="false">%1$s %2$s:%3$d</string>
     <string name="settings_advanced_proxy_summary_2" translatable="false">%1$s</string>
