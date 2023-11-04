@@ -504,6 +504,8 @@
     <string name="settings_advanced_thumb_cache_size">縮略圖緩存大小</string>
     <string name="settings_advanced_read_cache_size">閲讀緩存大小</string>
     <string name="settings_advanced_app_language_title">App 界面語言</string>
+    <string name="settings_advanced_custom_useragent_title">預設 User Agent</string>
+    <string name="settings_advanced_default">預設</string>
     <string name="settings_advanced_proxy">代理</string>
     <string name="settings_advanced_built_in_hosts_title">內置 hosts.txt</string>
     <string name="settings_advanced_built_in_hosts_summary">應用提供的主機到 IP 的映射\n可被自定義 hosts.txt 覆蓋</string>

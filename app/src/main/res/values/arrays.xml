@@ -216,7 +216,7 @@
     </string-array>
 
     <string-array name="user_agent_entries">
-        <item>Default</item>
+        <item>@string/settings_advanced_default</item>
         <item>Android</item>
         <item>Windows</item>
         <item>iOS</item>
