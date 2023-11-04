@@ -31,7 +31,7 @@
 
 # 描述
 
-NekoInverter 版的 EhViewer [白E]，原作者已不再维护
+NekoInverter 版的 EhViewer [白E]，原作者已不再维护，不接受功能请求，欢迎Pull Request
 
 # 下载
 
@@ -43,6 +43,30 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护
 
 <img src="https://github.com/AdNotFound/EhViewer-Neko/blob/test/app/pic/Screenshot_EHV.jpg?raw=true" width="200" />
 
+
+# 常见问题
+
+**挂梯子后打不开**
+
+- 尝试关闭 设置-高级 中的 “内置 hosts.txt” 和 “域名前置”
+
+**首次登录进不去里站**
+
+- 确保你的账号有里站权限，且**在登录时必须使用干净的欧美 IP**，登录成功后可换用其他 IP 不受影响
+- 也可以使用 Cookie 登录
+
+**其它任何白屏、509、Sad Panda 问题**
+
+- 换 IP，换到能用为止
+
+
+**我订阅了标签，但是订阅页面提示我没有订阅**
+
+- 打开任意一个画廊后再返回访问订阅页面
+
+**其他问题**
+
+- 善用搜索引擎，或者去 E-Hentai 论坛提问
 # 感谢
 
 本项目受到了诸多开源项目的帮助
@@ -57,6 +81,7 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护
 - [Nettle](https://www.lysator.liu.se/~nisse/nettle/)
 - [OkHttp](https://square.github.io/okhttp/)
 - [RikkaX](https://github.com/RikkaApps/RikkaX)
+- [Ktor](https://ktor.io/)
 - [XZ Utils](https://tukaani.org/xz/)
 
 标签翻译数据
