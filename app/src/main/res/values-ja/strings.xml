@@ -386,7 +386,7 @@
     <string name="settings_advanced_dump_logcat_to">ログを%sにエクスポートしました</string>
     <string name="settings_advanced_read_cache_size">閲覧キャッシュのサイズ</string>
     <string name="settings_advanced_app_language_title">アプリ言語（Language）</string>
-    <string name="settings_advanced_custom_useragent_title">默认ユーザーエージェント</string>
+    <string name="settings_advanced_custom_useragent_title">カスタム ユーザー エージェント</string>
     <string name="settings_advanced_default">デフォルト</string>
     <string name="settings_advanced_proxy">プロキシ</string>
     <string name="settings_advanced_built_in_hosts_title">既定hosts.txt</string>
