@@ -47,8 +47,6 @@ object EhDns : Dns {
         )
         put(
             "exhentai.org",
-            Pair("172.64.198.37", false),
-            Pair("172.64.199.37", false),
             Pair("178.175.128.252", false),
             Pair("178.175.129.252", false),
             Pair("178.175.129.254", false),
