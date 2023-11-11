@@ -767,7 +767,6 @@ class GalleryDetailScene :
     }
 
     private fun bindViewSecond() {
-        context ?: return
         val gd = mGalleryDetail ?: return
         if (mPage != 0) {
             Snackbar.make(
@@ -776,7 +775,7 @@ class GalleryDetailScene :
                 Snackbar.LENGTH_LONG,
             )
                 .setAction(R.string.read) {
-                    val intent = Intent(context, GalleryActivity::class.java)
+                    val intent = Intent(requireContext(), GalleryActivity::class.java)
                     intent.action = GalleryActivity.ACTION_EH
                     intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, mGalleryDetail)
                     intent.putExtra(GalleryActivity.KEY_PAGE, mPage)
