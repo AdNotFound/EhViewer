@@ -34,9 +34,9 @@ object EhDns : Dns {
             Pair("178.162.139.24", false),
             Pair("178.162.140.212", false),
             Pair("2001:1af8:4700:a062:8::47de", false),
-            Pair("2001:1af8:4700:a062:9::47de", true),
+            Pair("2001:1af8:4700:a062:9::47de", false),
             Pair("2001:1af8:4700:a0c9:4::47de", false),
-            Pair("2001:1af8:4700:a0c9:3::47de", true),
+            Pair("2001:1af8:4700:a0c9:3::47de", false),
         )
 
         put(
@@ -53,6 +53,8 @@ object EhDns : Dns {
             Pair("178.175.128.254", false),
             Pair("178.175.132.20", false),
             Pair("178.175.132.22", false),
+            Pair("172.67.187.219", false),
+            Pair("104.21.56.202", false),
         )
         put(
             "s.exhentai.org",
