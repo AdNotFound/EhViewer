@@ -846,7 +846,7 @@ class GalleryDetailScene :
             tgName.backgroundTintList = ColorStateList.valueOf(colorName)
             val prefix = namespaceToPrefix(tgs.groupName!!)
             tgName.setOnLongClickListener {
-                val tagGroupString = tgs.joinToString(", ") { it }
+                val tagGroupString = tgs.joinToString(", ") { "${tgs.groupName}:$it" }
                 requireActivity().addTextToClipboard(tagGroupString, false)
                 true
             }
