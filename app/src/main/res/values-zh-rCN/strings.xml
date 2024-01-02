@@ -510,6 +510,8 @@
     <string name="settings_advanced_built_in_hosts_summary">应用提供的主机到 IP 的映射\n可被自定义 hosts.txt 覆盖</string>
     <string name="settings_advanced_custom_hosts_title">自定义 hosts.txt</string>
     <string name="settings_advanced_custom_hosts_summary">将主机名称映射到相应的 IP 地址\n可覆盖内置 hosts.txt</string>
+    <string name="settings_advanced_dns_over_https_summary">DNS over HTTPS</string>
+    <string name="settings_advanced_dns_over_https_title">使用 DoH 解析域名 </string>
     <string name="settings_advanced_domain_fronting_title">域名前置</string>
     <string name="settings_advanced_domain_fronting_summary">绕过 SNI 封锁，启用时会禁用代理\n修改后重启应用生效</string>
     <string name="settings_advanced_bypass_vpn_title">绕过 VPN</string>
