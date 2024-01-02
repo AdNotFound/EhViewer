@@ -845,6 +845,11 @@ class GalleryDetailScene :
             tgName.text = readableTagName ?: tgs.groupName
             tgName.backgroundTintList = ColorStateList.valueOf(colorName)
             val prefix = namespaceToPrefix(tgs.groupName!!)
+            tgName.setOnLongClickListener {
+                val tagGroupString = tgs.joinToString(", ") { it }
+                requireActivity().addTextToClipboard(tagGroupString, false)
+                true
+            }
             val awl = AutoWrapLayout(context)
             ll.addView(
                 awl,
