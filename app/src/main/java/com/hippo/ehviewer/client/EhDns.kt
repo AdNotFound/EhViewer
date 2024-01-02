@@ -22,11 +22,12 @@ import okhttp3.Dns
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.dnsoverhttps.DnsOverHttps;
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.net.InetAddress
 import java.net.UnknownHostException
 
 object EhDns : Dns {
-    private val dnsOverHttps: DnsOverHttps
+    private var dnsOverHttps: DnsOverHttps? = null
     private val hosts = EhApplication.hosts
     private val builtInHosts: MutableMap<String, List<InetAddress>> = mutableMapOf()
 
@@ -115,10 +116,12 @@ object EhDns : Dns {
             Pair("178.162.147.246", false),
         )
 
-        dnsOverHttps = DnsOverHttps.Builder()
-            .client(OkHttpClient())
-            .url(HttpUrl.parse("https://cloudflare-dns.com/dns-query")!!)
-            .build()
+        if (Settings.dOH) {
+            dnsOverHttps = DnsOverHttps.Builder()
+                .client(OkHttpClient())
+                .url("https://cloudflare-dns.com/dns-query".toHttpUrlOrNull()!!)
+                .build()
+        }
     }
 
     private fun put(
@@ -133,7 +136,7 @@ object EhDns : Dns {
     @Throws(UnknownHostException::class)
     override fun lookup(hostname: String): List<InetAddress> {
         return hosts[hostname] ?: builtInHosts[hostname].takeIf { Settings.builtInHosts }
-            ?: dnsOverHttps.lookup(hostname)
+            ?: dnsOverHttps?.lookup(hostname)
             ?: Dns.SYSTEM.lookup(hostname)
     }
 
