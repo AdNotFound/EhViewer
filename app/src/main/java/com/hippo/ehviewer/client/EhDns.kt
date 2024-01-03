@@ -24,6 +24,8 @@ import okhttp3.dnsoverhttps.DnsOverHttps
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.net.InetAddress
 import java.net.UnknownHostException
+import okhttp3.Cache
+import java.io.File
 
 object EhDns : Dns {
     private val hosts = EhApplication.hosts
