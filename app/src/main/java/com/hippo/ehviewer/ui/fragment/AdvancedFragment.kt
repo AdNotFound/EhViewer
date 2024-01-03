@@ -245,6 +245,8 @@ class AdvancedFragment : BasePreferenceFragment() {
         val openByDefault = findPreference<Preference>(KEY_OPEN_BY_DEFAULT)
         val domainFronting = findPreference<Preference>(AppSettings.KEY_DOMAIN_FRONTING)
         val bypassVpn = findPreference<Preference>(AppSettings.KEY_BYPASS_VPN)
+        val dnsoverHttps = findPreference<Preference>(AppSettings.KEY_DOH)
+        val builtInHosts = findPreference<Preference>(AppSettings.KEY_BUILT_IN_HOSTS)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
             openByDefault!!.isVisible = false
         } else {
@@ -258,6 +260,11 @@ class AdvancedFragment : BasePreferenceFragment() {
         bypassVpn!!.isVisible = AppSettings.dF
         domainFronting!!.setOnPreferenceChangeListener { _, newValue ->
             bypassVpn.isVisible = newValue as Boolean
+            true
+        }
+        dnsoverHttps!!.isVisible = AppSettings.builtInHosts
+        builtInHosts!!.setOnPreferenceChangeListener { _, newValue ->
+            dnsoverHttps.isVisible = newValue as Boolean
             true
         }
     }
