@@ -28,11 +28,11 @@ import java.net.UnknownHostException
 object EhDns : Dns {
     private val hosts = EhApplication.hosts
     private val builtInHosts: MutableMap<String, List<InetAddress>> = mutableMapOf()
-    private val bootstrapClient = OkHttpClient.Builder().build()
+    private val appCache = Cache(File("cacheDir", "okhttpcache"), 5 * 1024 * 1024)
+    private val bootstrapClient = OkHttpClient.Builder().cache(appCache).build()
 
     private val doh = DnsOverHttps.Builder().client(bootstrapClient)
-        .url("https://freedns.controld.com/p0".toHttpUrl())
-        .bootstrapDnsHosts(InetAddress.getByName("76.76.2.0"), InetAddress.getByName("76.76.10.0"))
+        .url("https://45.11.45.11/dns-query".toHttpUrl())
         .build()
     
     init {
