@@ -279,9 +279,9 @@ object Settings {
                 putShowTagTranslations(true)
             }
             // Enable builtInHosts if the language is zh
-            putBuiltInHosts(true)
+            // putBuiltInHosts(true)
             // Enable DoF if the language is zh
-            putDoF(true)
+            // putDoF(true)
         }
     }
 
