@@ -176,9 +176,9 @@ object Settings {
     private val DEFAULT_PROXY_IP: String? = null
     private const val KEY_PROXY_PORT = "proxy_port"
     private const val DEFAULT_PROXY_PORT = -1
-    const val KEY_BUILT_IN_HOSTS = "built_in_hosts_2"
+    private const val KEY_BUILT_IN_HOSTS = "built_in_hosts_2"
     private const val DEFAULT_BUILT_IN_HOSTS = false
-    const val KEY_DOH = "dns_over_https"
+    private const val KEY_DOH = "dns_over_https"
     private const val DEFAULT_DOH = false
     const val KEY_DOMAIN_FRONTING = "domain_fronting"
     private const val DEFAULT_DOMAIN_FRONTING = false
@@ -279,9 +279,9 @@ object Settings {
                 putShowTagTranslations(true)
             }
             // Enable builtInHosts if the language is zh
-            // putBuiltInHosts(true)
+            //putBuiltInHosts(true)
             // Enable DoF if the language is zh
-            // putDoF(true)
+            //putDoF(true)
         }
     }
 
