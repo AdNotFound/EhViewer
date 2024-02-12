@@ -168,7 +168,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp-bom:5.0.0-alpha.11")
     implementation("com.squareup.okhttp3:okhttp-coroutines")
 
-    implementation("com.squareup.okio:okio-jvm:3.7.0")
+    implementation("com.squareup.okio:okio-jvm:3.8.0")
 
     // https://github.com/RikkaApps/RikkaX
     implementation("dev.rikka.rikkax.core:core-ktx:1.4.1")
