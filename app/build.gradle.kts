@@ -160,7 +160,7 @@ dependencies {
     implementation("androidx.room:room-paging:$room")
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.2.0-alpha01")
     implementation("com.drakeet.drawer:drawer:1.0.3")
-    implementation("com.google.android.material:material:1.9.0")
+    implementation("com.google.android.material:material:1.11.0")
 
     // https://square.github.io/okhttp/changelogs/changelog/
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
