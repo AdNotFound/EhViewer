@@ -101,8 +101,3 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护，不接受功能
 
     EhViewer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
     without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-
-# Sponsor
-
-[![DartNode](app/pic/DartNode.png)](https://dartnode.com)
