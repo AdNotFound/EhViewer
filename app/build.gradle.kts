@@ -69,7 +69,6 @@ android {
         )
         buildConfigField("String", "VERSION_CODE", "\"${defaultConfig.versionCode}\"")
         buildConfigField("String", "COMMIT_SHA", "\"$commitSha\"")
-        buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")
     }
 
     externalNativeBuild {
@@ -88,7 +87,6 @@ android {
         freeCompilerArgs = listOf(
             // https://kotlinlang.org/docs/compiler-reference.html#progressive
             "-progressive",
-            "-XXLanguage:+BreakContinueInInlineLambdas",
 
             "-opt-in=coil.annotation.ExperimentalCoilApi",
             "-opt-in=kotlin.contracts.ExperimentalContracts",
@@ -121,9 +119,11 @@ android {
             isShrinkResources = true
             proguardFiles("proguard-rules.pro")
             signingConfig = signConfig
+            buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")
         }
         debug {
             applicationIdSuffix = ".debug"
+            buildConfigField("String", "BUILD_TIME", "\"\"")
         }
     }
 
