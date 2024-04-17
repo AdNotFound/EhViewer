@@ -143,6 +143,6 @@ object EhDns : Dns {
     }
 
     fun isInHosts(hostname: String): Boolean {
-        return hosts.contains(hostname) || (builtInHosts.contains(hostname) && Settings.builtInHosts)
+        return hosts.contains(hostname) || (builtInHosts.contains(hostname))
     }
 }
