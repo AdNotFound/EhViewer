@@ -37,7 +37,7 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护，不接受功能
 
 **注：需要 Android 9 及以上版本系统**
 
-前往 [Github Actions](https://github.com/AdNotFound/EhViewer-Neko/actions) 下载 CI 版
+前往 [Github Actions](https://github.com/AdNotFound/EhViewer/actions) 下载 CI 版
 
 # 截图
 
