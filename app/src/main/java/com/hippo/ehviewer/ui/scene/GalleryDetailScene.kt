@@ -19,7 +19,10 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.Dialog
+import android.app.DownloadManager
+import android.app.ForegroundServiceStartNotAllowedException
 import android.app.assist.AssistContent
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
@@ -60,7 +63,6 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
 import androidx.lifecycle.lifecycleScope
 import androidx.transition.TransitionInflater
-import coil.Coil.imageLoader
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.hippo.app.CheckBoxDialogBuilder
@@ -74,6 +76,7 @@ import com.hippo.ehviewer.UrlOpener
 import com.hippo.ehviewer.client.EhCacheKeyFactory
 import com.hippo.ehviewer.client.EhClient
 import com.hippo.ehviewer.client.EhCookieStore
+import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhFilter
 import com.hippo.ehviewer.client.EhRequest
 import com.hippo.ehviewer.client.EhTagDatabase
@@ -94,8 +97,8 @@ import com.hippo.ehviewer.client.parser.RateGalleryParser
 import com.hippo.ehviewer.client.parser.TorrentParser
 import com.hippo.ehviewer.dao.DownloadInfo
 import com.hippo.ehviewer.dao.Filter
-import com.hippo.ehviewer.download.DownloadManager
 import com.hippo.ehviewer.download.DownloadManager.DownloadInfoListener
+import com.hippo.ehviewer.download.DownloadService
 import com.hippo.ehviewer.spider.SpiderDen
 import com.hippo.ehviewer.spider.SpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.MODE_READ
@@ -130,14 +133,13 @@ import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.roundToInt
-import android.app.DownloadManager as AndroidDownloadManager
+import com.hippo.ehviewer.download.DownloadManager as EhDownloadManager
 
 class GalleryDetailScene :
     BaseScene(),
     View.OnClickListener,
     DownloadInfoListener,
     OnLongClickListener {
-    private val mDownloadManager = DownloadManager
     private var mTip: TextView? = null
     private var mViewTransition: ViewTransition? = null
 
@@ -450,7 +452,7 @@ class GalleryDetailScene :
         // Get download state
         val gid = gid
         mDownloadState = if (gid != -1L) {
-            mDownloadManager.getDownloadState(gid)
+            EhDownloadManager.getDownloadState(gid)
         } else {
             DownloadInfo.STATE_INVALID
         }
@@ -556,13 +558,13 @@ class GalleryDetailScene :
             mTip!!.setText(R.string.error_cannot_find_gallery)
             adjustViewVisibility(STATE_FAILED, false)
         }
-        mDownloadManager.addDownloadInfoListener(this)
+        EhDownloadManager.addDownloadInfoListener(this)
         return view
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        mDownloadManager.removeDownloadInfoListener(this)
+        EhDownloadManager.removeDownloadInfoListener(this)
         mTip = null
         mViewTransition = null
         mHeader = null
@@ -736,7 +738,7 @@ class GalleryDetailScene :
         }
         if (ACTION_GALLERY_INFO == mAction && mGalleryInfo != null) {
             val gi: GalleryInfo = mGalleryInfo!!
-            mThumb!!.load(EhCacheKeyFactory.getThumbKey(gi.gid), gi.thumb!!)
+            mThumb!!.load(EhCacheKeyFactory.getThumbKey(gi.gid), gi.thumb!!, hardware = false)
             mTitle!!.text = EhUtils.getSuitableTitle(gi)
             mUploader!!.text = gi.uploader
             mUploader!!.alpha = if (gi.disowned) .5f else 1f
@@ -1003,22 +1005,11 @@ class GalleryDetailScene :
     }
 
     private fun showCoverGalleryList() {
-        val context = context ?: return
-        val gid = gid
-        if (-1L == gid) {
-            return
-        }
-        try {
-            val key = EhCacheKeyFactory.getThumbKey(gid)
-            val path = imageLoader(context).diskCache!!.openSnapshot(key)!!.use { it.data }
-            val lub = ListUrlBuilder()
-            lub.mode = ListUrlBuilder.MODE_IMAGE_SEARCH
-            lub.imagePath = path.toString()
-            lub.isUseSimilarityScan = true
-            GalleryListScene.startScene(this, lub)
-        } catch (e: Throwable) {
-            e.printStackTrace()
-        }
+        val uri = mGalleryDetail?.thumb ?: return
+        val lub = ListUrlBuilder()
+        lub.mode = ListUrlBuilder.MODE_IMAGE_SEARCH
+        lub.hash = uri.substringAfterLast("/").substringBefore("-")
+        GalleryListScene.startScene(this, lub)
     }
 
     override fun onClick(v: View) {
@@ -1060,20 +1051,56 @@ class GalleryDetailScene :
                 GalleryListScene.startScene(this, lub)
             }
             mDownload -> {
-                if (mDownloadManager.getDownloadState(galleryDetail.gid) == DownloadInfo.STATE_INVALID) {
+                val downloadState = EhDownloadManager.getDownloadState(galleryDetail.gid)
+                if (downloadState == DownloadInfo.STATE_INVALID) {
                     // CommonOperations Actions
                     CommonOperations.startDownload(activity, galleryDetail, false)
                 } else {
-                    val builder = CheckBoxDialogBuilder(
-                        context,
-                        getString(R.string.download_remove_dialog_message, galleryDetail.title),
-                        getString(R.string.download_remove_dialog_check_text),
-                        Settings.removeImageFiles,
-                    )
-                    val helper = DeleteDialogHelper(galleryDetail, builder)
-                    builder.setTitle(R.string.download_remove_dialog_title)
-                        .setPositiveButton(android.R.string.ok, helper)
-                        .show()
+                    if (galleryDetail.newerVersions.size != 0 && downloadState == DownloadInfo.STATE_FINISH && EhUtils.isMPVAvailable) {
+                        val titles = ArrayList<CharSequence>()
+                        for (newerVersion in galleryDetail.newerVersions) {
+                            titles.add(
+                                getString(
+                                    R.string.newer_version_title,
+                                    newerVersion.title,
+                                    newerVersion.posted,
+                                ),
+                            )
+                        }
+                        AlertDialog.Builder(requireContext())
+                            .setItems(titles.toTypedArray()) { _: DialogInterface?, which: Int ->
+                                val newerVersion = galleryDetail.newerVersions[which]
+                                if (EhDownloadManager.containDownloadInfo(newerVersion.gid)) {
+                                    showTip(R.string.download_upgrade_existed, LENGTH_SHORT)
+                                } else {
+                                    val url = EhUrl.getGalleryDetailUrl(
+                                        newerVersion.gid,
+                                        newerVersion.token,
+                                        0,
+                                        false,
+                                    )
+                                    val callback: EhClient.Callback<*> =
+                                        GalleryUpgradeListener(context)
+                                    val request = EhRequest()
+                                        .setMethod(EhClient.METHOD_GET_GALLERY_DETAIL)
+                                        .setArgs(url)
+                                        .setCallback(callback)
+                                    request.enqueue(this)
+                                }
+                            }
+                            .show()
+                    } else {
+                        val builder = CheckBoxDialogBuilder(
+                            context,
+                            getString(R.string.download_remove_dialog_message, galleryDetail.title),
+                            getString(R.string.download_remove_dialog_check_text),
+                            Settings.removeImageFiles,
+                        )
+                        val helper = DeleteDialogHelper(galleryDetail, builder)
+                        builder.setTitle(R.string.download_remove_dialog_title)
+                            .setPositiveButton(android.R.string.ok, helper)
+                            .show()
+                    }
                 }
             }
             mRead -> {
@@ -1441,7 +1468,13 @@ class GalleryDetailScene :
                 DownloadInfo.STATE_NONE -> setText(R.string.download_state_none)
                 DownloadInfo.STATE_WAIT -> setText(R.string.download_state_wait)
                 DownloadInfo.STATE_DOWNLOAD -> setText(R.string.download_state_downloading)
-                DownloadInfo.STATE_FINISH -> setText(R.string.download_state_downloaded)
+                DownloadInfo.STATE_FINISH -> setText(
+                    if (mGalleryDetail != null && mGalleryDetail!!.newerVersions.size != 0 && EhUtils.isMPVAvailable) {
+                        R.string.download_upgradeable
+                    } else {
+                        R.string.download_state_downloaded
+                    },
+                )
                 DownloadInfo.STATE_FAILED -> setText(R.string.download_state_failed)
             }
         }
@@ -1453,7 +1486,7 @@ class GalleryDetailScene :
         if (null == context || -1L == gid) {
             return
         }
-        val downloadState = mDownloadManager.getDownloadState(gid)
+        val downloadState = EhDownloadManager.getDownloadState(gid)
         if (downloadState == mDownloadState) {
             return
         }
@@ -1597,17 +1630,25 @@ class GalleryDetailScene :
     ) : EhCallback<GalleryDetailScene?, String?>(context) {
         override fun onSuccess(result: String?) {
             result?.let {
-                // TODO: Don't use buggy system download service
-                val r = AndroidDownloadManager.Request(Uri.parse(result))
+                val uri = Uri.parse(it)
+                val intent = Intent().apply {
+                    action = Intent.ACTION_VIEW
+                    setDataAndType(uri, "application/zip")
+                }
                 val name = "${info.gid}-${EhUtils.getSuitableTitle(info)}.zip"
-                r.setDestinationInExternalPublicDir(
-                    Environment.DIRECTORY_DOWNLOADS,
-                    FileUtils.sanitizeFilename(name),
-                )
-                r.setNotificationVisibility(AndroidDownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                val dm = application.getSystemService<AndroidDownloadManager>()!!
                 try {
-                    dm.enqueue(r)
+                    try {
+                        application.topActivity!!.startActivity(intent)
+                        application.topActivity!!.addTextToClipboard(name, false)
+                    } catch (_: ActivityNotFoundException) {
+                        val r = DownloadManager.Request(uri)
+                        r.setDestinationInExternalPublicDir(
+                            Environment.DIRECTORY_DOWNLOADS,
+                            FileUtils.sanitizeFilename(name),
+                        )
+                        r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                        application.getSystemService<DownloadManager>()!!.enqueue(r)
+                    }
                 } catch (e: Throwable) {
                     e.printStackTrace()
                     ExceptionUtils.throwIfFatal(e)
@@ -1638,7 +1679,7 @@ class GalleryDetailScene :
             }
             // Delete
             // DownloadManager Actions
-            mDownloadManager.deleteDownload(mGalleryInfo.gid)
+            EhDownloadManager.deleteDownload(mGalleryInfo.gid)
             // Delete image files
             val checked = mBuilder.isChecked
             Settings.putRemoveImageFiles(checked)
@@ -1679,6 +1720,106 @@ class GalleryDetailScene :
         override fun onCancel() {
             application.removeGlobalStuff(this)
         }
+    }
+
+    private inner class GalleryUpgradeListener(context: Context) :
+        EhCallback<GalleryDetailScene?, GalleryDetail>(context) {
+        override fun onSuccess(result: GalleryDetail) {
+            val activity = mainActivity ?: return
+            val from = mGalleryDetail ?: return
+            val dialog = AlertDialog.Builder(activity)
+                .setTitle(null)
+                .setView(R.layout.preference_dialog_task)
+                .setCancelable(false)
+                .show()
+            var success = false
+            lifecycleScope.launchIO {
+                EhEngine.getGalleryDiff(result, from)?. let { diff ->
+                    // Delete exist files
+                    val dirName = FileUtils.sanitizeFilename("${result.gid}-${EhUtils.getSuitableTitle(result)}")
+                    EhDB.putDownloadDirname(result.gid, dirName)
+                    SpiderDen.getGalleryDownloadDir(result.gid)?.takeIf { it.isDirectory }?.let { runCatching { it.delete() } }
+                    // Rename directory
+                    val dir = SpiderDen.getGalleryDownloadDir(from.gid)?.takeIf { it.isDirectory }
+                    if (dir != null && dir.renameTo(dirName)) {
+                        // Delete old gallery
+                        val label = EhDownloadManager.getDownloadInfo(from.gid)?.label
+                        EhDownloadManager.deleteDownload(from.gid)
+                        EhDB.removeDownloadDirname(from.gid)
+                        // Delete old files
+                        dir.findFile(".thumb")?.delete()
+                        dir.findFile(SpiderQueen.SPIDER_INFO_FILENAME)?.delete()
+                        // Rename images
+                        val renames: MutableList<String> = ArrayList()
+                        (if (diff.isNotEmpty() && diff[0].first == 0) diff.reversed() else diff).forEach {
+                            SpiderDen.findImageFile(dir, it.first).first?.let { fromFile ->
+                                if (it.second == -1) {
+                                    fromFile.delete()
+                                } else {
+                                    val extension = fromFile.name.let { name -> FileUtils.getExtensionFromFilename(name) }
+                                    var toFileName = SpiderDen.perFilename(it.second, ".$extension")
+                                    if (SpiderDen.findImageFile(dir, it.second).first != null) {
+                                        toFileName += ".bak"
+                                        renames.add(toFileName)
+                                    }
+                                    fromFile.renameTo(toFileName)
+                                }
+                            }
+                        }
+                        renames.forEach {
+                            dir.findFile(it)?.renameTo(it.replace(".bak", ""))
+                        }
+                        // Start download
+                        val intent = Intent(activity, DownloadService::class.java)
+                        intent.action = DownloadService.ACTION_START
+                        intent.putExtra(DownloadService.KEY_LABEL, label)
+                        intent.putExtra(DownloadService.KEY_GALLERY_INFO, result)
+                        success = true
+                        try {
+                            ContextCompat.startForegroundService(activity, intent)
+                            withUIContext {
+                                dialog.dismiss()
+                                activity.showTip(R.string.added_to_download_list, LENGTH_SHORT)
+                            }
+                        } catch (e: Exception) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                                e is ForegroundServiceStartNotAllowedException
+                            ) {
+                                // App not in a valid state to start foreground service
+                                withUIContext {
+                                    dialog.dismiss()
+                                    AlertDialog.Builder(activity)
+                                        .setMessage(R.string.download_upgrade_service_failed)
+                                        .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
+                                            ContextCompat.startForegroundService(activity, intent)
+                                            activity.showTip(R.string.added_to_download_list, LENGTH_SHORT)
+                                        }
+                                        .show()
+                                }
+                            } else {
+                                success = false
+                                e.printStackTrace()
+                            }
+                        }
+                    } else {
+                        EhDB.removeDownloadDirname(result.gid)
+                    }
+                }
+                if (!success) {
+                    withUIContext {
+                        dialog.dismiss()
+                        activity.showTip(R.string.download_state_failed, LENGTH_SHORT)
+                    }
+                }
+            }
+        }
+
+        override fun onFailure(e: Exception) {
+            e.printStackTrace()
+            showTip(R.string.download_state_failed, LENGTH_LONG)
+        }
+
+        override fun onCancel() {}
     }
 
     private inner class RateGalleryListener(
@@ -1915,14 +2056,14 @@ class GalleryDetailScene :
                 val name = mTorrentList!![position].name
                 // TODO: Don't use buggy system download service
                 val r =
-                    AndroidDownloadManager.Request(Uri.parse(url.replace("exhentai.org", "ehtracker.org")))
+                    DownloadManager.Request(Uri.parse(url.replace("exhentai.org", "ehtracker.org")))
                 r.setDestinationInExternalPublicDir(
                     Environment.DIRECTORY_DOWNLOADS,
                     FileUtils.sanitizeFilename("$name.torrent"),
                 )
-                r.setNotificationVisibility(AndroidDownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 r.addRequestHeader("Cookie", EhCookieStore.getCookieHeader(url.toHttpUrl()))
-                val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as AndroidDownloadManager
+                val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
                 try {
                     dm.enqueue(r)
                     showTip(R.string.download_torrent_started, LENGTH_SHORT)

@@ -572,15 +572,16 @@ class DownloadsScene :
             if (collectDownloadInfo) {
                 downloadInfoList = LinkedList()
             }
-            val stateArray = recyclerView.checkedItemPositions
-            for (i in 0 until stateArray.size()) {
-                if (stateArray.valueAt(i)) {
-                    val info = list[stateArray.keyAt(i)]
-                    if (collectDownloadInfo) {
-                        downloadInfoList!!.add(info)
-                    }
-                    if (collectGid) {
-                        gidList!!.add(info.gid)
+            recyclerView.checkedItemPositions?.let {
+                for (i in 0 until it.size()) {
+                    if (it.valueAt(i)) {
+                        val info = list[it.keyAt(i)]
+                        if (collectDownloadInfo) {
+                            downloadInfoList!!.add(info)
+                        }
+                        if (collectGid) {
+                            gidList!!.add(info.gid)
+                        }
                     }
                 }
             }
@@ -661,7 +662,7 @@ class DownloadsScene :
         }
         val index = mList!!.indexOf(info)
         if (index >= 0) {
-            mAdapter?.notifyItemChanged(index)
+            mAdapter?.notifyItemChanged(index, PAYLOAD_STATE)
         }
     }
 
@@ -1100,7 +1101,8 @@ class DownloadsScene :
                     EhCacheKeyFactory.getThumbKey(info.gid),
                     EhUtils.fixThumbUrl(it),
                     true,
-                    SpiderDen.getGalleryDownloadDir(info.gid)?.subFile(".thumb"),
+                    SpiderDen.getGalleryDownloadDir(info.gid),
+                    false,
                 )
             }
             holder.title.text = EhUtils.getSuitableTitle(info)
@@ -1143,6 +1145,18 @@ class DownloadsScene :
                     return@setOnLongClickListener true
                 }
                 return@setOnLongClickListener false
+            }
+        }
+
+        override fun onBindViewHolder(
+            holder: DownloadHolder,
+            position: Int,
+            payloads: MutableList<Any>,
+        ) {
+            if (payloads.any { it == PAYLOAD_STATE }) {
+                mList?.let { bindForState(holder, it[position]) }
+            } else {
+                super.onBindViewHolder(holder, position, payloads)
             }
         }
 
@@ -1339,6 +1353,7 @@ class DownloadsScene :
         private val PATTERN_NAME = Regex("^(?:\\([^\\[\\]()]+\\))?\\s*(?:\\[[^\\[\\]]+])?\\s*(.+)")
         private const val KEY_LABEL = "label"
         private const val LABEL_OFFSET = 2
+        private const val PAYLOAD_STATE = 0
 
         private fun getAuthor(title: String): String {
             val matcher = PATTERN_AUTHOR.find(title) ?: return ""

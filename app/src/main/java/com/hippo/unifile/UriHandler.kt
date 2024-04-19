@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Hippo Seven
+ * Copyright 2016 Hippo Seven
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.hippo.unifile
 
-package com.hippo.easyrecyclerview;
+import android.content.Context
+import android.net.Uri
 
-import android.view.View;
-
-import androidx.recyclerview.widget.RecyclerView;
-
-public class SimpleHolder extends RecyclerView.ViewHolder {
-    public SimpleHolder(View itemView) {
-        super(itemView);
-    }
+/*
+ * Created by Hippo on 8/16/2016.
+ */
+/**
+ * A UriHandler is to get UniFile from custom uri for extensions
+ */
+interface UriHandler {
+    /**
+     * Create a [UniFile] representing the uri
+     */
+    fun fromUri(context: Context?, uri: Uri?): UniFile?
 }

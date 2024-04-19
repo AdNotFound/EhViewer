@@ -69,7 +69,6 @@ android {
         )
         buildConfigField("String", "VERSION_CODE", "\"${defaultConfig.versionCode}\"")
         buildConfigField("String", "COMMIT_SHA", "\"$commitSha\"")
-        buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")
     }
 
     externalNativeBuild {
@@ -88,7 +87,6 @@ android {
         freeCompilerArgs = listOf(
             // https://kotlinlang.org/docs/compiler-reference.html#progressive
             "-progressive",
-            "-XXLanguage:+BreakContinueInInlineLambdas",
 
             "-opt-in=coil.annotation.ExperimentalCoilApi",
             "-opt-in=kotlin.contracts.ExperimentalContracts",
@@ -121,9 +119,11 @@ android {
             isShrinkResources = true
             proguardFiles("proguard-rules.pro")
             signingConfig = signConfig
+            buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")
         }
         debug {
             applicationIdSuffix = ".debug"
+            buildConfigField("String", "BUILD_TIME", "\"\"")
         }
     }
 
@@ -136,23 +136,23 @@ android {
 
 dependencies {
     // https://developer.android.com/jetpack/androidx/releases/activity
-    implementation("androidx.activity:activity-ktx:1.7.2")
+    implementation("androidx.activity:activity-ktx:1.8.2")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.biometric:biometric-ktx:1.2.0-alpha05")
     implementation("androidx.browser:browser:1.6.0")
-    implementation("androidx.collection:collection-ktx:1.4.0-alpha02")
+    implementation("androidx.collection:collection-ktx:1.4.0")
 
     implementation("androidx.core:core-ktx:1.12.0")
 
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
-    implementation("androidx.fragment:fragment-ktx:1.6.0-rc01")
+    implementation("androidx.fragment:fragment-ktx:1.8.0-alpha01")
     // https://developer.android.com/jetpack/androidx/releases/lifecycle
-    implementation("androidx.lifecycle:lifecycle-process:2.6.2")
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
 
     // https://developer.android.com/jetpack/androidx/releases/paging
     implementation("androidx.paging:paging-runtime-ktx:3.2.1")
     implementation("androidx.preference:preference-ktx:1.2.1")
-    implementation("androidx.recyclerview:recyclerview:1.3.1")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
 
     // https://developer.android.com/jetpack/androidx/releases/room
     val room = "2.6.1"
@@ -181,7 +181,7 @@ dependencies {
     // https://coil-kt.github.io/coil/changelog/
     implementation("io.coil-kt:coil:2.5.0")
 
-    implementation("io.ktor:ktor-client-okhttp:2.3.8")
+    implementation("io.ktor:ktor-client-okhttp:2.3.10")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jsoup:jsoup:1.16.2")
 }

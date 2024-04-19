@@ -21,13 +21,11 @@
     <string name="password">密码</string>
     <string name="sign_in">登录</string>
     <string name="register">注册</string>
-    <string name="sign_in_via_webview">通过网页登录</string>
     <string name="sign_in_via_cookies">通过 Cookie 登录</string>
     <string name="tourist_mode">游客模式</string>
     <string name="error_username_cannot_empty">用户名不可为空</string>
     <string name="error_password_cannot_empty">密码不可为空</string>
     <string name="sign_in_failed">登录失败</string>
-    <string name="sign_in_failed_tip">若持续出错，请尝试“通过网页登录”或“通过 Cookie 登录”。</string>
     <string name="get_it">知道了</string>
     <!-- Cookie Sign In Scene -->
     <string name="cookie_explain">Cookie 是存储在浏览器里的一小块数据。如果您不清楚 Cookie 是什么或者怎么获取 Cookie，最好搜索一下。\n\n请输入特定的 Cookie 来登录。</string>
@@ -164,20 +162,21 @@
     <string name="search_sft">标签</string>
     <string name="search_image">图片搜索</string>
     <string name="select_image">选择图片</string>
-    <string name="search_uss">使用相似搜索</string>
-    <string name="search_osc">只搜索封面</string>
     <string name="select_image_first">请先选择图片</string>
     <string name="keyword_search">关键字搜索</string>
     <string name="image_search">图片搜索</string>
 
     <!-- Gallery Detail Scene -->
+    <string name="download_upgradeable">可升级</string>
+    <string name="download_upgrade_existed">目标画廊已存在，请删除后重试</string>
+    <string name="download_upgrade_service_failed">由于系统限制，无法从后台启动下载服务，请点击确定开始下载</string>
     <string name="read_from">从第 %d 页阅读</string>
     <plurals name="page_count">
         <item quantity="other">%d 页</item>
     </plurals>
     <string name="favored_times">\u2665 %d</string>
     <string name="more_information">查看更多信息</string>
-    <string name="newer_version_avaliable">此画廊有新版本可用。</string>
+    <string name="newer_version_avaliable">此画廊有新版本可用</string>
     <string name="newer_version_title">%1$s, 添加于 %2$s</string>
     <string name="favorited">已收藏</string>
     <string name="not_favorited">未收藏</string>
@@ -472,10 +471,11 @@
     <string name="settings_download_concurrency_summary">最多同时下载 %s 张图片</string>
     <string name="settings_download_download_delay">下载延时</string>
     <string name="settings_download_download_delay_summary">每次下载延时 %s 毫秒</string>
+    <string name="settings_download_download_timeout">下载超时（秒）</string>
     <string name="settings_download_preload_image">预载图片</string>
     <string name="settings_download_preload_image_summary">向后预载 %s 张图片</string>
     <string name="settings_download_download_origin_image">加载原图</string>
-    <string name="settings_download_download_origin_image_summary">%s，危险！启用会导致下载配额迅速流失</string>
+    <string name="settings_download_download_origin_image_summary">%s，警告！可能需要 GP</string>
     <string name="settings_download_download_origin_image_never">从不启用</string>
     <string name="settings_download_download_origin_image_force">总是启用</string>
     <string name="settings_download_download_origin_image_only">仅下载时启用</string>

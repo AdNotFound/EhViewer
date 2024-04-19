@@ -28,21 +28,18 @@ object TorrentParser {
         val d = Jsoup.parse(body)
         val es = d.select("form>div>table")
         for (e in es) {
-            val html = e.html()
-            if (!html.contains("Expunged")) {
-                val m = PATTERN_TORRENT.matcher(html)
-                if (m.find()) {
-                    val posted = m.group(1)!!
-                    val size = m.group(2)!!
-                    val seeds = m.group(3)!!.toInt()
-                    val peers = m.group(4)!!.toInt()
-                    val downloads = m.group(5)!!.toInt()
-                    val url = ParserUtils.trim(m.group(7))
-                    val name = ParserUtils.trim(m.group(8))
-                    torrentList.add(Result(posted, size, seeds, peers, downloads, url, name))
-                } else {
-                    throw ParseException("Can't parse torrent list")
-                }
+            val m = PATTERN_TORRENT.matcher(e.html())
+            if (m.find()) {
+                val posted = m.group(1)!!
+                val size = m.group(2)!!
+                val seeds = m.group(3)!!.toInt()
+                val peers = m.group(4)!!.toInt()
+                val downloads = m.group(5)!!.toInt()
+                val url = ParserUtils.trim(m.group(7))
+                val name = ParserUtils.trim(m.group(8))
+                torrentList.add(Result(posted, size, seeds, peers, downloads, url, name))
+            } else {
+                throw ParseException("Can't parse torrent list")
             }
         }
         return torrentList

@@ -84,11 +84,20 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    fun load(key: String, url: String, crossfade: Boolean = true, path: UniFile? = null) {
+    fun load(
+        key: String,
+        url: String,
+        crossfade: Boolean = true,
+        path: UniFile? = null,
+        hardware: Boolean = true,
+    ) {
         mKey = key
         mUrl = url
-        val uri = path?.takeIf { it.isFile }?.uri?.toString() ?: url
+        val thumb = path?.takeIf { it.isDirectory }?.subFile(".thumb")
+        val uri = thumb?.takeIf { it.isFile }?.uri?.toString() ?: url
         load(uri) {
+            // https://coil-kt.github.io/coil/recipes/#shared-element-transitions
+            allowHardware(hardware)
             data(uri)
             memoryCacheKey(key)
             diskCacheKey(key)
@@ -102,25 +111,17 @@ open class LoadImageView @JvmOverloads constructor(
                     onPreSetImageDrawable(errorDrawable, true)
                     super.setImageDrawable(errorDrawable)
                     setRetry(true)
-                    path?.let {
-                        launchIO {
-                            if (path.exists()) path.delete()
-                        }
+                    thumb?.run {
+                        launchIO { if (exists()) delete() }
                     }
                 },
                 { _, _ ->
                     setRetry(false)
-                    path?.let {
+                    thumb?.let {
                         launchIO {
                             runCatching {
-                                if (!path.exists() && path.ensureFile()) {
-                                    thumbCache.read(key) {
-                                        UniFile.fromFile(data.toFile())!!.openFileDescriptor("r").use { src ->
-                                            path.openFileDescriptor("w").use { dst ->
-                                                src sendTo dst
-                                            }
-                                        }
-                                    }
+                                if (!it.exists() && it.ensureFile()) {
+                                    thumbCache.read(key) { UniFile.fromFile(data.toFile())!! sendTo it }
                                 }
                             }.onFailure {
                                 it.printStackTrace()

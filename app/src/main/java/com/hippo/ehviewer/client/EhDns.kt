@@ -52,9 +52,9 @@ object EhDns : Dns {
 
         put(
             "e-hentai.org",
-            Pair("172.67.0.127", false),
-            Pair("104.20.134.21", false),
-            Pair("104.20.135.21", false),
+            Pair("172.67.2.238", false),
+            Pair("104.20.19.168", false),
+            Pair("104.20.18.168", false),
         )
         put(
             "exhentai.org",
@@ -73,12 +73,15 @@ object EhDns : Dns {
         )
         put(
             "repo.e-hentai.org",
-            Pair("94.100.28.57", true),
-            Pair("94.100.29.73", true),
+            Pair("172.67.2.238", true),
+            Pair("104.20.19.168", false),
+            Pair("104.20.18.168", false),
         )
         put(
             "forums.e-hentai.org",
-            Pair("94.100.18.243", false),
+            Pair("172.67.2.238", true),
+            Pair("104.20.19.168", false),
+            Pair("104.20.18.168", false),
         )
         put(
             "ehgt.org",
@@ -102,8 +105,9 @@ object EhDns : Dns {
         )
         put(
             "ul.ehgt.org",
-            Pair("94.100.24.82", true),
-            Pair("94.100.24.72", true),
+            Pair("81.171.10.48", true),
+            Pair("178.162.139.24", true),
+            Pair("178.162.140.212", true),
         )
         put(
             "raw.githubusercontent.com",
@@ -139,6 +143,6 @@ object EhDns : Dns {
     }
 
     fun isInHosts(hostname: String): Boolean {
-        return hosts.contains(hostname) || (builtInHosts.contains(hostname) && Settings.builtInHosts)
+        return hosts.contains(hostname) || (builtInHosts.contains(hostname))
     }
 }
