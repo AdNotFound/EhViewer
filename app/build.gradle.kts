@@ -145,7 +145,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
 
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
-    implementation("androidx.fragment:fragment-ktx:1.8.0-alpha01")
+    implementation("androidx.fragment:fragment-ktx:1.8.0-alpha02")
     // https://developer.android.com/jetpack/androidx/releases/lifecycle
     implementation("androidx.lifecycle:lifecycle-process:2.7.0")
 
