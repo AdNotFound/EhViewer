@@ -142,7 +142,7 @@ dependencies {
     implementation("androidx.browser:browser:1.6.0")
     implementation("androidx.collection:collection-ktx:1.4.0")
 
-    implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.core:core-ktx:1.13.0")
 
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
     implementation("androidx.fragment:fragment-ktx:1.8.0-alpha02")
@@ -168,7 +168,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp-bom:5.0.0-alpha.11")
     implementation("com.squareup.okhttp3:okhttp-coroutines")
 
-    implementation("com.squareup.okio:okio-jvm:3.7.0")
+    implementation("com.squareup.okio:okio-jvm:3.9.0")
 
     // https://github.com/RikkaApps/RikkaX
     implementation("dev.rikka.rikkax.core:core-ktx:1.4.1")
