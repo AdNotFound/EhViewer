@@ -6,7 +6,8 @@ import java.time.format.DateTimeFormatter
 plugins {
     id("com.android.application")
     kotlin("android")
-    id("kotlin-parcelize")
+    id("org.jetbrains.kotlin.plugin.parcelize")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
     id("com.diffplug.spotless")
 }
@@ -93,6 +94,7 @@ android {
             "-opt-in=kotlinx.coroutines.ExperimentalCoroutinesApi",
             "-opt-in=kotlinx.coroutines.FlowPreview",
             "-opt-in=kotlinx.coroutines.InternalCoroutinesApi",
+            "-opt-in=kotlinx.serialization.ExperimentalSerializationApi",
         )
     }
 
@@ -183,6 +185,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jsoup:jsoup:1.18.1")
+    implementation("kotlinx-serialization-cbor:1.7.2")
 }
 
 configurations.all {
