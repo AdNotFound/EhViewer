@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
+cmake_policy(SET CMP0077 NEW)
 project(ehviewer C ASM)
 include(FetchContent)
 
