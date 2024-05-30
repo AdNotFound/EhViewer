@@ -17,7 +17,6 @@ package com.hippo.ehviewer.client
 
 import com.hippo.ehviewer.EhApplication.Companion.noRedirectOkHttpClient
 import com.hippo.okhttp.ChromeRequestBuilder
-import io.ktor.http.HttpMessageBuilder
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.executeAsync
@@ -33,6 +32,10 @@ class EhRequestBuilder constructor(
     }
 }
 
-fun HttpMessageBuilder.referer(value: String?): Unit =
-    value?.let { headers.append("Referer", it) } ?: Unit
+fun buildRequestWithReferer(url: String, referer: String?): Request {
+    val builder = Request.Builder().url(url)
+    referer?.let { builder.addHeader("Referer", it) }
+    return builder.build()
+}
+
 suspend inline fun <R> Request.executeNoRedirect(block: Response.() -> R) = noRedirectOkHttpClient.newCall(this).executeAsync().use(block)

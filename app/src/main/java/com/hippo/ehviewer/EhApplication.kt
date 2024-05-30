@@ -44,8 +44,6 @@ import com.hippo.util.ReadableTime
 import com.hippo.util.launchIO
 import com.hippo.yorozuya.FileUtils
 import com.hippo.yorozuya.IntIdGenerator
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.DelicateCoroutinesApi
 import okhttp3.Cache
 import okhttp3.OkHttpClient
@@ -249,14 +247,6 @@ class EhApplication : SceneApplication(), ImageLoaderFactory {
             nonCacheOkHttpClient.newBuilder()
                 .cache(Cache(File(application.cacheDir, "http_cache"), 20 * 1024 * 1024))
                 .build()
-        }
-
-        val ktorClient by lazy {
-            HttpClient(OkHttp) {
-                engine {
-                    preconfigured = nonCacheOkHttpClient
-                }
-            }
         }
 
         val galleryDetailCache by lazy {
