@@ -81,7 +81,6 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护，不接受功能
 - [Nettle](https://www.lysator.liu.se/~nisse/nettle/)
 - [OkHttp](https://square.github.io/okhttp/)
 - [RikkaX](https://github.com/RikkaApps/RikkaX)
-- [Ktor](https://ktor.io/)
 - [XZ Utils](https://tukaani.org/xz/)
 
 标签翻译数据
