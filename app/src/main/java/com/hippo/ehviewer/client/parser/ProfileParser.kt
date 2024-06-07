@@ -45,8 +45,14 @@ object ProfileParser {
             }
             Result(displayName, avatar)
         }.getOrElse {
-            ExceptionUtils.throwIfFatal(it)
-            throw ParseException("Parse forums error")
+            if (body.contains("Your account has been temporarily suspended")) {
+                logcat { "Account suspended" }
+                val displayName = Jsoup.parse(body).select("p.home > b > a").first()?.text()
+                Result(displayName, null)
+            } else {
+                ExceptionUtils.throwIfFatal(it)
+                throw ParseException("Parse forums error")
+            }
         }
     }
 
