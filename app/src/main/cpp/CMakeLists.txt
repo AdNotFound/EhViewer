@@ -24,7 +24,7 @@ set(BUILD_TESTING 0)
 
 FetchContent_Declare(liblzma
         GIT_REPOSITORY https://git.tukaani.org/xz.git
-        GIT_TAG v5.4.3
+        GIT_TAG v5.6.2
         PATCH_COMMAND git apply ${CMAKE_CURRENT_LIST_DIR}/0001-Don-t-build-other-binarys.patch || cd .
         )
 
@@ -70,7 +70,7 @@ SET(LIBARCHIVE_CUSTOM_LIBS "nettle" "liblzma")
 
 FetchContent_Declare(libarchive
         GIT_REPOSITORY https://github.com/libarchive/libarchive
-        GIT_TAG v3.7.0
+        GIT_TAG v3.7.4
         PATCH_COMMAND git apply ${CMAKE_CURRENT_LIST_DIR}/0001-Hide-symbols.patch ${CMAKE_CURRENT_LIST_DIR}/0002-Insert-link-libs.patch || cd .
         )
 
