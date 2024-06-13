@@ -147,7 +147,7 @@ dependencies {
     implementation("androidx.coordinatorlayout:coordinatorlayout:1.2.0")
     implementation("androidx.fragment:fragment-ktx:1.8.0-rc01")
     // https://developer.android.com/jetpack/androidx/releases/lifecycle
-    implementation("androidx.lifecycle:lifecycle-process:2.8.1")
+    implementation("androidx.lifecycle:lifecycle-process:2.8.2")
 
     // https://developer.android.com/jetpack/androidx/releases/paging
     implementation("androidx.paging:paging-runtime-ktx:3.3.0")
