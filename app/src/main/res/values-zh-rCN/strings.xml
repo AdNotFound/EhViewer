@@ -570,6 +570,14 @@
     <string name="set">设置</string>
     <!-- Languages -->
     <string name="app_language_system">系统语言（默认）</string>
+   <!-- UserAgent -->
+    <string-array name="user_agent_types">
+         <item>Chrome</item>
+         <item>Firefox</item>
+         <item>Safari</item>
+         <item>自定义</item>
+    </string-array>
+    <string name="custom_user_agent">自定义浏览器标识</string>
     <!-- Proxy -->
     <string name="proxy_direct">直接连接</string>
     <string name="proxy_system">系统代理</string>
