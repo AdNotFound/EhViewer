@@ -26,7 +26,6 @@ import com.hippo.glgallery.GalleryView
 import com.hippo.unifile.UniFile
 import com.hippo.yorozuya.NumberUtils
 import java.util.Locale
-import com.hippo.okhttp.CHROME_USER_AGENT
 
 object Settings {
     /********************
@@ -172,8 +171,13 @@ object Settings {
     private const val DEFAULT_READ_CACHE_SIZE = 320
     const val KEY_APP_LANGUAGE = "app_language"
     private const val DEFAULT_APP_LANGUAGE = "system"
+
+    const val CHROME_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.35 Safari/537.36 Edg/117.0.5938.35"
+    const val FIREFOX_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"
+    const val SAFARI_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15"
+    
     private const val KEY_USER_AGENT = "user_agent"
-    private const val DEFAULT_USER_AGENT = CHROME_USER_AGENT
+    const val DEFAULT_USER_AGENT = CHROME_USER_AGENT
     private const val KEY_PROXY_TYPE = "proxy_type"
     private const val DEFAULT_PROXY_TYPE = EhProxySelector.TYPE_SYSTEM
     private const val KEY_PROXY_IP = "proxy_ip"
@@ -653,7 +657,12 @@ object Settings {
         get() = getString(KEY_APP_LANGUAGE, DEFAULT_APP_LANGUAGE)
 
     val userAgent: String?
-       get() = getString(KEY_USER_AGENT, DEFAULT_USER_AGENT)
+        get() = getString(KEY_USER_AGENT, DEFAULT_USER_AGENT)
+    fun putUserAgent(value: String?) {
+        putString(KEY_USER_AGENT, value)
+    }
+
+    val builtInUserAgents = listOf(CHROME_USER_AGENT, FIREFOX_USER_AGENT, SAFARI_USER_AGENT)
 
     val proxyType: Int
         get() = getInt(KEY_PROXY_TYPE, DEFAULT_PROXY_TYPE)

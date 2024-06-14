@@ -607,6 +607,14 @@
     <string name="app_language_zh_hk" translatable="false">中文（香港）</string>
     <string name="app_language_zh_tw" translatable="false">中文（臺灣）</string>
     <!-- Proxy -->
+    <string-array name="user_agent_types">
+         <item>Chrome</item>
+         <item>Firefox</item>
+         <item>Safari</item>
+         <item>Custom</item>
+    </string-array>
+    <string name="custom_user_agent">Custom User-Agent</string>
+    <!-- Proxy -->
     <string name="proxy_direct">Direct</string>
     <string name="proxy_system">System Proxy</string>
     <string name="proxy_host_or_ip">Host or IP</string>
