@@ -460,7 +460,7 @@ class FavoritesScene :
                 )
                 args.putParcelable(GalleryDetailScene.KEY_GALLERY_INFO, gi)
                 val announcer = Announcer(GalleryDetailScene::class.java).setArgs(args)
-                (view.findViewById(R.id.thumb) as View?)?.let {
+                (view.findViewById<View>(R.id.thumb))?.let {
                     announcer.setTranHelper(EnterGalleryDetailTransaction(it))
                 }
                 startScene(announcer)

@@ -82,7 +82,7 @@ object EhFilter {
     val commentFilterList: List<Filter>
         get() = mCommentFilterList
 
-    fun applyTanslation(filter: Filter): String? {
+    fun applyTranslation(filter: Filter): String? {
         var text = filter.text ?: return null
         if (EhTagDatabase.isInitialized()) {
             when (filter.mode) {

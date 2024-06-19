@@ -463,11 +463,11 @@ class SearchBar @JvmOverloads constructor(
     }
 
     private class SuggestionHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val text1 = itemView.findViewById(android.R.id.text1) as TextView
-        val text2 = itemView.findViewById(android.R.id.text2) as TextView
+        val text1: TextView = itemView.findViewById(android.R.id.text1)
+        val text2: TextView = itemView.findViewById(android.R.id.text2)
     }
 
-    private inner class SuggestionAdapter constructor(
+    private inner class SuggestionAdapter(
         private val mInflater: LayoutInflater,
     ) : RecyclerView.Adapter<SuggestionHolder>() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SuggestionHolder {
@@ -513,7 +513,7 @@ class SearchBar @JvmOverloads constructor(
         }
     }
 
-    inner class TagSuggestion constructor(
+    inner class TagSuggestion(
         private var mHint: String?,
         private var mKeyword: String,
     ) : Suggestion() {
@@ -535,7 +535,7 @@ class SearchBar @JvmOverloads constructor(
         }
     }
 
-    inner class KeywordSuggestion constructor(
+    inner class KeywordSuggestion(
         private val mKeyword: String,
     ) : Suggestion() {
         override fun getText(textView: TextView): CharSequence? {

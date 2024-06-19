@@ -68,21 +68,18 @@ public class GLES20Canvas implements GLCanvas {
     private static final String TEXTURE_SAMPLER_UNIFORM = "uTextureSampler";
     private static final String ALPHA_UNIFORM = "uAlpha";
     private static final String TEXTURE_COORD_ATTRIBUTE = "aTextureCoordinate";
-    private static final String DRAW_VERTEX_SHADER = ""
-            + "uniform mat4 " + MATRIX_UNIFORM + ";\n"
+    private static final String DRAW_VERTEX_SHADER = "uniform mat4 " + MATRIX_UNIFORM + ";\n"
             + "attribute vec2 " + POSITION_ATTRIBUTE + ";\n"
             + "void main() {\n"
             + "  vec4 pos = vec4(" + POSITION_ATTRIBUTE + ", 0.0, 1.0);\n"
             + "  gl_Position = " + MATRIX_UNIFORM + " * pos;\n"
             + "}\n";
-    private static final String DRAW_FRAGMENT_SHADER = ""
-            + "precision mediump float;\n"
+    private static final String DRAW_FRAGMENT_SHADER = "precision mediump float;\n"
             + "uniform vec4 " + COLOR_UNIFORM + ";\n"
             + "void main() {\n"
             + "  gl_FragColor = " + COLOR_UNIFORM + ";\n"
             + "}\n";
-    private static final String TEXTURE_VERTEX_SHADER = ""
-            + "uniform mat4 " + MATRIX_UNIFORM + ";\n"
+    private static final String TEXTURE_VERTEX_SHADER = "uniform mat4 " + MATRIX_UNIFORM + ";\n"
             + "uniform mat4 " + TEXTURE_MATRIX_UNIFORM + ";\n"
             + "attribute vec2 " + POSITION_ATTRIBUTE + ";\n"
             + "varying vec2 vTextureCoord;\n"
@@ -91,8 +88,7 @@ public class GLES20Canvas implements GLCanvas {
             + "  gl_Position = " + MATRIX_UNIFORM + " * pos;\n"
             + "  vTextureCoord = (" + TEXTURE_MATRIX_UNIFORM + " * pos).xy;\n"
             + "}\n";
-    private static final String MESH_VERTEX_SHADER = ""
-            + "uniform mat4 " + MATRIX_UNIFORM + ";\n"
+    private static final String MESH_VERTEX_SHADER = "uniform mat4 " + MATRIX_UNIFORM + ";\n"
             + "attribute vec2 " + POSITION_ATTRIBUTE + ";\n"
             + "attribute vec2 " + TEXTURE_COORD_ATTRIBUTE + ";\n"
             + "varying vec2 vTextureCoord;\n"
@@ -101,8 +97,7 @@ public class GLES20Canvas implements GLCanvas {
             + "  gl_Position = " + MATRIX_UNIFORM + " * pos;\n"
             + "  vTextureCoord = " + TEXTURE_COORD_ATTRIBUTE + ";\n"
             + "}\n";
-    private static final String TEXTURE_FRAGMENT_SHADER = ""
-            + "precision mediump float;\n"
+    private static final String TEXTURE_FRAGMENT_SHADER = "precision mediump float;\n"
             + "varying vec2 vTextureCoord;\n"
             + "uniform float " + ALPHA_UNIFORM + ";\n"
             + "uniform sampler2D " + TEXTURE_SAMPLER_UNIFORM + ";\n"

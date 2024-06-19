@@ -89,7 +89,7 @@ class ContentLayout(context: Context, attrs: AttributeSet? = null) : FrameLayout
             context.getColor(R.color.loading_indicator_green),
             context.getColor(R.color.loading_indicator_orange),
         )
-        mBottomProgress.setIndeterminateAnimationType(LinearProgressIndicator.INDETERMINATE_ANIMATION_TYPE_CONTIGUOUS)
+        mBottomProgress.indeterminateAnimationType = LinearProgressIndicator.INDETERMINATE_ANIMATION_TYPE_CONTIGUOUS
         mRecyclerViewOriginBottom = mRecyclerView.paddingBottom
         mFastScrollerOriginBottom = mFastScroller.paddingBottom
     }

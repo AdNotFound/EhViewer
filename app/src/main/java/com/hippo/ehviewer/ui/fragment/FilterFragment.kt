@@ -242,7 +242,7 @@ class FilterFragment : BaseFragment() {
             if (MODE_HEADER == filter.mode) {
                 holder.text?.text = filter.text
             } else {
-                holder.checkbox?.text = if (Settings.showTagTranslations) EhFilter.applyTanslation(filter) else filter.text
+                holder.checkbox?.text = if (Settings.showTagTranslations) EhFilter.applyTranslation(filter) else filter.text
                 holder.checkbox?.isChecked = filter.enable!!
                 holder.itemView.setOnClickListener {
                     mFilterList.trigger(filter)
