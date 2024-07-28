@@ -292,16 +292,18 @@ object GalleryListParser {
         try { // For toplists
             val ptt = d.getElementsByClass("ptt").first()
             if (ptt != null) {
-                val es = ptt.child(0).child(0).children()
-                result.pages = es[es.size - 2].text().trim { it <= ' ' }.toInt()
-                var e = es[es.size - 1]
-                if (e != null) {
-                    e = e.children().first()
+                val es = ptt.child(0)?.child(0)?.children()
+                if (es != null && es.size >= 2) {
+                    result.pages = es[es.size - 2].text().trim { it <= ' ' }.toInt()
+                    var e = es[es.size - 1]
                     if (e != null) {
-                        val href = e.attr("href")
-                        val matcher = PATTERN_NEXT_PAGE.matcher(href)
-                        if (matcher.find()) {
-                            result.nextPage = NumberUtils.parseIntSafely(matcher.group(1), 0)
+                        e = e.children().firstOrNull()
+                        if (e != null) {
+                            val href = e.attr("href")
+                            val matcher = PATTERN_NEXT_PAGE.matcher(href)
+                            if (matcher.find()) {
+                                result.nextPage = NumberUtils.parseIntSafely(matcher.group(1), 0)
+                            }
                         }
                     }
                 }
