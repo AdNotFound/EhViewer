@@ -150,7 +150,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-process:2.8.4")
 
     // https://developer.android.com/jetpack/androidx/releases/paging
-    implementation("androidx.paging:paging-runtime-ktx:3.3.1")
+    implementation("androidx.paging:paging-runtime-ktx:3.3.2")
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
 
