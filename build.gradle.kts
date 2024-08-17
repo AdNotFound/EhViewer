@@ -11,6 +11,6 @@ tasks.register("Delete", Delete::class) {
 
 buildscript {
     dependencies {
-        classpath("com.android.tools:r8:8.3.37")
+        classpath("com.android.tools:r8:8.5.35")
     }
 }
