@@ -287,9 +287,13 @@ object Settings {
                 putShowTagTranslations(true)
             }
             // Enable builtInHosts if the language is zh
-            //putBuiltInHosts(true)
+            if (!sSettingsPre.contains(KEY_BUILT_IN_HOSTS)) {
+                putBuiltInHosts(true)
+            }
             // Enable DoF if the language is zh
-            //putDoF(true)
+            if (!sSettingsPre.contains(KEY_DOMAIN_FRONTING)) {
+                putDoF(true)
+            }
         }
     }
 
