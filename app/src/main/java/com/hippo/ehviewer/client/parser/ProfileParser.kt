@@ -46,7 +46,7 @@ object ProfileParser {
             Result(displayName, avatar)
         }.getOrElse {
             if (body.contains("Your account has been temporarily suspended")) {
-                logcat { "Account suspended" }
+                Log.d("TAG", "Account suspended")
                 val displayName = Jsoup.parse(body).select("p.home > b > a").first()?.text()
                 Result(displayName, null)
             } else {
