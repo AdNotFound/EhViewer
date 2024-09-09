@@ -46,6 +46,7 @@ abstract class GalleryProvider2 : GalleryProvider() {
             ".jpg", // Joint Photographic Experts Group
             ".png", // Portable Network Graphics
             ".gif",
+            ".webp",
         )
     }
 }
