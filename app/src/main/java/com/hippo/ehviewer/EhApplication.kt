@@ -77,7 +77,7 @@ class EhApplication : SceneApplication(), ImageLoaderFactory {
                 if (Settings.saveCrashLog) {
                     Crash.saveCrashLog(e)
                 }
-            } catch (ignored: Throwable) {
+            } catch (_: Throwable) {
             }
             handler?.uncaughtException(t, e)
         }
@@ -152,7 +152,7 @@ class EhApplication : SceneApplication(), ImageLoaderFactory {
             }
             try {
                 dialog.show()
-            } catch (t: Throwable) {
+            } catch (_: Throwable) {
                 // ignore
             }
         }

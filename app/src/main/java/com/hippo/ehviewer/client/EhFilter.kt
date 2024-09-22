@@ -158,7 +158,7 @@ object EhFilter {
 
     @Synchronized
     fun needTags(): Boolean {
-        return 0 != mTagFilterList.size || 0 != mTagNamespaceFilterList.size
+        return mTagFilterList.isNotEmpty() || mTagNamespaceFilterList.isNotEmpty()
     }
 
     @Synchronized
