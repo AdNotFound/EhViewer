@@ -22,7 +22,7 @@ jsoup = "1.17.2"
 kotlin = "1.9.23"
 kotlinx-coroutines = "1.8.1"
 kotlinx-serialization = "1.6.3"
-ksp = "1.9.23-1.0.20"
+ksp = "2.0.20-1.0.25"
 okhttp3 = "5.0.0-alpha.14"
 okio = "3.9.0"
 rikkax-material = { strictly = "1.6.6" }
