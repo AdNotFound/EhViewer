@@ -606,7 +606,6 @@
     <string name="error_something_wrong_happened">エラーが発生しました</string>
     <string name="kokomade_tip">設定 -&gt; Eh -&gt; ギャラリーサイト -&gt; E-Hentai</string>
     <string name="no_browser_installed">ブラウザをインストールしてください。</string>
-    <string name="cloudflare_bypass_failed">Cloudflare チャレンジのバイパスに失敗しました</string>
     <string name="open_in_webview">WebView で URL を開いてチャレンジを完了しますか？</string>
     <!-- Readable Time -->
     <string name="from_the_future">未来から</string>
