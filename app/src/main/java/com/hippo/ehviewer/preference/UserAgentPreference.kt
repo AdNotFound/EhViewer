@@ -48,8 +48,24 @@ class UserAgentPreference @JvmOverloads constructor(
         mCustomUserAgent!!.setText(currentUA)
         if (currentUA in Settings.builtInUserAgents) {
             mType!!.setSelection(Settings.builtInUserAgents.indexOf(currentUA))
+            mCustomUserAgentInputLayout!!.visibility = View.GONE
         } else {
             mType!!.setSelection(Settings.builtInUserAgents.size) // Select "Custom"
+            mCustomUserAgentInputLayout!!.visibility = View.VISIBLE
+        }
+
+        mType!!.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (position < Settings.builtInUserAgents.size) {
+                    mCustomUserAgentInputLayout!!.visibility = View.GONE
+                } else {
+                    mCustomUserAgentInputLayout!!.visibility = View.VISIBLE
+                }
+            }
+
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
+                // Do nothing
+            }
         }
     }
 
@@ -70,11 +86,12 @@ class UserAgentPreference @JvmOverloads constructor(
         val userAgent = if (type < Settings.builtInUserAgents.size) {
             Settings.builtInUserAgents[type]
         } else {
-            mCustomUserAgent!!.text.toString().trim()
-        }
-        if (userAgent.isEmpty()) {
-            mCustomUserAgentInputLayout!!.error = context.getString(R.string.text_is_empty)
-            return
+            val customUserAgent = mCustomUserAgent!!.text.toString().trim()
+            if (customUserAgent.isEmpty()) {
+                mCustomUserAgentInputLayout!!.error = context.getString(R.string.text_is_empty)
+                return
+            }
+            customUserAgent
         }
         mCustomUserAgentInputLayout!!.error = null
         Settings.putUserAgent(userAgent)
