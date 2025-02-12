@@ -59,17 +59,18 @@ android {
         targetSdk = 35
         versionCode = 173901
         versionName = "1.7.39.1"
-        resourceConfigurations.addAll(
-            listOf(
-                "zh",
-                "zh-rCN",
-                "zh-rHK",
-                "zh-rTW",
-                "ja",
-            ),
-        )
         buildConfigField("String", "VERSION_CODE", "\"${defaultConfig.versionCode}\"")
         buildConfigField("String", "COMMIT_SHA", "\"$commitSha\"")
+    }
+
+    androidResources {
+        localeFilters += listOf(
+            "zh",
+            "zh-rCN",
+            "zh-rHK",
+            "zh-rTW",
+            "ja",
+        )
     }
 
     externalNativeBuild {
