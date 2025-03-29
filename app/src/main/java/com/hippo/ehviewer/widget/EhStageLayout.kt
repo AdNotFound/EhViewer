@@ -68,12 +68,14 @@ class EhStageLayout @JvmOverloads constructor(
 
     class Behavior : CoordinatorLayout.Behavior<EhStageLayout?>() {
         @SuppressLint("RestrictedApi")
+        @Override
         override fun layoutDependsOn(
             parent: CoordinatorLayout,
             child: EhStageLayout,
             dependency: View,
         ): Boolean = dependency is SnackbarLayout
 
+        @Override
         override fun onDependentViewChanged(
             parent: CoordinatorLayout,
             child: EhStageLayout,
@@ -98,6 +100,7 @@ class EhStageLayout @JvmOverloads constructor(
             return false
         }
 
+        @Override
         override fun onDependentViewRemoved(
             parent: CoordinatorLayout,
             child: EhStageLayout,
