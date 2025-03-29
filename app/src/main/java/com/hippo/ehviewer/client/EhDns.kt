@@ -131,13 +131,6 @@ object EhDns : Dns {
             Pair("151.101.128.133", false),
             Pair("151.101.192.133", false),
         )
-        put(
-            "api.e-hentai.org",
-            Pair("178.162.139.18", false),
-            Pair("81.171.10.55", false),
-            Pair("37.48.89.16", false),
-            Pair("178.162.147.246", false),
-        )
     }
 
     private fun put(
