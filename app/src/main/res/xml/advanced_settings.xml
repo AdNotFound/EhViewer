@@ -85,6 +85,13 @@
         android:title="@string/settings_advanced_dns_over_https_title"
         app:iconSpaceReserved="false" />
 
+    <com.hippo.ehviewer.preference.DoHPreference
+        android:key="doh_url"
+        android:title="@string/doh_url"
+        android:summary="@string/doh_url_summary"
+        app:iconSpaceReserved="false"
+        android:dependency="dns_over_https" />
+
     <SwitchPreferenceCompat
         android:defaultValue="false"
         android:key="domain_fronting"

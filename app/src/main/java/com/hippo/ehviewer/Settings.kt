@@ -185,12 +185,16 @@ object Settings {
     private const val DEFAULT_BUILT_IN_HOSTS = false
     private const val KEY_DOH = "dns_over_https"
     private const val DEFAULT_DOH = false
+    private const val KEY_DOH_SERVER = "doh_server"
+    private const val DEFAULT_DOH_SERVER = "https://cloudflare-dns.com/dns-query"
     const val KEY_DOMAIN_FRONTING = "domain_fronting"
     private const val DEFAULT_DOMAIN_FRONTING = false
     const val KEY_BYPASS_VPN = "bypass_vpn"
     private const val DEFAULT_BYPASS_VPN = false
     private const val KEY_APP_LINK_VERIFY_TIP = "app_link_verify_tip"
     private const val DEFAULT_APP_LINK_VERIFY_TIP = false
+    private const val KEY_DOH_ENABLED = "dns_over_https"
+    private const val DEFAULT_DOH_ENABLED = false
 
     /********************
      ****** Favorites
@@ -678,6 +682,12 @@ object Settings {
         get() = getBoolean(KEY_DOH, DEFAULT_DOH)
     fun putDoH(value: Boolean) {
         putBoolean(KEY_DOH, value)
+    }
+
+    val doHServer: String?
+        get() = getString(KEY_DOH_SERVER, DEFAULT_DOH_SERVER)
+    fun putDoHServer(value: String?) {
+        putString(KEY_DOH_SERVER, value)
     }
 
     val dF: Boolean

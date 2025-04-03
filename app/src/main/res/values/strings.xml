@@ -557,6 +557,12 @@
     <string name="settings_advanced_custom_hosts_summary">Map hostnames to IP addresses.\nIt can override built-in hosts.txt</string>
     <string name="settings_advanced_dns_over_https_title">DNS over HTTPS (DoH)</string>
     <string name="settings_advanced_dns_over_https_summary">Using DoH to resolve domain names</string>
+    <string name="doh_server_url">DoH server URL</string>
+    <string name="doh_invalid_url">URL must start with https://</string>
+    <string name="settings_advanced_doh_summary_enabled">Using %s</string>
+    <string name="settings_advanced_doh_summary_disabled">Disabled</string>
+    <string name="doh_url">DoH server URL</string>
+    <string name="doh_url_summary">Enter a custom DNS over HTTPS URL</string>
     <string name="settings_advanced_domain_fronting_title">Domain fronting</string>
     <string name="settings_advanced_domain_fronting_summary">Bypass SNI blocking</string>
     <string name="settings_advanced_bypass_vpn_title">Bypass VPN</string>

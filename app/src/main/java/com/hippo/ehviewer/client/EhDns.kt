@@ -33,9 +33,22 @@ object EhDns : Dns {
     private val appCache = Cache(File("cacheDir", "okhttpcache"), 5 * 1024 * 1024)
     private val bootstrapClient = OkHttpClient.Builder().cache(appCache).build()
 
-    private val doh = DnsOverHttps.Builder().client(bootstrapClient)
-        .url("https://45.11.45.11/dns-query".toHttpUrl())
-        .build()
+    private val doh: DnsOverHttps? = if (Settings.dOH) {
+        try {
+            val doHServer = Settings.doHServer
+            if (!doHServer.isNullOrEmpty() && doHServer.startsWith("https://")) {
+                DnsOverHttps.Builder().client(bootstrapClient)
+                    .url(doHServer.toHttpUrl())
+                    .build()
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            null
+        }
+    } else {
+        null
+    }
 
     init {
         /* Pair(ip: String!, blockedByCCP: Boolean!) */
@@ -144,7 +157,7 @@ object EhDns : Dns {
 
     @Throws(UnknownHostException::class)
     override fun lookup(hostname: String): List<InetAddress> {
-        val dns = if (Settings.dOH) doh else Dns.SYSTEM
+        val dns = if (Settings.dOH && doh != null) doh else Dns.SYSTEM
 
         return hosts[hostname] ?: builtInHosts[hostname].takeIf { Settings.builtInHosts }
             ?: dns.lookup(hostname)
