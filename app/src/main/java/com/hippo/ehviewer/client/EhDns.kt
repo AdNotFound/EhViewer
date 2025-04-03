@@ -31,7 +31,9 @@ object EhDns : Dns {
     private val hosts = EhApplication.hosts
     private val builtInHosts: MutableMap<String, List<InetAddress>> = mutableMapOf()
     private val appCache = Cache(File("cacheDir", "okhttpcache"), 5 * 1024 * 1024)
-    private val bootstrapClient = OkHttpClient.Builder().cache(appCache).build()
+    private val bootstrapClient = OkHttpClient.Builder().cache(appCache)
+        .hostnameVerifier { _, _ -> true }
+        .build()
 
     private val doh: DnsOverHttps? = if (Settings.dOH) {
         try {
