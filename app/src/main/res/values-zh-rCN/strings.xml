@@ -531,7 +531,6 @@
     <string name="settings_advanced_dns_over_https_summary">使用 DoH 解析域名</string>
     <string name="doh_server_url">DoH 服务器 URL</string>
     <string name="doh_invalid_url">URL 必须以 https:// 开头</string>
-    <string name="settings_advanced_doh_summary_enabled">使用 %s</string>
     <string name="settings_advanced_doh_summary_disabled">已禁用</string>
     <string name="doh_url">DoH 服务器 URL</string>
     <string name="doh_url_summary">输入自定义的 DNS over HTTPS URL</string>

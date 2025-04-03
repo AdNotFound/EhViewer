@@ -42,7 +42,7 @@ class DoHPreference(
 
     private fun updateSummary(url: String?) {
         summary = if (!TextUtils.isEmpty(url)) {
-            context.getString(R.string.settings_advanced_doh_summary_enabled, url)
+            url
         } else {
             context.getString(R.string.settings_advanced_doh_summary_disabled)
         }

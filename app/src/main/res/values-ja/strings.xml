@@ -520,7 +520,6 @@
     <string name="settings_advanced_dns_over_https_summary">DoH を使用してドメイン名を解決</string>
     <string name="doh_server_url">DoH サーバー URL</string>
     <string name="doh_invalid_url">URL は https:// で始まる必要があります</string>
-    <string name="settings_advanced_doh_summary_enabled">%s を使用中</string>
     <string name="settings_advanced_doh_summary_disabled">無効化されています</string>
     <string name="doh_url">DoH サーバー URL</string>
     <string name="doh_url_summary">カスタム DNS over HTTPS URL を入力</string>

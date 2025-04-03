@@ -559,7 +559,6 @@
     <string name="settings_advanced_dns_over_https_summary">Using DoH to resolve domain names</string>
     <string name="doh_server_url">DoH server URL</string>
     <string name="doh_invalid_url">URL must start with https://</string>
-    <string name="settings_advanced_doh_summary_enabled">Using %s</string>
     <string name="settings_advanced_doh_summary_disabled">Disabled</string>
     <string name="doh_url">DoH server URL</string>
     <string name="doh_url_summary">Enter a custom DNS over HTTPS URL</string>
