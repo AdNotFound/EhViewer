@@ -516,6 +516,14 @@
     <string name="settings_advanced_built_in_hosts_summary">ホストをアプリ既定のIPにマッピング\nカスタムhosts.txtに上書きされます。</string>
     <string name="settings_advanced_custom_hosts_title">カスタムhosts.txt</string>
     <string name="settings_advanced_custom_hosts_summary">ホスト名をIPにマッピング\n既定のhosts.txtを上書きできます。</string>
+    <string name="settings_advanced_dns_over_https_title">DNS over HTTPS (DoH)</string>
+    <string name="settings_advanced_dns_over_https_summary">DoH を使用してドメイン名を解決</string>
+    <string name="doh_server_url">DoH サーバー URL</string>
+    <string name="doh_invalid_url">URL は https:// で始まる必要があります</string>
+    <string name="settings_advanced_doh_summary_enabled">%s を使用中</string>
+    <string name="settings_advanced_doh_summary_disabled">無効化されています</string>
+    <string name="doh_url">DoH サーバー URL</string>
+    <string name="doh_url_summary">カスタム DNS over HTTPS URL を入力</string>
     <string name="settings_advanced_backup_favorite">お気に入りリストをバックアップ</string>
     <string name="settings_advanced_backup_favorite_summary">リモートのお気に入りリストをローカルにバックアップします</string>
     <string name="settings_advanced_backup_favorite_start">お気に入りリスト「%s」をバックアップ中です</string>

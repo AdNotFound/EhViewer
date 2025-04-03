@@ -527,8 +527,14 @@
     <string name="settings_advanced_built_in_hosts_summary">應用提供的主機到 IP 的映射\n可被自定義 hosts.txt 覆蓋</string>
     <string name="settings_advanced_custom_hosts_title">自定義 hosts.txt</string>
     <string name="settings_advanced_custom_hosts_summary">將主機名稱映射到相應的 IP 地址\n可覆蓋內置 hosts.txt</string>
-    <string name="settings_advanced_dns_over_https_summary">DNS over HTTPS</string>
-    <string name="settings_advanced_dns_over_https_title">使用 DoH 解析域名 </string>
+    <string name="settings_advanced_dns_over_https_title">DNS over HTTPS (DoH)</string>
+    <string name="settings_advanced_dns_over_https_summary">使用 DoH 解析網域名稱</string>
+    <string name="doh_server_url">DoH 伺服器 URL</string>
+    <string name="doh_invalid_url">URL 必須以 https:// 開頭</string>
+    <string name="settings_advanced_doh_summary_enabled">使用 %s</string>
+    <string name="settings_advanced_doh_summary_disabled">已停用</string>
+    <string name="doh_url">DoH 伺服器 URL</string>
+    <string name="doh_url_summary">輸入自訂的 DNS over HTTPS URL</string>
     <string name="settings_advanced_domain_fronting_title">域名前置</string>
     <string name="settings_advanced_domain_fronting_summary">繞過 SNI 封鎖，啓用時會禁用代理\n修改後重啓應用生效</string>
     <string name="settings_advanced_bypass_vpn_title">繞過 VPN</string>

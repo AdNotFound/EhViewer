@@ -529,6 +529,12 @@
     <string name="settings_advanced_custom_hosts_summary">将主机名称映射到相应的 IP 地址\n可覆盖内置 hosts.txt</string>
     <string name="settings_advanced_dns_over_https_title">DNS over HTTPS (DoH)</string>
     <string name="settings_advanced_dns_over_https_summary">使用 DoH 解析域名</string>
+    <string name="doh_server_url">DoH 服务器 URL</string>
+    <string name="doh_invalid_url">URL 必须以 https:// 开头</string>
+    <string name="settings_advanced_doh_summary_enabled">使用 %s</string>
+    <string name="settings_advanced_doh_summary_disabled">已禁用</string>
+    <string name="doh_url">DoH 服务器 URL</string>
+    <string name="doh_url_summary">输入自定义的 DNS over HTTPS URL</string>
     <string name="settings_advanced_domain_fronting_title">域名前置</string>
     <string name="settings_advanced_domain_fronting_summary">绕过 SNI 封锁，启用时会禁用代理\n修改后重启应用生效</string>
     <string name="settings_advanced_bypass_vpn_title">绕过 VPN</string>
