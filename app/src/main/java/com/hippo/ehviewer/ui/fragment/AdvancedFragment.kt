@@ -400,7 +400,6 @@ class AdvancedFragment : BasePreferenceFragment() {
             } else {
                 AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(newValue as String))
             }
-            requireActivity().recreate()
             return true
         }
         return false
