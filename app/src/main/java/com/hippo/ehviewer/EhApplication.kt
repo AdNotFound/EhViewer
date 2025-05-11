@@ -19,7 +19,6 @@ import android.app.Activity
 import android.content.ComponentCallbacks2
 import android.content.Context
 import android.os.StrictMode
-import android.text.Html
 import android.text.method.LinkMovementMethod
 import android.view.View
 import android.widget.TextView
@@ -30,8 +29,10 @@ import coil3.ImageLoader
 import coil3.SingletonImageLoader
 import coil3.disk.DiskCache
 import coil3.gif.AnimatedImageDecoder
+import coil3.gif.GifDecoder
 import coil3.network.ConnectivityChecker
 import coil3.network.NetworkFetcher
+import coil3.network.okhttp.asNetworkClient
 import coil3.request.crossfade
 import coil3.serviceLoaderEnabled
 import coil3.util.DebugLogger
@@ -43,14 +44,15 @@ import com.hippo.ehviewer.client.EhTagDatabase
 import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.coil.DownloadThumbInterceptor
 import com.hippo.ehviewer.coil.MergeInterceptor
-import com.hippo.ehviewer.coil.limitConcurrency
 import com.hippo.ehviewer.dao.buildMainDB
 import com.hippo.ehviewer.download.DownloadManager
 import com.hippo.ehviewer.ui.EhActivity
 import com.hippo.ehviewer.ui.keepNoMediaFileStatus
 import com.hippo.scene.SceneApplication
 import com.hippo.util.ReadableTime
+import com.hippo.util.isAtLeastP
 import com.hippo.util.launchIO
+import com.hippo.util.loadHtml
 import com.hippo.yorozuya.FileUtils
 import com.hippo.yorozuya.IntIdGenerator
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -156,7 +158,7 @@ class EhApplication :
         val activity = topActivity
         activity?.runOnUiThread {
             val dialog = AlertDialog.Builder(activity)
-                .setMessage(Html.fromHtml(html, Html.FROM_HTML_MODE_LEGACY))
+                .setMessage(loadHtml(html))
                 .setPositiveButton(android.R.string.ok, null)
                 .create()
             dialog.setOnShowListener {
@@ -217,10 +219,19 @@ class EhApplication :
     override fun newImageLoader(context: Context) = ImageLoader.Builder(context).apply {
         serviceLoaderEnabled(false)
         components {
-            add(NetworkFetcher.Factory({ nonCacheOkHttpClient.limitConcurrency() }) { ConnectivityChecker.ONLINE })
+            if (isAtLeastP) {
+                add(AnimatedImageDecoder.Factory(false))
+            } else {
+                add(GifDecoder.Factory())
+            }
+            add(
+                NetworkFetcher.Factory(
+                    networkClient = { nonCacheOkHttpClient.asNetworkClient() },
+                    connectivityChecker = { ConnectivityChecker.ONLINE },
+                ),
+            )
             add(MergeInterceptor)
             add(DownloadThumbInterceptor)
-            add(AnimatedImageDecoder.Factory(false))
         }
         crossfade(300)
         diskCache(thumbCache)
