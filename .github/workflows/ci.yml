@@ -24,6 +24,9 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Ensure gradlew is executable
+        run: chmod +x gradlew
+
       - name: Spotless Check
         run: ./gradlew spotlessCheck
 
