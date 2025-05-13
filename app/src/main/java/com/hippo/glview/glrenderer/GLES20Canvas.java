@@ -304,21 +304,16 @@ public class GLES20Canvas implements GLCanvas {
     private static void checkFramebufferStatus() {
         int status = GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER);
         if (status != GLES20.GL_FRAMEBUFFER_COMPLETE) {
-            String msg = "";
-            switch (status) {
-                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-                    msg = "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
-                    break;
-                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
-                    msg = "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
-                    break;
-                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-                    msg = "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
-                    break;
-                case GLES20.GL_FRAMEBUFFER_UNSUPPORTED:
-                    msg = "GL_FRAMEBUFFER_UNSUPPORTED";
-                    break;
-            }
+            String msg = switch (status) {
+                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT ->
+                        "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT";
+                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS ->
+                        "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
+                case GLES20.GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT ->
+                        "GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
+                case GLES20.GL_FRAMEBUFFER_UNSUPPORTED -> "GL_FRAMEBUFFER_UNSUPPORTED";
+                default -> "";
+            };
             throw new RuntimeException(msg + ":" + Integer.toHexString(status));
         }
     }
@@ -364,8 +359,8 @@ public class GLES20Canvas implements GLCanvas {
             GLES20.glDeleteProgram(program);
             program = 0;
         }
-        for (int i = 0; i < params.length; i++) {
-            params[i].loadHandle(program);
+        for (ShaderParameter param : params) {
+            param.loadHandle(program);
         }
         return program;
     }
@@ -816,13 +811,13 @@ public class GLES20Canvas implements GLCanvas {
     public void deleteRecycledResources() {
         synchronized (mUnboundTextures) {
             IntList ids = mUnboundTextures;
-            if (mUnboundTextures.size() > 0) {
+            if (!mUnboundTextures.isEmpty()) {
                 mGLId.glDeleteTextures(null, ids.size(), ids.getInternalArray(), 0);
                 ids.clear();
             }
 
             ids = mDeleteBuffers;
-            if (ids.size() > 0) {
+            if (!ids.isEmpty()) {
                 mGLId.glDeleteBuffers(null, ids.size(), ids.getInternalArray(), 0);
                 ids.clear();
             }
@@ -842,6 +837,7 @@ public class GLES20Canvas implements GLCanvas {
 
     @Override
     public void endRenderTarget() {
+        //noinspection SequencedCollectionMethodCanBeUsed
         RawTexture oldTexture = mTargetTextures.remove(mTargetTextures.size() - 1);
         RawTexture texture = getTargetTexture();
         setRenderTarget(oldTexture, texture);
@@ -857,6 +853,7 @@ public class GLES20Canvas implements GLCanvas {
     }
 
     private RawTexture getTargetTexture() {
+        //noinspection SequencedCollectionMethodCanBeUsed
         return mTargetTextures.get(mTargetTextures.size() - 1);
     }
 

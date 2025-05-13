@@ -19,7 +19,6 @@ import com.hippo.ehviewer.EhApplication
 import com.hippo.network.CookieDatabase
 import com.hippo.network.CookieSet
 import com.hippo.util.launchIO
-import kotlinx.coroutines.DelicateCoroutinesApi
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl

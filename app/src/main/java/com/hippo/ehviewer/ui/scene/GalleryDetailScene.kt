@@ -29,7 +29,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.graphics.Color
-import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
 import android.view.LayoutInflater
@@ -56,6 +55,7 @@ import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
+import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
@@ -353,8 +353,8 @@ class GalleryDetailScene :
                             getString(R.string.read_from, startPage + 1)
                         }
                     }
-                }.onFailure {
-                    it.printStackTrace()
+                }.onFailure { e ->
+                    e.printStackTrace()
                 }
             }
         }
@@ -697,7 +697,7 @@ class GalleryDetailScene :
         }
     }
 
-    @Suppress("KotlinConstantConditions")
+    @Suppress("KotlinConstantConditions", "SimplifyBooleanWithConstants")
     private fun adjustViewVisibility(state: Int, animation: Boolean) {
         if (state == mState || mViewTransition == null || mViewTransition2 == null) {
             return
@@ -1585,7 +1585,7 @@ class GalleryDetailScene :
         super.onProvideAssistContent(outContent)
         val url = galleryDetailUrl
         if (url != null) {
-            outContent.webUri = Uri.parse(url)
+            outContent.webUri = url.toUri()
         }
     }
 
@@ -1648,7 +1648,7 @@ class GalleryDetailScene :
     ) : EhCallback<GalleryDetailScene?, String?>(context) {
         override fun onSuccess(result: String?) {
             result?.let {
-                val uri = Uri.parse(it)
+                val uri = it.toUri()
                 val intent = Intent().apply {
                     action = Intent.ACTION_VIEW
                     setDataAndType(uri, "application/zip")
@@ -2069,7 +2069,7 @@ class GalleryDetailScene :
                 val name = mTorrentList!![position].name
                 // TODO: Don't use buggy system download service
                 val r =
-                    DownloadManager.Request(Uri.parse(url.replace("exhentai.org", "ehtracker.org")))
+                    DownloadManager.Request(url.replace("exhentai.org", "ehtracker.org").toUri())
                 r.setDestinationInExternalPublicDir(
                     Environment.DIRECTORY_DOWNLOADS,
                     FileUtils.sanitizeFilename("$name.torrent"),
