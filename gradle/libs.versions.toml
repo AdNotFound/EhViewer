@@ -28,7 +28,7 @@ okhttp3 = "5.0.0-alpha.14"
 okio = "3.11.0"
 #noinspection NewerVersionAvailable
 rikkax-material = { strictly = "1.6.6" }
-spotless = "7.0.3"
+spotless = "7.0.4"
 
 [libraries]
 androidx-activity = { module = "androidx.activity:activity-ktx", version.ref = "androidx-activity" }
