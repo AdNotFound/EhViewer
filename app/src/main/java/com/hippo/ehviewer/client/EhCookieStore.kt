@@ -19,6 +19,8 @@ import com.hippo.ehviewer.EhApplication
 import com.hippo.network.CookieDatabase
 import com.hippo.network.CookieSet
 import com.hippo.util.launchIO
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
@@ -29,8 +31,9 @@ import java.util.regex.Pattern
 object EhCookieStore : CookieJar {
     private val db: CookieDatabase = CookieDatabase(EhApplication.application, "okhttp3-cookie.db")
     private val map: MutableMap<String, CookieSet> = db.allCookies
+    private val updateLock = Mutex()
 
-    fun signOut() {
+    suspend fun signOut() {
         clear()
     }
 
