@@ -58,9 +58,12 @@ import com.hippo.yorozuya.IntIdGenerator
 import kotlinx.coroutines.DelicateCoroutinesApi
 import okhttp3.Cache
 import okhttp3.OkHttpClient
+import okhttp3.tls.HandshakeCertificates
 import okio.FileSystem
 import okio.Path.Companion.toOkioPath
 import java.net.Proxy
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import java.security.KeyStore
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
@@ -249,10 +252,19 @@ class EhApplication :
         val ehProxySelector by lazy { EhProxySelector() }
 
         val nonCacheOkHttpClient by lazy {
+            val cf = CertificateFactory.getInstance("X.509")Add commentMore actions
+            val cert = application.resources.openRawResource(R.raw.isrgrootx1).use {
+                cf.generateCertificates(it).first() as X509Certificate
+            }
+            val certs = HandshakeCertificates.Builder()
+                .addPlatformTrustedCertificates()
+                .addTrustedCertificate(cert)
+                .build()
             OkHttpClient.Builder().apply {
                 cookieJar(EhCookieStore)
                 dns(EhDns)
                 proxySelector(ehProxySelector)
+                sslSocketFactory(certs.sslSocketFactory(), certs.trustManager)
                 if (Settings.dF) {
                     val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())!!
                     factory.init(null as KeyStore?)
