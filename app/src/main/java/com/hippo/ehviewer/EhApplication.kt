@@ -48,6 +48,7 @@ import com.hippo.ehviewer.dao.buildMainDB
 import com.hippo.ehviewer.download.DownloadManager
 import com.hippo.ehviewer.ui.EhActivity
 import com.hippo.ehviewer.ui.keepNoMediaFileStatus
+import com.hippo.ehviewer.widget.SearchDatabase
 import com.hippo.scene.SceneApplication
 import com.hippo.util.ReadableTime
 import com.hippo.util.isAtLeastP
@@ -301,6 +302,8 @@ class EhApplication :
         val favouriteStatusRouter by lazy { FavouriteStatusRouter() }
 
         val ehDatabase by lazy { buildMainDB(application) }
+
+        val searchDatabase by lazy { SearchDatabase.getInstance(application) }
 
         val thumbCache by lazy {
             DiskCache.Builder()
