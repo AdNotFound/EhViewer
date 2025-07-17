@@ -55,9 +55,8 @@ object EhDns : Dns {
     init {
         /* Pair(ip: String!, blockedByCCP: Boolean!) */
         val ehHosts = arrayOf(
-            Pair("104.20.18.168", false),
-            Pair("104.20.19.168", false),
-            Pair("172.67.2.238", false),
+            Pair("172.66.132.196", false),
+            Pair("172.66.140.62", false),
         )
         val ehgtHosts = arrayOf(
             Pair("62.112.8.21", false),
