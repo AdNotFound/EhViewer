@@ -25,7 +25,7 @@ kotlinx-serialization = "1.8.1"
 ksp = "2.1.21-2.0.1"
 ktor-utils = "3.2.0"
 okhttp3 = "5.1.0"
-okio = "3.11.0"
+okio = "3.16.0"
 #noinspection NewerVersionAvailable
 rikkax-material = { strictly = "1.6.6" }
 spotless = "7.0.4"
