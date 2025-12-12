@@ -18,13 +18,13 @@ package com.hippo.okhttp
 import com.hippo.ehviewer.Settings
 import okhttp3.Request
 
-const val CHROME_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.5938.35 Safari/537.36 Edg/117.0.5938.35"
-
 open class ChromeRequestBuilder(url: String) : Request.Builder() {
     companion object {
-        private const val CHROME_ACCEPT =
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
-        private const val CHROME_ACCEPT_LANGUAGE = "en-US,en;q=0.9"
+        const val CHROME_USER_AGENT =
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Mobile Safari/537.36"
+        const val CHROME_ACCEPT =
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
+        const val CHROME_ACCEPT_LANGUAGE = "en-US,en;q=0.9"
     }
 
     init {

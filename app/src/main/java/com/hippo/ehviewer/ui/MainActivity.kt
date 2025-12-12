@@ -272,6 +272,7 @@ class MainActivity :
             }
             updateProfile()
             mNavView!!.setNavigationItemSelectedListener(this)
+            mAvatar!!.setOnClickListener { updateProfile() }
         }
         if (savedInstanceState == null) {
             checkDownloadLocation()

@@ -21,6 +21,7 @@ import com.hippo.network.CookieSet
 import com.hippo.util.launchIO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import android.webkit.CookieManager
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
@@ -256,6 +257,42 @@ object EhCookieStore : CookieJar {
         // As in 'example.com' matching 'www.example.com'.
     }
 
+    fun loadForWebView(url: String, filter: (Cookie) -> Boolean) {
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.removeAllCookies(null)
+        getCookies(url.toHttpUrl()).forEach {
+            if (filter(it)) {
+                cookieManager.setCookie(url, it.toString())
+            }
+        }
+    }
+
+    fun saveFromWebView(url: String, filter: (Cookie) -> Boolean): Boolean {
+        val cookieManager = CookieManager.getInstance()
+        val cookies = cookieManager.getCookie(url) ?: return false
+        var saved = false
+        cookies.split(';').forEach { header ->
+            Cookie.parse(url.toHttpUrl(), header.trim())?.let {
+                if (filter(it)) {
+                    val persistentCookie = Cookie.Builder()
+                        .name(it.name)
+                        .value(it.value)
+                        .domain(it.domain)
+                        .path(it.path)
+                        .expiresAt(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000)
+                        .apply {
+                            if (it.secure) secure()
+                            if (it.httpOnly) httpOnly()
+                            if (it.hostOnly) hostOnlyDomain(it.domain)
+                        }
+                        .build()
+                    launchIO { addCookie(persistentCookie) }
+                    saved = true
+                }
+            }
+        }
+        return saved
+    }
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val cookies = getCookies(url)
         val checkTips = domainMatch(url, EhUrl.DOMAIN_E)
