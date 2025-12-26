@@ -7,6 +7,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.util.setDefaultSettings
+import okhttp3.Cookie
 
 class WebViewActivity : EhActivity() {
     private var webView: WebView? = null

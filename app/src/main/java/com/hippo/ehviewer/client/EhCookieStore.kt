@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.hippo.ehviewer.client
 
 import android.webkit.CookieManager
@@ -22,7 +23,6 @@ import com.hippo.network.CookieSet
 import com.hippo.util.launchIO
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import android.webkit.CookieManager
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
@@ -31,7 +31,6 @@ import java.util.Collections
 import java.util.regex.Pattern
 
 object EhCookieStore : CookieJar {
-    private val cookieManager = CookieManager.getInstance()
     private val db: CookieDatabase = CookieDatabase(EhApplication.application, "okhttp3-cookie.db")
     private val map: MutableMap<String, CookieSet> = db.allCookies
     private val updateLock = Mutex()
@@ -64,16 +63,8 @@ object EhCookieStore : CookieJar {
         .expiresAt(Long.MAX_VALUE)
         .build()
 
-    fun signOut() {
-        clear()
-    }
-
-    fun hasSignedIn(): Boolean {
-        val url = EhUrl.HOST_E.toHttpUrl()
-        return contains(url, KEY_IPB_MEMBER_ID) && contains(url, KEY_IPB_PASS_HASH)
-    }
-
     fun loadForWebView(url: String, filter: (Cookie) -> Boolean) {
+        val cookieManager = CookieManager.getInstance()
         cookieManager.removeAllCookies(null)
         getCookies(url.toHttpUrl()).forEach {
             if (filter(it)) {
@@ -83,12 +74,25 @@ object EhCookieStore : CookieJar {
     }
 
     fun saveFromWebView(url: String, filter: (Cookie) -> Boolean): Boolean {
+        val cookieManager = CookieManager.getInstance()
         val cookies = cookieManager.getCookie(url) ?: return false
         var saved = false
         cookies.split(';').forEach { header ->
-            Cookie.parse(url.toHttpUrl(), header)?.let {
+            Cookie.parse(url.toHttpUrl(), header.trim())?.let {
                 if (filter(it)) {
-                    addCookie(it)
+                    val persistentCookie = Cookie.Builder()
+                        .name(it.name)
+                        .value(it.value)
+                        .domain(it.domain)
+                        .path(it.path)
+                        .expiresAt(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000)
+                        .apply {
+                            if (it.secure) secure()
+                            if (it.httpOnly) httpOnly()
+                            if (it.hostOnly) hostOnlyDomain(it.domain)
+                        }
+                        .build()
+                    launchIO { addCookie(persistentCookie) }
                     saved = true
                 }
             }
@@ -291,42 +295,6 @@ object EhCookieStore : CookieJar {
         // As in 'example.com' matching 'www.example.com'.
     }
 
-    fun loadForWebView(url: String, filter: (Cookie) -> Boolean) {
-        val cookieManager = CookieManager.getInstance()
-        cookieManager.removeAllCookies(null)
-        getCookies(url.toHttpUrl()).forEach {
-            if (filter(it)) {
-                cookieManager.setCookie(url, it.toString())
-            }
-        }
-    }
-
-    fun saveFromWebView(url: String, filter: (Cookie) -> Boolean): Boolean {
-        val cookieManager = CookieManager.getInstance()
-        val cookies = cookieManager.getCookie(url) ?: return false
-        var saved = false
-        cookies.split(';').forEach { header ->
-            Cookie.parse(url.toHttpUrl(), header.trim())?.let {
-                if (filter(it)) {
-                    val persistentCookie = Cookie.Builder()
-                        .name(it.name)
-                        .value(it.value)
-                        .domain(it.domain)
-                        .path(it.path)
-                        .expiresAt(System.currentTimeMillis() + 365L * 24 * 60 * 60 * 1000)
-                        .apply {
-                            if (it.secure) secure()
-                            if (it.httpOnly) httpOnly()
-                            if (it.hostOnly) hostOnlyDomain(it.domain)
-                        }
-                        .build()
-                    launchIO { addCookie(persistentCookie) }
-                    saved = true
-                }
-            }
-        }
-        return saved
-    }
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val cookies = getCookies(url)
         val checkTips = domainMatch(url, EhUrl.DOMAIN_E)

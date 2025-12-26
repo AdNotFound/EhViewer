@@ -8,6 +8,7 @@ import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.exception.CloudflareBypassException
+import okhttp3.Cookie
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
