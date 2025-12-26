@@ -87,7 +87,7 @@ object EhDns : Dns {
         )
         put(
             "forums.e-hentai.org",
-            *ehHosts,
+            Pair("94.100.18.243", false),
         )
         put(
             "repo.e-hentai.org",
