@@ -18,8 +18,6 @@ package com.hippo.util
 import android.content.Context
 import android.content.res.Resources
 import com.hippo.ehviewer.R
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -28,6 +26,8 @@ import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import java.util.Locale
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 object ReadableTime {
     const val MAX_VALUE_MILLIS = 253402300799999L
@@ -120,7 +120,7 @@ object ReadableTime {
         val now = nowInstant.toEpochMilliseconds()
         val diff = now - time
         return when {
-            (diff < 0 || time <= 0) -> resources.getString(R.string.from_the_future)
+            (diff < 0L || time <= 0L) -> resources.getString(R.string.from_the_future)
             diff < MINUTE_MILLIS -> resources.getString(R.string.just_now)
             diff < 2 * MINUTE_MILLIS -> resources.getQuantityString(R.plurals.some_minutes_ago, 1, 1)
             diff < 50 * MINUTE_MILLIS -> {
