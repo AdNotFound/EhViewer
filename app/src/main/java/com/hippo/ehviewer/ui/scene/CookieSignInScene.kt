@@ -34,7 +34,6 @@ import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils
-import com.hippo.network.StatusCodeException
 import com.hippo.util.ExceptionUtils
 import com.hippo.util.getClipboardManager
 import com.hippo.util.getTextFromClipboard
@@ -159,16 +158,9 @@ class CookieSignInScene :
             EhUtils.signOut()
             runCatching {
                 storeCookie(ipbMemberId, ipbPassHash, igneous)
-                try {
-                    EhEngine.getProfile().run {
-                        Settings.putDisplayName(displayName)
-                        Settings.putAvatar(avatar)
-                    }
-                } catch (e: StatusCodeException) {
-                    // just ignore it and use default display name and avatar
-                    if (e.responseCode != 403) {
-                        throw e
-                    }
+                EhEngine.getProfile().run {
+                    Settings.putDisplayName(displayName)
+                    Settings.putAvatar(avatar)
                 }
             }.onFailure {
                 withUIContext {
