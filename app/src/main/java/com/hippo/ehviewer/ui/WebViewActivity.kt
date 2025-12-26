@@ -7,7 +7,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.util.setDefaultSettings
-import okhttp3.Cookie
 
 class WebViewActivity : EhActivity() {
     private var webView: WebView? = null
@@ -44,10 +43,8 @@ class WebViewActivity : EhActivity() {
     companion object {
         const val KEY_URL = "url"
 
-        fun newIntent(context: Context, url: String): Intent {
-            return Intent(context, WebViewActivity::class.java).apply {
-                putExtra(KEY_URL, url)
-            }
+        fun newIntent(context: Context, url: String): Intent = Intent(context, WebViewActivity::class.java).apply {
+            putExtra(KEY_URL, url)
         }
     }
 }

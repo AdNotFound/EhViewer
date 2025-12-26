@@ -8,7 +8,6 @@ import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.exception.CloudflareBypassException
-import okhttp3.Cookie
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
@@ -18,9 +17,7 @@ import java.util.concurrent.CountDownLatch
 class CloudflareInterceptor(context: Context) : WebViewInterceptor(context) {
     private val executor = ContextCompat.getMainExecutor(context)
 
-    override fun shouldIntercept(response: Response): Boolean {
-        return response.header(HEADER_NAME) == HEADER_VALUE
-    }
+    override fun shouldIntercept(response: Response): Boolean = response.header(HEADER_NAME) == HEADER_VALUE
 
     override fun intercept(
         chain: Interceptor.Chain,
