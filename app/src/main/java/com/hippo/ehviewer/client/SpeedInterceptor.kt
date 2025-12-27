@@ -31,7 +31,8 @@ object SpeedInterceptor : Interceptor {
         val request = chain.request()
         val response = chain.proceed(request)
         val body = response.body
-        if (body == null || Settings.timeoutSpeed <= 0) {
+        val isThumbnail = request.url.toString().contains(".hath.network/c")
+        if (body == null || Settings.timeoutSpeed <= 0 || isThumbnail) {
             return response
         }
 
