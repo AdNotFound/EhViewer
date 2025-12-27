@@ -513,6 +513,8 @@
     <string name="settings_download_download_delay">Download delay</string>
     <string name="settings_download_download_delay_summary">Delay %s ms per download</string>
     <string name="settings_download_download_timeout">Download timeout (in seconds)</string>
+    <string name="settings_download_timeout_speed">Minimum download speed (KB/s)</string>
+    <string name="settings_download_timeout_speed_summary">Speed-based timeout, 0 to disable</string>
     <string name="settings_download_preload_image">Preload image</string>
     <string name="settings_download_preload_image_summary">Preload next %s image</string>
     <string name="settings_download_download_origin_image">Load original image</string>

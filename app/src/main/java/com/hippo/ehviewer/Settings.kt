@@ -146,6 +146,8 @@ object Settings {
     private const val DEFAULT_DOWNLOAD_DELAY = 1000
     private const val KEY_DOWNLOAD_TIMEOUT = "download_timeout"
     private const val DEFAULT_DOWNLOAD_TIMEOUT = 60
+    const val KEY_TIMEOUT_SPEED = "timeout_speed"
+    private const val DEFAULT_TIMEOUT_SPEED = 128
     const val KEY_PRELOAD_IMAGE = "preload_image"
     private const val DEFAULT_PRELOAD_IMAGE = 5
     const val KEY_DOWNLOAD_ORIGIN_IMAGE = "download_origin_image_"
@@ -615,6 +617,9 @@ object Settings {
 
     val downloadTimeout: Int
         get() = getInt(KEY_DOWNLOAD_TIMEOUT, DEFAULT_DOWNLOAD_TIMEOUT)
+
+    val timeoutSpeed: Int
+        get() = getInt(KEY_TIMEOUT_SPEED, DEFAULT_TIMEOUT_SPEED)
 
     val preloadImage: Int
         get() = getIntFromStr(KEY_PRELOAD_IMAGE, DEFAULT_PRELOAD_IMAGE)

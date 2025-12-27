@@ -20,12 +20,19 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.exception.CloudflareBypassException
 import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.network.StatusCodeException
+import com.hippo.yorozuya.FileUtils
+import java.io.IOException
 import java.net.MalformedURLException
 import java.net.ProtocolException
 import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import javax.net.ssl.SSLException
+
+class LowSpeedException(
+    url: String,
+    speed: Long,
+) : IOException("Response speed too slow [url=$url, speed=${FileUtils.humanReadableByteCount(speed, true)}]")
 
 object ExceptionUtils {
     fun getReadableString(e: Throwable?): String {
@@ -39,7 +46,7 @@ object ExceptionUtils {
                 getString(R.string.error_invalid_url)
             }
 
-            is SocketTimeoutException -> {
+            is SocketTimeoutException, is LowSpeedException -> {
                 getString(R.string.error_timeout)
             }
 

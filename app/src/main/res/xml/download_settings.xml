@@ -56,6 +56,17 @@
         app:showSeekBarValue="true"
         app:singleLineTitle="false" />
 
+    <SeekBarPreference
+        android:defaultValue="128"
+        android:key="timeout_speed"
+        android:max="1024"
+        android:summary="@string/settings_download_timeout_speed_summary"
+        android:title="@string/settings_download_timeout_speed"
+        app:iconSpaceReserved="false"
+        app:min="0"
+        app:showSeekBarValue="true"
+        app:singleLineTitle="false" />
+
     <rikka.preference.SimpleMenuPreference
         android:defaultValue="5"
         android:key="preload_image"
