@@ -147,7 +147,7 @@ object Settings {
     private const val KEY_DOWNLOAD_TIMEOUT = "download_timeout"
     private const val DEFAULT_DOWNLOAD_TIMEOUT = 60
     const val KEY_TIMEOUT_SPEED = "timeout_speed"
-    private const val DEFAULT_TIMEOUT_SPEED = 128
+    private const val DEFAULT_TIMEOUT_SPEED = 64
     const val KEY_PRELOAD_IMAGE = "preload_image"
     private const val DEFAULT_PRELOAD_IMAGE = 5
     const val KEY_DOWNLOAD_ORIGIN_IMAGE = "download_origin_image_"
