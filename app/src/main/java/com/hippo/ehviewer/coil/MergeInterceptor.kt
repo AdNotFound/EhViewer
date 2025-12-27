@@ -19,24 +19,57 @@ package com.hippo.ehviewer.coil
 
 import coil3.decode.DataSource
 import coil3.intercept.Interceptor
+import coil3.request.ErrorResult
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
 import com.hippo.ehviewer.client.isNormalPreviewKey
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 
 object MergeInterceptor : Interceptor {
-    private val mutex = NamedMutex<String>()
+    private val activeRequests = mutableMapOf<String, Deferred<ImageResult>>()
 
-    override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
+    override suspend fun intercept(chain: Interceptor.Chain): ImageResult = coroutineScope {
         val req = chain.request
-        val key = req.memoryCacheKey?.takeIf { it.isNormalPreviewKey }
-        return if (key != null) {
-            val (result, suspended) = mutex.withLockNeedSuspend(key) { chain.proceed() }
-            when (result) {
-                is SuccessResult if (suspended) -> result.copy(dataSource = DataSource.MEMORY)
-                else -> result
+        val key = req.memoryCacheKey?.takeIf { it.isNormalPreviewKey } ?: return@coroutineScope chain.proceed()
+
+        val deferred = synchronized(activeRequests) {
+            activeRequests.getOrPut(key) {
+                async {
+                    try {
+                        var result: ImageResult
+                        var retryCount = 0
+                        val maxRetries = 3
+                        do {
+                            result = chain.proceed()
+                            if (result is SuccessResult) break
+                            if (result is ErrorResult && retryCount < maxRetries) {
+                                retryCount++
+                            } else {
+                                break
+                            }
+                        } while (true)
+                        result
+                    } finally {
+                        synchronized(activeRequests) {
+                            activeRequests.remove(key)
+                        }
+                    }
+                }
             }
-        } else {
-            chain.proceed()
+        }
+
+        val result = deferred.await()
+        when (result) {
+            is SuccessResult -> result.copy(
+                request = req,
+                dataSource = if (result.request === req) result.dataSource else DataSource.MEMORY,
+            )
+
+            is ErrorResult -> result.copy(
+                request = req,
+            )
         }
     }
 }

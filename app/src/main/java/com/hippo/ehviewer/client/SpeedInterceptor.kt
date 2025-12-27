@@ -64,7 +64,7 @@ object SpeedInterceptor : Interceptor {
             if (interval >= 1000) {
                 val speed = bytesReadSinceLastCheck * 1000 / interval
                 val minSpeed = Settings.timeoutSpeed.toLong() * 1024
-                
+
                 // Add 4 seconds grace period to avoid premature timeout during initial connection
                 if (speed < minSpeed && bytesRead != -1L && currentTime - startTime > 4000) {
                     throw LowSpeedException(url, speed)
