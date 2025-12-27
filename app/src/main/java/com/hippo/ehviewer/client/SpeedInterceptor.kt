@@ -46,7 +46,8 @@ object SpeedInterceptor : Interceptor {
         delegate: Source,
         private val url: String,
     ) : ForwardingSource(delegate) {
-        private var lastTime = System.currentTimeMillis()
+        private val startTime = System.currentTimeMillis()
+        private var lastTime = startTime
         private var bytesReadSinceLastCheck = 0L
 
         @Throws(IOException::class)
@@ -63,8 +64,9 @@ object SpeedInterceptor : Interceptor {
             if (interval >= 1000) {
                 val speed = bytesReadSinceLastCheck * 1000 / interval
                 val minSpeed = Settings.timeoutSpeed.toLong() * 1024
-
-                if (speed < minSpeed && bytesRead != -1L) {
+                
+                // Add 4 seconds grace period to avoid premature timeout during initial connection
+                if (speed < minSpeed && bytesRead != -1L && currentTime - startTime > 4000) {
                     throw LowSpeedException(url, speed)
                 }
 
