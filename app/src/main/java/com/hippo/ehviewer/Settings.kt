@@ -131,6 +131,8 @@ object Settings {
     private const val DEFAULT_SCREEN_LIGHTNESS = 50
     const val KEY_DOUBLE_PAGE_MODE = "double_page_mode"
     private const val DEFAULT_DOUBLE_PAGE_MODE = false
+    const val KEY_DOUBLE_PAGE_MODE_LANDSCAPE = "double_page_mode_landscape"
+    private const val DEFAULT_DOUBLE_PAGE_MODE_LANDSCAPE = true
 
     /********************
      ****** Download
@@ -593,6 +595,12 @@ object Settings {
         get() = getBoolean(KEY_DOUBLE_PAGE_MODE, DEFAULT_DOUBLE_PAGE_MODE)
     fun putDoublePageMode(value: Boolean) {
         putBoolean(KEY_DOUBLE_PAGE_MODE, value)
+    }
+
+    val doublePageModeLandscape: Boolean
+        get() = getBoolean(KEY_DOUBLE_PAGE_MODE_LANDSCAPE, DEFAULT_DOUBLE_PAGE_MODE_LANDSCAPE)
+    fun putDoublePageModeLandscape(value: Boolean) {
+        putBoolean(KEY_DOUBLE_PAGE_MODE_LANDSCAPE, value)
     }
 
     val downloadLocation: UniFile?

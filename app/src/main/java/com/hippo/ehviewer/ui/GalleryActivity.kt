@@ -29,6 +29,7 @@ import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
@@ -210,7 +211,11 @@ class GalleryActivity :
     private var mAutoTransferJob: Job? = null
     private var mTurnPageIntervalVal = Settings.turnPageInterval
     private val isDoublePageMode: Boolean
-        get() = Settings.doublePageMode && resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        get() = if (Settings.doublePageModeLandscape) {
+            Settings.doublePageMode && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        } else {
+            Settings.doublePageMode
+        }
 
     private val galleryDetailUrl: String?
         get() {
@@ -1104,11 +1109,17 @@ class GalleryActivity :
         private val mReadingFullscreen: Switch = view.findViewById(R.id.reading_fullscreen)
         private val mCustomScreenLightness: Switch = view.findViewById(R.id.custom_screen_lightness)
         private val mScreenLightness: SeekBar = view.findViewById(R.id.screen_lightness)
+        private val mDoublePageModeLandscape: Switch = view.findViewById(R.id.double_page_mode_landscape)
 
         init {
             mScreenRotation.setSelection(Settings.screenRotation)
             mReadingDirection.setSelection(Settings.readingDirection)
             mDoublePageMode.isChecked = Settings.doublePageMode
+            mDoublePageModeLandscape.isChecked = Settings.doublePageModeLandscape
+            mDoublePageModeLandscape.visibility = if (Settings.doublePageMode) View.VISIBLE else View.GONE
+            mDoublePageMode.setOnCheckedChangeListener { _: CompoundButton?, isChecked: Boolean ->
+                mDoublePageModeLandscape.visibility = if (isChecked) View.VISIBLE else View.GONE
+            }
             mScaleMode.setSelection(Settings.pageScaling)
             mStartPosition.setSelection(Settings.startPosition)
             mReadTheme.setSelection(Settings.readTheme)
@@ -1143,6 +1154,7 @@ class GalleryActivity :
             val screenRotation = mScreenRotation.selectedItemPosition
             val layoutMode = GalleryView.sanitizeLayoutMode(mReadingDirection.selectedItemPosition)
             val doublePageMode = mDoublePageMode.isChecked
+            val doublePageModeLandscape = mDoublePageModeLandscape.isChecked
             val scaleMode = GalleryView.sanitizeScaleMode(mScaleMode.selectedItemPosition)
             val startPosition =
                 GalleryView.sanitizeStartPosition(mStartPosition.selectedItemPosition)
@@ -1164,6 +1176,7 @@ class GalleryActivity :
             Settings.putScreenRotation(screenRotation)
             Settings.putReadingDirection(layoutMode)
             Settings.putDoublePageMode(doublePageMode)
+            Settings.putDoublePageModeLandscape(doublePageModeLandscape)
             Settings.putPageScaling(scaleMode)
             Settings.putStartPosition(startPosition)
             Settings.putReadTheme(readTheme)

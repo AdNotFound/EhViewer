@@ -108,6 +108,13 @@
         app:iconSpaceReserved="false" />
 
     <SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:dependency="double_page_mode"
+        android:key="double_page_mode_landscape"
+        android:title="@string/settings_read_double_page_mode_landscape"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
         android:defaultValue="false"
         android:key="volume_page"
         android:title="@string/settings_read_volume_page"
