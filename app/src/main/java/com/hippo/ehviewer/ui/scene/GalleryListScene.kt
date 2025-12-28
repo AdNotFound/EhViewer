@@ -233,8 +233,8 @@ class GalleryListScene :
     private fun handleArgs(args: Bundle?) {
         args ?: return
         mUrlBuilder = when (args.getString(KEY_ACTION)) {
-            ACTION_HOMEPAGE -> ListUrlBuilder(category = Settings.savedCategory)
-            ACTION_SUBSCRIPTION -> ListUrlBuilder(MODE_SUBSCRIPTION, category = Settings.savedCategory)
+            ACTION_HOMEPAGE -> ListUrlBuilder()
+            ACTION_SUBSCRIPTION -> ListUrlBuilder(MODE_SUBSCRIPTION)
             ACTION_WHATS_HOT -> ListUrlBuilder(MODE_WHATS_HOT)
             ACTION_TOP_LIST -> ListUrlBuilder(MODE_TOPLIST, mKeyword = Settings.defaultTopList)
             ACTION_LIST_URL_BUILDER -> args.getParcelableCompat<ListUrlBuilder>(KEY_LIST_URL_BUILDER)
@@ -354,7 +354,7 @@ class GalleryListScene :
             mFabLayout!!.getSecondaryFabAt(0)!!.setImageResource(if (isTopList) R.drawable.ic_baseline_format_list_numbered_24 else R.drawable.v_magnify_x24)
         }
 
-        mSearchLayout?.setCategory(category)
+        mSearchLayout?.setCategory(if (category == EhUtils.NONE) Settings.savedCategory else category)
 
         // Update fab visibility
         mFabLayout!!.setSecondaryFabVisibilityAt(1, !isPopular)
