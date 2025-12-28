@@ -21,6 +21,7 @@ import android.util.Log
 import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import com.hippo.ehviewer.EhApplication.Companion.application
+import com.hippo.ehviewer.client.EhUtils
 import com.hippo.ehviewer.client.data.FavListUrlBuilder
 import com.hippo.ehviewer.ui.scene.GalleryListScene
 import com.hippo.glgallery.GalleryView
@@ -285,6 +286,7 @@ object Settings {
     private const val DEFAULT_CLIPBOARD_TEXT_HASH_CODE = 0
     private const val KEY_ARCHIVE_PASSWDS = "archive_passwds"
     private const val KEY_NOTIFICATION_REQUIRED = "notification_required"
+    private const val KEY_SAVED_CATEGORY = "saved_category"
     private lateinit var sSettingsPre: SharedPreferences
 
     fun initialize() {
@@ -802,6 +804,10 @@ object Settings {
     fun putRecentFavCat(value: Int) {
         putInt(KEY_RECENT_FAV_CAT, value)
     }
+
+    var savedCategory: Int
+        get() = getInt(KEY_SAVED_CATEGORY, EhUtils.ALL_CATEGORY)
+        set(value) = putInt(KEY_SAVED_CATEGORY, value)
 
     val defaultFavSlot: Int
         get() = getInt(KEY_DEFAULT_FAV_SLOT, DEFAULT_DEFAULT_FAV_SLOT)

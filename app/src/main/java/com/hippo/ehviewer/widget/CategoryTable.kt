@@ -99,16 +99,17 @@ class CategoryTable @JvmOverloads constructor(
             return category
         }
         set(category) {
-            mDoujinshi.isChecked = !NumberUtils.int2boolean(category and EhUtils.DOUJINSHI)
-            mManga.isChecked = !NumberUtils.int2boolean(category and EhUtils.MANGA)
-            mArtistCG.isChecked = !NumberUtils.int2boolean(category and EhUtils.ARTIST_CG)
-            mGameCG.isChecked = !NumberUtils.int2boolean(category and EhUtils.GAME_CG)
-            mWestern.isChecked = !NumberUtils.int2boolean(category and EhUtils.WESTERN)
-            mNonH.isChecked = !NumberUtils.int2boolean(category and EhUtils.NON_H)
-            mImageSets.isChecked = !NumberUtils.int2boolean(category and EhUtils.IMAGE_SET)
-            mCosplay.isChecked = !NumberUtils.int2boolean(category and EhUtils.COSPLAY)
-            mAsianPorn.isChecked = !NumberUtils.int2boolean(category and EhUtils.ASIAN_PORN)
-            mMisc.isChecked = !NumberUtils.int2boolean(category and EhUtils.MISC)
+            val mCategory = if (category == EhUtils.NONE) EhUtils.ALL_CATEGORY else category
+            mDoujinshi.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.DOUJINSHI)
+            mManga.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.MANGA)
+            mArtistCG.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.ARTIST_CG)
+            mGameCG.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.GAME_CG)
+            mWestern.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.WESTERN)
+            mNonH.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.NON_H)
+            mImageSets.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.IMAGE_SET)
+            mCosplay.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.COSPLAY)
+            mAsianPorn.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.ASIAN_PORN)
+            mMisc.isChecked = !NumberUtils.int2boolean(mCategory and EhUtils.MISC)
         }
 
     override fun onSaveInstanceState(): Parcelable {

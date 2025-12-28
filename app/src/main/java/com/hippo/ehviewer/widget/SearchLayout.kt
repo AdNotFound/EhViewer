@@ -116,6 +116,7 @@ class SearchLayout @JvmOverloads constructor(
         mNormalSearchModeHelp!!.setOnClickListener(this)
         mEnableAdvanceSwitch!!.setOnCheckedChangeListener(this)
         mEnableAdvanceSwitch!!.setSwitchPadding(resources.getDimensionPixelSize(R.dimen.switch_padding))
+        mCategoryTable!!.category = com.hippo.ehviewer.Settings.savedCategory
 
         // Create advance view
         mAdvanceView = mInflater!!.inflate(R.layout.search_advance, null)
@@ -151,6 +152,10 @@ class SearchLayout @JvmOverloads constructor(
 
     fun setNormalSearchMode(id: Int) {
         mNormalSearchMode!!.check(id)
+    }
+
+    fun setCategory(category: Int) {
+        mCategoryTable!!.category = category
     }
 
     override fun onSelectImage() {
@@ -229,7 +234,9 @@ class SearchLayout @JvmOverloads constructor(
                     }
                 }
                 urlBuilder.keyword = query
-                urlBuilder.category = mCategoryTable!!.category
+                val category = mCategoryTable!!.category
+                urlBuilder.category = category
+                com.hippo.ehviewer.Settings.savedCategory = category
                 if (mEnableAdvance) {
                     urlBuilder.advanceSearch = mTableAdvanceSearch!!.advanceSearch
                     urlBuilder.minRating = mTableAdvanceSearch!!.minRating
