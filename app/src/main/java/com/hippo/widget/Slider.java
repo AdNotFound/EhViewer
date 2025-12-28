@@ -101,7 +101,6 @@ public class Slider extends View {
         init(context, attrs);
     }
 
-    @SuppressWarnings("deprecation")
     private void init(Context context, AttributeSet attrs) {
         mContext = context;
         mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -117,13 +116,13 @@ public class Slider extends View {
         mBubble.setScaleY(0.0f);
         RelativeLayout relativeLayout = new RelativeLayout(context);
         relativeLayout.addView(mBubble);
-        relativeLayout.setBackgroundDrawable(null);
+        relativeLayout.setBackground(null);
         mPopup = new PopupWindow(relativeLayout);
         mPopup.setOutsideTouchable(false);
         mPopup.setTouchable(false);
         mPopup.setFocusable(false);
 
-        //noinspection resource
+        // noinspection resource
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.Slider);
         try {
             textPaint.setColor(a.getColor(R.styleable.Slider_textColor, Color.WHITE));
@@ -404,8 +403,10 @@ public class Slider extends View {
                 float radius = mRadius;
                 float x = event.getX();
                 int progress = Math.round(MathUtils.lerp((float) mStart, (float) mEnd,
-                        MathUtils.clamp((mReverse ? (getWidth() - paddingLeft - radius - x) : (x - radius - paddingLeft)) /
-                                (getWidth() - radius - radius - paddingLeft - paddingRight), 0.0f, 1.0f)));
+                        MathUtils.clamp(
+                                (mReverse ? (getWidth() - paddingLeft - radius - x) : (x - radius - paddingLeft)) /
+                                        (getWidth() - radius - radius - paddingLeft - paddingRight),
+                                0.0f, 1.0f)));
                 float percent = MathUtils.delerp(mStart, mEnd, progress);
 
                 // ACTION_CANCEL not changed

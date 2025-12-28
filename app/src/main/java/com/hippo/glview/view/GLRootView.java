@@ -104,16 +104,15 @@ public class GLRootView extends GLSurfaceView
         this(context, null);
     }
 
-    @SuppressWarnings("deprecation")
     public GLRootView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mFlags |= FLAG_INITIALIZED;
-        setBackgroundDrawable(null);
+        setBackground(null);
 
         setEGLConfigChooser(new ConfigChooser());
         setEGLContextFactory(new ContextFactory());
         setRenderer(new GLRootRenderer());
-        getHolder().setFormat(PixelFormat.RGB_888);
+        getHolder().setFormat(PixelFormat.RGBX_8888);
 
         // Uncomment this to enable gl error check.
         // setDebugFlags(DEBUG_CHECK_GL_ERROR);
@@ -494,15 +493,6 @@ public class GLRootView extends GLSurfaceView
         super.dispatchRestoreInstanceState(container);
         if (mContentView != null) {
             mContentView.restoreHierarchyState(container);
-        }
-    }
-
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            unfreeze();
-        } finally {
-            super.finalize();
         }
     }
 
