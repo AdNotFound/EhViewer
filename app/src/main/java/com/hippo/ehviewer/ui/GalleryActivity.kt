@@ -515,8 +515,7 @@ class GalleryActivity :
 
     private fun updateDoublePageMode() {
         if (mGalleryView == null) return
-        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-        mGalleryView!!.setDoublePageMode(Settings.doublePageMode && isLandscape)
+        mGalleryView!!.setDoublePageMode(Settings.doublePageMode)
     }
 
     private fun pageTurn(isPrevious: Boolean) {
