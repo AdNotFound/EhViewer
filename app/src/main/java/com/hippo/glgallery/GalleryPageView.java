@@ -44,8 +44,8 @@ public class GalleryPageView extends GLFrameLayout {
     private int mIndex = INVALID_INDEX;
 
     public GalleryPageView(ImageMovableTextTexture pageTextTexture,
-                           int progressColor, int progressBgColor, int progressSize,
-                           int minHeight, int infoInterval) {
+            int progressColor, int progressBgColor, int progressSize,
+            int minHeight, int infoInterval) {
         // Add image
         mImage = new ImageView();
         GravityLayoutParams glp = new GravityLayoutParams(LayoutParams.MATCH_PARENT,
@@ -184,6 +184,29 @@ public class GalleryPageView extends GLFrameLayout {
 
     boolean isError() {
         return mError.getVisibility() == VISIBLE;
+    }
+
+    private int mPagePosition = 0; // 0: Center, 1: Left 1/4, 2: Right 1/4
+
+    public void setPagePosition(int position) {
+        if (mPagePosition != position) {
+            mPagePosition = position;
+            requestLayout();
+        }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        if (mPagePosition != 0) {
+            int width = right - left;
+            int centerX = (mPagePosition == 1) ? width / 4 : width * 3 / 4;
+            int infoWidth = mInfo.getWidth();
+            int infoHeight = mInfo.getHeight();
+            int centerY = (bottom - top) / 2;
+            mInfo.layout(centerX - infoWidth / 2, centerY - infoHeight / 2,
+                    centerX + infoWidth / 2, centerY + infoHeight / 2);
+        }
     }
 
     boolean isUnderInfo(float x, float y) {

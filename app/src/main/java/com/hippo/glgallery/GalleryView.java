@@ -59,10 +59,10 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     public static final int START_POSITION_BOTTOM_LEFT = ImageView.START_POSITION_BOTTOM_LEFT;
     public static final int START_POSITION_BOTTOM_RIGHT = ImageView.START_POSITION_BOTTOM_RIGHT;
     public static final int START_POSITION_CENTER = ImageView.START_POSITION_CENTER;
-    private static final float[] LEFT_AREA = {0.0f, 0.0f, 1.0f / 3.0f, 1f};
-    private static final float[] RIGHT_AREA = {2.0f / 3.0f, 0.0f, 1.0f, 1f};
-    private static final float[] MENU_AREA = {1.0f / 3.0f, 0.0f, 2.0f / 3.0f, 1.0f / 2.0f};
-    private static final float[] SLIDER_AREA = {1.0f / 3.0f, 1.0f / 2.0f, 2.0f / 3.0f, 1.0f};
+    private static final float[] LEFT_AREA = { 0.0f, 0.0f, 1.0f / 3.0f, 1f };
+    private static final float[] RIGHT_AREA = { 2.0f / 3.0f, 0.0f, 1.0f, 1f };
+    private static final float[] MENU_AREA = { 1.0f / 3.0f, 0.0f, 2.0f / 3.0f, 1.0f / 2.0f };
+    private static final float[] SLIDER_AREA = { 1.0f / 3.0f, 1.0f / 2.0f, 2.0f / 3.0f, 1.0f };
     private static final int METHOD_ON_SINGLE_TAP_UP = 0;
     private static final int METHOD_ON_SINGLE_TAP_CONFIRMED = 1;
     private static final int METHOD_ON_DOUBLE_TAP = 2;
@@ -86,6 +86,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private static final int METHOD_ON_ATTACH_TO_ROOT = 20;
     private static final int METHOD_SET_PAGER_INTERVAL = 21;
     private static final int METHOD_SET_SCROLL_INTERVAL = 22;
+    private static final int METHOD_SET_DOUBLE_PAGE_MODE = 23;
     private final Context mContext;
     private final GestureRecognizer mGestureRecognizer;
     @Nullable
@@ -259,7 +260,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         if (null == mPageTextTexture) {
             mPageTextTexture = ImageMovableTextTexture.create(mPageTextTypeface,
                     mPageTextSize, mPageTextColor,
-                    new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9'});
+                    new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' });
         }
         attachLayoutManager();
     }
@@ -696,6 +697,18 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
     }
 
+    public void setDoublePageMode(boolean doublePageMode) {
+        mMethodList.add(METHOD_SET_DOUBLE_PAGE_MODE);
+        mArgsList.add(new Object[] { doublePageMode });
+        invalidate();
+    }
+
+    private void setDoublePageModeInternal(boolean doublePageMode) {
+        if (mPagerLayoutManager != null) {
+            mPagerLayoutManager.setDoublePageMode(doublePageMode);
+        }
+    }
+
     void forceFill() {
         mRequestFill = true;
         fill();
@@ -739,19 +752,19 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
             switch (method) {
                 case METHOD_ON_SINGLE_TAP_UP -> onSingleTapUpInternal();
                 case METHOD_ON_SINGLE_TAP_CONFIRMED ->
-                        onSingleTapConfirmedInternal((Float) args[0], (Float) args[1]);
+                    onSingleTapConfirmedInternal((Float) args[0], (Float) args[1]);
                 case METHOD_ON_DOUBLE_TAP -> onDoubleTapInternal();
                 case METHOD_ON_DOUBLE_TAP_CONFIRMED ->
-                        onDoubleTapConfirmedInternal((Float) args[0], (Float) args[1]);
+                    onDoubleTapConfirmedInternal((Float) args[0], (Float) args[1]);
                 case METHOD_ON_LONG_PRESS -> onLongPressInternal((Float) args[0], (Float) args[1]);
                 case METHOD_ON_SCROLL ->
-                        onScrollInternal((Float) args[0], (Float) args[1], (Float) args[2],
-                                (Float) args[3], (Float) args[4], (Float) args[5]);
+                    onScrollInternal((Float) args[0], (Float) args[1], (Float) args[2],
+                            (Float) args[3], (Float) args[4], (Float) args[5]);
                 case METHOD_ON_FLING -> onFlingInternal((Float) args[0], (Float) args[1]);
                 case METHOD_ON_SCALE_BEGIN ->
-                        onScaleBeginInternal((Float) args[0], (Float) args[1]);
+                    onScaleBeginInternal((Float) args[0], (Float) args[1]);
                 case METHOD_ON_SCALE ->
-                        onScaleInternal((Float) args[0], (Float) args[1], (Float) args[2]);
+                    onScaleInternal((Float) args[0], (Float) args[1], (Float) args[2]);
                 case METHOD_ON_SCALE_END -> onScaleEndInternal();
                 case METHOD_ON_DOWN -> onDownInternal();
                 case METHOD_ON_UP -> onUpInternal();
@@ -766,6 +779,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                 case METHOD_ON_ATTACH_TO_ROOT -> onAttachToRootInternal();
                 case METHOD_SET_PAGER_INTERVAL -> setPagerIntervalInternal((Integer) args[0]);
                 case METHOD_SET_SCROLL_INTERVAL -> setScrollIntervalInternal((Integer) args[0]);
+                case METHOD_SET_DOUBLE_PAGE_MODE -> setDoublePageModeInternal((Boolean) args[0]);
             }
         }
 
@@ -859,18 +873,18 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         mErrorViewCache = errorView;
     }
 
-    @IntDef({LAYOUT_LEFT_TO_RIGHT, LAYOUT_RIGHT_TO_LEFT, LAYOUT_TOP_TO_BOTTOM})
+    @IntDef({ LAYOUT_LEFT_TO_RIGHT, LAYOUT_RIGHT_TO_LEFT, LAYOUT_TOP_TO_BOTTOM })
     @Retention(RetentionPolicy.SOURCE)
     public @interface LayoutMode {
     }
 
-    @IntDef({SCALE_ORIGIN, SCALE_FIT_WIDTH, SCALE_FIT_HEIGHT, SCALE_FIT, SCALE_FIXED})
+    @IntDef({ SCALE_ORIGIN, SCALE_FIT_WIDTH, SCALE_FIT_HEIGHT, SCALE_FIT, SCALE_FIXED })
     @Retention(RetentionPolicy.SOURCE)
     public @interface ScaleMode {
     }
 
-    @IntDef({START_POSITION_TOP_LEFT, START_POSITION_TOP_RIGHT, START_POSITION_BOTTOM_LEFT,
-            START_POSITION_BOTTOM_RIGHT, START_POSITION_CENTER})
+    @IntDef({ START_POSITION_TOP_LEFT, START_POSITION_TOP_RIGHT, START_POSITION_BOTTOM_LEFT,
+            START_POSITION_BOTTOM_RIGHT, START_POSITION_CENTER })
     @Retention(RetentionPolicy.SOURCE)
     public @interface StartPosition {
     }
@@ -898,6 +912,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         private int mBackgroundColor = Color.BLACK;
         private int mPagerInterval = 48;
         private int mScrollInterval = 24;
+        private boolean mDoublePageMode = false;
         private int mPageMinHeight = 256;
         private int mPageInfoInterval = 24;
         private int mProgressColor = Color.WHITE;
@@ -951,6 +966,11 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
 
         public Builder setScrollInterval(int scrollInterval) {
             mScrollInterval = scrollInterval;
+            return this;
+        }
+
+        public Builder setDoublePageMode(boolean doublePageMode) {
+            mDoublePageMode = doublePageMode;
             return this;
         }
 

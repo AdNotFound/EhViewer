@@ -31,6 +31,9 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 
 import androidx.annotation.NonNull;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.hippo.glview.anim.CanvasAnimation;
 import com.hippo.glview.glrenderer.BasicTexture;
@@ -74,14 +77,11 @@ public class GLRootView extends GLSurfaceView
     // mCompensationMatrix maps the coordinates of touch events. It is kept sync
     // with mCompensation.
     private final Matrix mCompensationMatrix = new Matrix();
-    private final ArrayList<CanvasAnimation> mAnimations =
-            new ArrayList<>();
-    private final ArrayDeque<OnGLIdleListener> mIdleListeners =
-            new ArrayDeque<>();
+    private final ArrayList<CanvasAnimation> mAnimations = new ArrayList<>();
+    private final ArrayDeque<OnGLIdleListener> mIdleListeners = new ArrayDeque<>();
     private final IdleRunner mIdleRunner = new IdleRunner();
     private final ReentrantLock mRenderLock = new ReentrantLock();
-    private final Condition mFreezeCondition =
-            mRenderLock.newCondition();
+    private final Condition mFreezeCondition = mRenderLock.newCondition();
     private final Runnable mRequestRenderOnAnimationFrame = this::superRequestRender;
     private int mFrameCount = 0;
     private long mFrameCountingStart = 0;
@@ -141,7 +141,8 @@ public class GLRootView extends GLSurfaceView
 
     @Override
     public void setContentPane(GLView content) {
-        if (mContentView == content) return;
+        if (mContentView == content)
+            return;
         if (mContentView != null) {
             if (mInDownState) {
                 long now = SystemClock.uptimeMillis();
@@ -173,7 +174,8 @@ public class GLRootView extends GLSurfaceView
             String caller = e.getFileName() + ":" + e.getLineNumber() + " ";
             Log.d(TAG, "invalidate: " + caller);
         }
-        if (mRenderRequested) return;
+        if (mRenderRequested)
+            return;
         mRenderRequested = true;
         postOnAnimation(mRequestRenderOnAnimationFrame);
     }
@@ -186,11 +188,13 @@ public class GLRootView extends GLSurfaceView
     public void requestLayoutContentPane() {
         mRenderLock.lock();
         try {
-            if (mContentView == null || (mFlags & FLAG_NEED_LAYOUT) != 0) return;
+            if (mContentView == null || (mFlags & FLAG_NEED_LAYOUT) != 0)
+                return;
 
             // "View" system will invoke onLayout() for initialization(bug ?), we
             // have to ignore it since the GLThread is not ready yet.
-            if ((mFlags & FLAG_INITIALIZED) == 0) return;
+            if ((mFlags & FLAG_INITIALIZED) == 0)
+                return;
 
             mFlags |= FLAG_NEED_LAYOUT;
             requestRender();
@@ -243,13 +247,14 @@ public class GLRootView extends GLSurfaceView
             mContentView.layout(0, 0, w, h);
         }
         // Uncomment this to dump the view hierarchy.
-        //mContentView.dumpTree("");
+        // mContentView.dumpTree("");
     }
 
     @Override
     protected void onLayout(
             boolean changed, int left, int top, int right, int bottom) {
-        if (changed) requestLayoutContentPane();
+        if (changed)
+            requestLayoutContentPane();
     }
 
     private void outputFps() {
@@ -266,7 +271,8 @@ public class GLRootView extends GLSurfaceView
     }
 
     private void onDrawFrameLocked() {
-        if (DEBUG_FPS) outputFps();
+        if (DEBUG_FPS)
+            outputFps();
         // release the unbound textures and deleted buffers.
         mCanvas.deleteRecycledResources();
 
@@ -304,7 +310,8 @@ public class GLRootView extends GLSurfaceView
         }
 
         synchronized (mIdleListeners) {
-            if (!mIdleListeners.isEmpty()) mIdleRunner.enable();
+            if (!mIdleListeners.isEmpty())
+                mIdleRunner.enable();
         }
 
         if (DEBUG_INVALIDATE) {
@@ -318,7 +325,8 @@ public class GLRootView extends GLSurfaceView
     }
 
     private void rotateCanvas(int degrees) {
-        if (degrees == 0) return;
+        if (degrees == 0)
+            return;
         int w = getWidth();
         int h = getHeight();
         int cx = w / 2;
@@ -334,7 +342,8 @@ public class GLRootView extends GLSurfaceView
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        if (!isEnabled()) return false;
+        if (!isEnabled())
+            return false;
 
         int action = event.getAction();
         if (action == MotionEvent.ACTION_CANCEL
@@ -427,11 +436,15 @@ public class GLRootView extends GLSurfaceView
 
     @Override
     public void setLightsOutMode(boolean enabled) {
-        int flags = 0;
-        if (enabled) {
-            flags = SYSTEM_UI_FLAG_FULLSCREEN | SYSTEM_UI_FLAG_LAYOUT_STABLE;
+        WindowInsetsControllerCompat controller = ViewCompat.getWindowInsetsController(this);
+        if (controller != null) {
+            if (enabled) {
+                controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                controller.hide(WindowInsetsCompat.Type.systemBars());
+            } else {
+                controller.show(WindowInsetsCompat.Type.systemBars());
+            }
         }
-        setSystemUiVisibility(flags);
     }
 
     // We need to unfreeze in the following methods and in onPause().
@@ -571,7 +584,8 @@ public class GLRootView extends GLSurfaceView
             OnGLIdleListener listener;
             synchronized (mIdleListeners) {
                 mActive = false;
-                if (mIdleListeners.isEmpty()) return;
+                if (mIdleListeners.isEmpty())
+                    return;
                 listener = mIdleListeners.removeFirst();
             }
             mRenderLock.lock();
@@ -582,14 +596,17 @@ public class GLRootView extends GLSurfaceView
                 mRenderLock.unlock();
             }
             synchronized (mIdleListeners) {
-                if (keepInQueue) mIdleListeners.addLast(listener);
-                if (!mRenderRequested && !mIdleListeners.isEmpty()) enable();
+                if (keepInQueue)
+                    mIdleListeners.addLast(listener);
+                if (!mRenderRequested && !mIdleListeners.isEmpty())
+                    enable();
             }
         }
 
         public void enable() {
             // Who gets the flag can add it to the queue
-            if (mActive) return;
+            if (mActive)
+                return;
             mActive = true;
             queueEvent(this);
         }
@@ -602,7 +619,7 @@ public class GLRootView extends GLSurfaceView
         @Override
         public EGLConfig chooseConfig(EGL10 egl, EGLDisplay display) {
             int[] num_config = new int[1];
-            int[] configSpec = new int[]{EGL10.EGL_NONE};
+            int[] configSpec = new int[] { EGL10.EGL_NONE };
             if (!egl.eglChooseConfig(display, configSpec, null, 0, num_config)) {
                 throw new IllegalArgumentException("eglChooseConfig failed");
             }
@@ -670,7 +687,7 @@ public class GLRootView extends GLSurfaceView
         }
 
         private int findConfigAttrib(EGL10 egl, EGLDisplay display,
-                                     EGLConfig config, int attribute) {
+                EGLConfig config, int attribute) {
             if (egl.eglGetConfigAttrib(display, config, attribute, mValue)) {
                 return mValue[0];
             }
@@ -683,8 +700,8 @@ public class GLRootView extends GLSurfaceView
 
         @Override
         public EGLContext createContext(EGL10 egl, EGLDisplay display, EGLConfig config) {
-            int[] attrib_list = {EGL_CONTEXT_CLIENT_VERSION, mEGLContextClientVersion,
-                    EGL10.EGL_NONE};
+            int[] attrib_list = { EGL_CONTEXT_CLIENT_VERSION, mEGLContextClientVersion,
+                    EGL10.EGL_NONE };
 
             return egl.eglCreateContext(display, config, EGL10.EGL_NO_CONTEXT,
                     mEGLContextClientVersion != 0 ? attrib_list : null);

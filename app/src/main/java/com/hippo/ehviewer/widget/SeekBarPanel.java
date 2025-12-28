@@ -25,6 +25,8 @@ import android.widget.SeekBar;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.hippo.ehviewer.R;
 import com.hippo.yorozuya.ViewUtils;
@@ -43,7 +45,8 @@ public class SeekBarPanel extends LinearLayout {
         init();
     }
 
-    public SeekBarPanel(Context context, @Nullable @org.jetbrains.annotations.Nullable AttributeSet attrs, int defStyleAttr) {
+    public SeekBarPanel(Context context, @Nullable @org.jetbrains.annotations.Nullable AttributeSet attrs,
+            int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
@@ -55,9 +58,9 @@ public class SeekBarPanel extends LinearLayout {
 
     private void init() {
         post(() -> {
-            var rootWindowInsets = getRootWindowInsets();
+            WindowInsetsCompat rootWindowInsets = ViewCompat.getRootWindowInsets(this);
             if (rootWindowInsets != null) {
-                setPadding(0, 0, 0, rootWindowInsets.getSystemWindowInsetBottom());
+                setPadding(0, 0, 0, rootWindowInsets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom);
             }
         });
     }

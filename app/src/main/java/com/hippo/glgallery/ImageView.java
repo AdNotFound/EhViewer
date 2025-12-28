@@ -58,6 +58,7 @@ class ImageView extends GLView implements ImageTexture.Callback {
     private float mScale = 1.0f;
     private boolean mScaleOffsetDirty = true;
     private boolean mPositionInRootDirty = true;
+    private boolean mEnableCustomPlace = false;
 
     public ImageView() {
         mAlphaAnimation = new AlphaAnimation(0.0f, 1.0f);
@@ -312,6 +313,11 @@ class ImageView extends GLView implements ImageTexture.Callback {
             return;
         }
 
+        if (mEnableCustomPlace) {
+            mScaleOffsetDirty = false;
+            return;
+        }
+
         int textureWidth = mTextureWidth;
         int textureHeight = mTextureHeight;
 
@@ -543,5 +549,21 @@ class ImageView extends GLView implements ImageTexture.Callback {
     @Override
     public void invalidateImageTexture(ImageTexture who) {
         invalidate();
+    }
+
+    public void setCustomPlace(RectF dst) {
+        mEnableCustomPlace = true;
+        mDst.set(dst);
+        mScaleOffsetDirty = false;
+        mPositionInRootDirty = true;
+        invalidate();
+    }
+
+    public void disableCustomPlace() {
+        if (mEnableCustomPlace) {
+            mEnableCustomPlace = false;
+            mScaleOffsetDirty = true;
+            requestLayout();
+        }
     }
 }

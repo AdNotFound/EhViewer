@@ -508,7 +508,15 @@ class GalleryActivity :
             mLayoutMode = mGalleryView!!.layoutMode
         }
         mSize = mGalleryProvider!!.size
+        updateDoublePageMode()
         updateSlider()
+        updateProgress()
+    }
+
+    private fun updateDoublePageMode() {
+        if (mGalleryView == null) return
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        mGalleryView!!.setDoublePageMode(Settings.doublePageMode && isLandscape)
     }
 
     private fun pageTurn(isPrevious: Boolean) {
@@ -646,8 +654,19 @@ class GalleryActivity :
     @SuppressLint("SetTextI18n")
     private fun updateProgress() {
         if (mCurrentIndex + 1 == mSize) autoTransfer()
-        mProgress?.text =
-            if (mSize <= 0 || mCurrentIndex < 0) null else (mCurrentIndex + 1).toString() + "/" + mSize
+        val isDouble = Settings.doublePageMode && resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+        if (mSize <= 0 || mCurrentIndex < 0) {
+            mProgress?.text = null
+        } else if (isDouble) {
+            val nextIndex = mCurrentIndex + 1
+            if (nextIndex < mSize) {
+                mProgress?.text = "${mCurrentIndex + 1}-${nextIndex + 1}/$mSize"
+            } else {
+                mProgress?.text = "${mCurrentIndex + 1}/$mSize"
+            }
+        } else {
+            mProgress?.text = "${mCurrentIndex + 1}/$mSize"
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -1071,6 +1090,7 @@ class GalleryActivity :
         val view: View = LayoutInflater.from(context).inflate(R.layout.dialog_gallery_menu, null)
         private val mScreenRotation: Spinner = view.findViewById(R.id.screen_rotation)
         private val mReadingDirection: Spinner = view.findViewById(R.id.reading_direction)
+        private val mDoublePageMode: Switch = view.findViewById(R.id.double_page_mode)
         private val mScaleMode: Spinner = view.findViewById(R.id.page_scaling)
         private val mStartPosition: Spinner = view.findViewById(R.id.start_position)
         private val mReadTheme: Spinner = view.findViewById(R.id.read_theme)
@@ -1090,6 +1110,7 @@ class GalleryActivity :
         init {
             mScreenRotation.setSelection(Settings.screenRotation)
             mReadingDirection.setSelection(Settings.readingDirection)
+            mDoublePageMode.isChecked = Settings.doublePageMode
             mScaleMode.setSelection(Settings.pageScaling)
             mStartPosition.setSelection(Settings.startPosition)
             mReadTheme.setSelection(Settings.readTheme)
@@ -1123,6 +1144,7 @@ class GalleryActivity :
             }
             val screenRotation = mScreenRotation.selectedItemPosition
             val layoutMode = GalleryView.sanitizeLayoutMode(mReadingDirection.selectedItemPosition)
+            val doublePageMode = mDoublePageMode.isChecked
             val scaleMode = GalleryView.sanitizeScaleMode(mScaleMode.selectedItemPosition)
             val startPosition =
                 GalleryView.sanitizeStartPosition(mStartPosition.selectedItemPosition)
@@ -1143,6 +1165,7 @@ class GalleryActivity :
             val oldReadTheme = Settings.readTheme
             Settings.putScreenRotation(screenRotation)
             Settings.putReadingDirection(layoutMode)
+            Settings.putDoublePageMode(doublePageMode)
             Settings.putPageScaling(scaleMode)
             Settings.putStartPosition(startPosition)
             Settings.putReadTheme(readTheme)
@@ -1198,7 +1221,9 @@ class GalleryActivity :
             setScreenLightness(customScreenLightness, screenLightness)
             // Update slider
             mLayoutMode = layoutMode
+            updateDoublePageMode()
             updateSlider()
+            updateProgress()
             if (oldReadingFullscreen != readingFullscreen || oldReadTheme != readTheme) {
                 recreate()
             }

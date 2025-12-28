@@ -49,6 +49,11 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
     private final PageFling mPageFling;
     private final SmoothScaler mSmoothScaler;
     private final Rect mTempRect = new Rect();
+    private final android.graphics.Matrix mPairMatrix = new android.graphics.Matrix();
+    private final android.graphics.RectF mBaseRectPrimary = new android.graphics.RectF();
+    private final android.graphics.RectF mBaseRectSecondary = new android.graphics.RectF();
+    private final android.graphics.RectF mDstRectPrimary = new android.graphics.RectF();
+    private final android.graphics.RectF mDstRectSecondary = new android.graphics.RectF();
     private GalleryView.Adapter mAdapter;
     private GLProgressView mProgress;
     private String mErrorStr;
@@ -56,6 +61,10 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
     private GalleryPageView mPrevious;
     private GalleryPageView mCurrent;
     private GalleryPageView mNext;
+    private GalleryPageView mPreviousSecondary;
+    private GalleryPageView mCurrentSecondary;
+    private GalleryPageView mNextSecondary;
+    private boolean mDoublePageMode = false;
     @Mode
     private int mMode = MODE_RIGHT_TO_LEFT;
     private int mScaleMode;
@@ -69,7 +78,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
     private int mIndex;
 
     public PagerLayoutManager(Context context, @NonNull GalleryView galleryView,
-                              int scaleMode, int startPoint, float scaleValue, int interval) {
+            int scaleMode, int startPoint, float scaleValue, int interval) {
         super(galleryView);
 
         mScaleMode = scaleMode;
@@ -82,20 +91,33 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         mSmoothScaler = new SmoothScaler();
     }
 
+    public void setDoublePageMode(boolean enabled) {
+        if (mDoublePageMode == enabled) {
+            return;
+        }
+        mDoublePageMode = enabled;
+        if (mAdapter != null) {
+            cancelAllAnimations();
+            removeProgress();
+            removeErrorView();
+            removeAllPages();
+            resetParameters();
+            mGalleryView.requestFill();
+        }
+    }
+
     public void setInterval(int interval) {
         if (mInterval == interval) {
             return;
         }
+        mInterval = interval;
 
         if (mAdapter != null) {
             int index = getInternalCurrentIndex();
             GalleryView.Adapter adapter = onDetach();
-            mInterval = interval;
             onAttach(adapter);
             setCurrentIndex(index);
             mGalleryView.requestFill();
-        } else {
-            mInterval = interval;
         }
     }
 
@@ -103,6 +125,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         mOffset = 0;
         mCanScrollBetweenPages = false;
         mStopAnimationFinger = false;
+        mPairMatrix.reset();
     }
 
     private boolean cancelAllAnimations() {
@@ -151,6 +174,15 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         if (mNext != null) {
             mNext.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
         }
+        if (mPreviousSecondary != null) {
+            mPreviousSecondary.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
+        }
+        if (mCurrentSecondary != null) {
+            mCurrentSecondary.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
+        }
+        if (mNextSecondary != null) {
+            mNextSecondary.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
+        }
     }
 
     public void setStartPosition(int startPosition) {
@@ -167,6 +199,15 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         }
         if (mNext != null) {
             mNext.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
+        }
+        if (mPreviousSecondary != null) {
+            mPreviousSecondary.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
+        }
+        if (mCurrentSecondary != null) {
+            mCurrentSecondary.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
+        }
+        if (mNextSecondary != null) {
+            mNextSecondary.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
         }
     }
 
@@ -196,6 +237,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
     }
 
     private void removePage(@NonNull GalleryPageView page) {
+        page.getImageView().disableCustomPlace();
         mGalleryView.removeComponent(page);
         mAdapter.unbind(page);
         mGalleryView.releasePage(page);
@@ -214,6 +256,18 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         if (mNext != null) {
             removePage(mNext);
             mNext = null;
+        }
+        if (mPreviousSecondary != null) {
+            removePage(mPreviousSecondary);
+            mPreviousSecondary = null;
+        }
+        if (mCurrentSecondary != null) {
+            removePage(mCurrentSecondary);
+            mCurrentSecondary = null;
+        }
+        if (mNextSecondary != null) {
+            removePage(mNextSecondary);
+            mNextSecondary = null;
         }
     }
 
@@ -251,7 +305,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
     }
 
     private void layoutPage(GalleryPageView page, int widthSpec, int heightSpec,
-                            int left, int right, int bottom) {
+            int left, int right, int bottom) {
         Rect rect = mTempRect;
         page.getValidRect(rect);
         boolean oldValid = !rect.isEmpty();
@@ -261,6 +315,116 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         boolean newValid = !rect.isEmpty();
         if (!oldValid && newValid) {
             page.getImageView().setScaleOffset(mScaleMode, mStartPosition, mScaleValue);
+        }
+    }
+
+    private void calculateDoublePageRects(ImageView primaryView, ImageView secondaryView, boolean isRTL,
+            android.graphics.RectF rectPrimary, android.graphics.RectF rectSecondary) {
+        int width = mGalleryView.getWidth();
+        int height = mGalleryView.getHeight();
+
+        // Dimensions of primary
+        int w1 = primaryView.getImageTexture().getWidth();
+        int h1 = primaryView.getImageTexture().getHeight();
+
+        float w2;
+        if (secondaryView != null && secondaryView.isLoaded()) {
+            int w2Raw = secondaryView.getImageTexture().getWidth();
+            int h2Raw = secondaryView.getImageTexture().getHeight();
+            if (h1 != h2Raw) {
+                float ratio = (float) h1 / h2Raw;
+                w2 = w2Raw * ratio;
+            } else {
+                w2 = w2Raw;
+            }
+        } else {
+            w2 = 0;
+        }
+
+        // Total width at "native" height h1
+        float totalWidth = w1 + w2;
+        float totalHeight = h1;
+
+        // Scale to fit screen
+        float sH = (float) height / totalHeight;
+        float sW = (float) width / totalWidth;
+        float baseScale = Math.min(sH, sW);
+
+        float displayW1 = w1 * baseScale;
+        float displayW2 = w2 * baseScale;
+        float displayH = totalHeight * baseScale;
+
+        // Base Layout (Centered)
+        float startX = (width - (displayW1 + displayW2)) / 2f;
+        float startY = (height - displayH) / 2f;
+
+        if (isRTL) {
+            // [Secondary] [Primary]
+            rectSecondary.set(startX, startY, startX + displayW2, startY + displayH);
+            rectPrimary.set(startX + displayW2, startY, startX + displayW2 + displayW1, startY + displayH);
+        } else {
+            // [Primary] [Secondary]
+            rectPrimary.set(startX, startY, startX + displayW1, startY + displayH);
+            rectSecondary.set(startX + displayW1, startY, startX + displayW1 + displayW2, startY + displayH);
+        }
+    }
+
+    private void updateDoublePageLayout() {
+        if (!mDoublePageMode || mCurrent == null)
+            return;
+
+        ImageView primaryView = mCurrent.getImageView();
+        if (!primaryView.isLoaded()) {
+            primaryView.disableCustomPlace();
+            if (mCurrentSecondary != null)
+                mCurrentSecondary.getImageView().disableCustomPlace();
+            return;
+        }
+
+        calculateDoublePageRects(primaryView, mCurrentSecondary != null ? mCurrentSecondary.getImageView() : null,
+                mMode == MODE_RIGHT_TO_LEFT, mBaseRectPrimary, mBaseRectSecondary);
+
+        // Apply Transformation Matrix
+        mPairMatrix.mapRect(mDstRectPrimary, mBaseRectPrimary);
+        if (mCurrentSecondary != null && mCurrentSecondary.getImageView().isLoaded()) {
+            mPairMatrix.mapRect(mDstRectSecondary, mBaseRectSecondary);
+            mCurrentSecondary.getImageView().setCustomPlace(mDstRectSecondary);
+        } else if (mCurrentSecondary != null) {
+            mCurrentSecondary.getImageView().disableCustomPlace();
+        }
+
+        // Apply to Views
+        primaryView.setCustomPlace(mDstRectPrimary);
+    }
+
+    // Helper method to apply unified seamless layout to any page pair (for
+    // neighbors)
+    private void applyUnifiedLayoutToPagePair(GalleryPageView primary, GalleryPageView secondary, boolean isRTL) {
+        if (primary == null)
+            return;
+
+        ImageView primaryView = primary.getImageView();
+        if (!primaryView.isLoaded()) {
+            primaryView.disableCustomPlace();
+            if (secondary != null)
+                secondary.getImageView().disableCustomPlace();
+            return;
+        }
+
+        android.graphics.RectF rectPrimary = new android.graphics.RectF();
+        android.graphics.RectF rectSecondary = new android.graphics.RectF();
+
+        calculateDoublePageRects(primaryView, secondary != null ? secondary.getImageView() : null,
+                isRTL, rectPrimary, rectSecondary);
+
+        // Apply to Views
+        primaryView.setCustomPlace(rectPrimary);
+        if (secondary != null) {
+            if (secondary.getImageView().isLoaded()) {
+                secondary.getImageView().setCustomPlace(rectSecondary);
+            } else {
+                secondary.getImageView().disableCustomPlace();
+            }
         }
     }
 
@@ -276,88 +440,233 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
         if (size == 0) { // Get empty, show error text
             String errorStr = galleryView.getEmptyStr();
-
-            // Remove progress and all pages
             removeProgress();
             removeAllPages();
-
-            // Ensure error view
             if (mErrorView == null) {
                 mErrorView = galleryView.obtainErrorView();
                 galleryView.addComponent(mErrorView);
             }
-
-            // Update error string
             if (!errorStr.equals(mErrorStr)) {
                 mErrorStr = errorStr;
                 galleryView.bindErrorView(mErrorView, errorStr);
             }
-
-            // Place error view center
             placeCenter(mErrorView);
         } else {
-            // Remove progress and error view
             removeProgress();
             removeErrorView();
 
-            // Ensure index in range
             int index = mIndex;
             if (index < 0) {
                 index = 0;
                 mIndex = index;
                 removeAllPages();
-                Log.e(TAG, "index < 0, index = " + index);
             } else if (index >= size) {
                 index = size - 1;
                 mIndex = index;
                 removeAllPages();
-                Log.e(TAG, "index >= size, index = " + index + ", size = " + size);
             }
 
-            // Ensure pages
-            if (mCurrent == null) {
-                mCurrent = obtainPage();
-                galleryView.addComponent(mCurrent);
-                adapter.bind(mCurrent, index);
-            }
-            if (mPrevious == null && index > 0) {
-                mPrevious = obtainPage();
-                galleryView.addComponent(mPrevious);
-                adapter.bind(mPrevious, index - 1);
-            } else if (mPrevious != null && index == 0) {
-                removePage(mPrevious);
-            }
-            if (mNext == null && index < size - 1) {
-                mNext = obtainPage();
-                galleryView.addComponent(mNext);
-                adapter.bind(mNext, index + 1);
-            } else if (mNext != null && index == size - 1) {
-                removePage(mNext);
-            }
+            if (mDoublePageMode) {
+                if (index % 2 != 0) {
+                    index--;
+                    mIndex = index;
+                }
 
-            GalleryPageView leftPage = getLeftPage();
-            GalleryPageView rightPage = getRightPage();
+                // Previous
+                int previousIndex = index - 2;
+                if (previousIndex >= 0) {
+                    if (mPrevious == null) {
+                        mPrevious = obtainPage();
+                        galleryView.addComponent(mPrevious);
+                        adapter.bind(mPrevious, previousIndex);
+                    }
+                    if (previousIndex + 1 < size) {
+                        if (mPreviousSecondary == null) {
+                            mPreviousSecondary = obtainPage();
+                            galleryView.addComponent(mPreviousSecondary);
+                            adapter.bind(mPreviousSecondary, previousIndex + 1);
+                        }
+                    } else if (mPreviousSecondary != null) {
+                        removePage(mPreviousSecondary);
+                        mPreviousSecondary = null;
+                    }
+                } else {
+                    if (mPrevious != null) {
+                        removePage(mPrevious);
+                        mPrevious = null;
+                    }
+                    if (mPreviousSecondary != null) {
+                        removePage(mPreviousSecondary);
+                        mPreviousSecondary = null;
+                    }
+                }
 
-            // Fix offset
-            final int min = rightPage == null ? 0 : -width - mInterval + 1;
-            final int max = leftPage == null ? 0 : width + mInterval - 1;
-            mOffset = MathUtils.clamp(mOffset, min, max);
+                // Current
+                if (mCurrent == null) {
+                    mCurrent = obtainPage();
+                    galleryView.addComponent(mCurrent);
+                    adapter.bind(mCurrent, index);
+                }
+                if (index + 1 < size) {
+                    if (mCurrentSecondary == null) {
+                        mCurrentSecondary = obtainPage();
+                        galleryView.addComponent(mCurrentSecondary);
+                        adapter.bind(mCurrentSecondary, index + 1);
+                    }
+                } else if (mCurrentSecondary != null) {
+                    removePage(mCurrentSecondary);
+                    mCurrentSecondary = null;
+                }
 
-            // Measure and layout pages
-            final int offset = mOffset;
-            final int widthSpec = GLView.MeasureSpec.makeMeasureSpec(width, GLView.MeasureSpec.EXACTLY);
-            final int heightSpec = GLView.MeasureSpec.makeMeasureSpec(height, GLView.MeasureSpec.EXACTLY);
-            if (mCurrent != null) {
-                layoutPage(mCurrent, widthSpec, heightSpec,
-                        offset, width + offset, height);
-            }
-            if (leftPage != null) {
-                layoutPage(leftPage, widthSpec, heightSpec,
-                        -mInterval - width + offset, -mInterval + offset, height);
-            }
-            if (rightPage != null) {
-                layoutPage(rightPage, widthSpec, heightSpec,
-                        width + mInterval + offset, width + mInterval + width + offset, height);
+                // Next
+                int nextIndex = index + 2;
+                if (nextIndex < size) {
+                    if (mNext == null) {
+                        mNext = obtainPage();
+                        galleryView.addComponent(mNext);
+                        adapter.bind(mNext, nextIndex);
+                    }
+                    if (nextIndex + 1 < size) {
+                        if (mNextSecondary == null) {
+                            mNextSecondary = obtainPage();
+                            galleryView.addComponent(mNextSecondary);
+                            adapter.bind(mNextSecondary, nextIndex + 1);
+                        }
+                    } else if (mNextSecondary != null) {
+                        removePage(mNextSecondary);
+                        mNextSecondary = null;
+                    }
+                } else {
+                    if (mNext != null) {
+                        removePage(mNext);
+                        mNext = null;
+                    }
+                    if (mNextSecondary != null) {
+                        removePage(mNextSecondary);
+                        mNextSecondary = null;
+                    }
+                }
+
+                // Set page info positions to avoid overlap
+                boolean isRTL = mMode == MODE_RIGHT_TO_LEFT;
+                if (mCurrent != null)
+                    mCurrent.setPagePosition(isRTL ? 2 : 1);
+                if (mCurrentSecondary != null)
+                    mCurrentSecondary.setPagePosition(isRTL ? 1 : 2);
+                if (mPrevious != null)
+                    mPrevious.setPagePosition(isRTL ? 2 : 1);
+                if (mPreviousSecondary != null)
+                    mPreviousSecondary.setPagePosition(isRTL ? 1 : 2);
+                if (mNext != null)
+                    mNext.setPagePosition(isRTL ? 2 : 1);
+                if (mNextSecondary != null)
+                    mNextSecondary.setPagePosition(isRTL ? 1 : 2);
+
+                // Layout!
+                GalleryPageView leftPage = getLeftPage();
+                GalleryPageView rightPage = getRightPage();
+                int min = rightPage == null ? 0 : -width - mInterval + 1;
+                int max = leftPage == null ? 0 : width + mInterval - 1;
+                mOffset = MathUtils.clamp(mOffset, min, max);
+                int offset = mOffset;
+
+                int widthSpec = GLView.MeasureSpec.makeMeasureSpec(width, GLView.MeasureSpec.EXACTLY);
+                int heightSpec = GLView.MeasureSpec.makeMeasureSpec(height, GLView.MeasureSpec.EXACTLY);
+
+                // Current (Double Page Unified)
+                if (mCurrent != null) {
+                    // We layout both views to FULL SCREEN
+                    layoutPage(mCurrent, widthSpec, heightSpec, offset, offset + width, height);
+                    if (mCurrentSecondary != null) {
+                        layoutPage(mCurrentSecondary, widthSpec, heightSpec, offset, offset + width, height);
+                    }
+                    // Apply Unified Layout
+                    updateDoublePageLayout();
+                }
+
+                // Neighbors - use unified seamless layout
+                int prevOffset = isRTL ? offset + width + mInterval : offset - width - mInterval;
+                int nextOffset = isRTL ? offset - width - mInterval : offset + width + mInterval;
+
+                // Previous - layout to full screen then apply unified layout
+                if (mPrevious != null) {
+                    layoutPage(mPrevious, widthSpec, heightSpec, prevOffset, prevOffset + width, height);
+                    if (mPreviousSecondary != null) {
+                        layoutPage(mPreviousSecondary, widthSpec, heightSpec, prevOffset, prevOffset + width, height);
+                    }
+                    applyUnifiedLayoutToPagePair(mPrevious, mPreviousSecondary, isRTL);
+                }
+
+                // Next - layout to full screen then apply unified layout
+                if (mNext != null) {
+                    layoutPage(mNext, widthSpec, heightSpec, nextOffset, nextOffset + width, height);
+                    if (mNextSecondary != null) {
+                        layoutPage(mNextSecondary, widthSpec, heightSpec, nextOffset, nextOffset + width, height);
+                    }
+                    applyUnifiedLayoutToPagePair(mNext, mNextSecondary, isRTL);
+                }
+
+            } else {
+                // Ensure pages (Standard Single)
+                if (mPreviousSecondary != null) {
+                    removePage(mPreviousSecondary);
+                    mPreviousSecondary = null;
+                }
+                if (mCurrentSecondary != null) {
+                    removePage(mCurrentSecondary);
+                    mCurrentSecondary = null;
+                }
+                if (mNextSecondary != null) {
+                    removePage(mNextSecondary);
+                    mNextSecondary = null;
+                }
+
+                if (mCurrent == null) {
+                    mCurrent = obtainPage();
+                    galleryView.addComponent(mCurrent);
+                    adapter.bind(mCurrent, index);
+                }
+                if (mPrevious == null && index > 0) {
+                    mPrevious = obtainPage();
+                    galleryView.addComponent(mPrevious);
+                    adapter.bind(mPrevious, index - 1);
+                } else if (mPrevious != null && index == 0) {
+                    removePage(mPrevious);
+                    mPrevious = null;
+                }
+                if (mNext == null && index < size - 1) {
+                    mNext = obtainPage();
+                    galleryView.addComponent(mNext);
+                    adapter.bind(mNext, index + 1);
+                } else if (mNext != null && index == size - 1) {
+                    removePage(mNext);
+                }
+
+                GalleryPageView leftPage = getLeftPage();
+                GalleryPageView rightPage = getRightPage();
+
+                final int min = rightPage == null ? 0 : -width - mInterval + 1;
+                final int max = leftPage == null ? 0 : width + mInterval - 1;
+                mOffset = MathUtils.clamp(mOffset, min, max);
+
+                final int offset = mOffset;
+                final int widthSpec = GLView.MeasureSpec.makeMeasureSpec(width, GLView.MeasureSpec.EXACTLY);
+                final int heightSpec = GLView.MeasureSpec.makeMeasureSpec(height, GLView.MeasureSpec.EXACTLY);
+
+                if (mCurrent != null) {
+                    mCurrent.setPagePosition(0);
+                    layoutPage(mCurrent, widthSpec, heightSpec, offset, width + offset, height);
+                }
+                if (leftPage != null) {
+                    leftPage.setPagePosition(0);
+                    layoutPage(leftPage, widthSpec, heightSpec, -mInterval - width + offset, -mInterval + offset,
+                            height);
+                }
+                if (rightPage != null) {
+                    rightPage.setPagePosition(0);
+                    layoutPage(rightPage, widthSpec, heightSpec, width + mInterval + offset,
+                            width + mInterval + width + offset, height);
+                }
             }
         }
     }
@@ -390,44 +699,69 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         }
     }
 
-    @Override
-    public void onDoubleTapConfirmed(float x, float y) {
-        if (mCurrent == null || !mCurrent.getImageView().isLoaded()) {
-            return;
-        }
-
-        float[] scales = mScaleDefault;
-        ImageView image = mCurrent.getImageView();
-        image.getScaleDefault(scales);
-        float scale = image.getScale();
-        float endScale = scales[0];
-        for (float value : scales) {
-            if (scale < value - 0.01f) {
-                endScale = value;
-                break;
-            }
-        }
-
-        mSmoothScaler.startSmoothScaler(x, y, scale, endScale, 300);
+    // Helper to find page under point since getIndexUnder returns index
+    private GalleryPageView findPageUnder(float x, float y) {
+        int index = getIndexUnder(x, y);
+        return findPageByIndex(index);
     }
 
     private void pagePrevious() {
         if (mIndex <= 0) {
             return;
         }
-        mIndex--;
 
-        if (mNext != null) {
-            removePage(mNext);
-        }
-        mNext = mCurrent;
-        mCurrent = mPrevious;
-        mPrevious = null;
+        if (mDoublePageMode) {
+            mPairMatrix.reset();
+            mIndex -= 2;
+            if (mIndex < 0) {
+                mIndex = 0;
+            }
 
-        if (mIndex > 0) {
-            mPrevious = obtainPage();
-            mGalleryView.addComponent(mPrevious);
-            mAdapter.bind(mPrevious, mIndex - 1);
+            if (mNextSecondary != null) {
+                removePage(mNextSecondary);
+            }
+            if (mNext != null) {
+                removePage(mNext);
+            }
+            mNext = mCurrent;
+            mNextSecondary = mCurrentSecondary;
+
+            mCurrent = mPrevious;
+            mCurrentSecondary = mPreviousSecondary;
+
+            mPrevious = null;
+            mPreviousSecondary = null;
+
+            if (mIndex > 0) {
+                // Determine previous pair
+                int prevIndex = mIndex - 2;
+                if (prevIndex >= 0) {
+                    mPrevious = obtainPage();
+                    mGalleryView.addComponent(mPrevious);
+                    mAdapter.bind(mPrevious, prevIndex);
+
+                    if (prevIndex + 1 < mAdapter.size()) {
+                        mPreviousSecondary = obtainPage();
+                        mGalleryView.addComponent(mPreviousSecondary);
+                        mAdapter.bind(mPreviousSecondary, prevIndex + 1);
+                    }
+                }
+            }
+        } else {
+            mIndex--;
+
+            if (mNext != null) {
+                removePage(mNext);
+            }
+            mNext = mCurrent;
+            mCurrent = mPrevious;
+            mPrevious = null;
+
+            if (mIndex > 0) {
+                mPrevious = obtainPage();
+                mGalleryView.addComponent(mPrevious);
+                mAdapter.bind(mPrevious, mIndex - 1);
+            }
         }
     }
 
@@ -437,19 +771,76 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         if (mIndex >= size - 1) {
             return;
         }
-        mIndex++;
 
-        if (mPrevious != null) {
-            removePage(mPrevious);
-        }
-        mPrevious = mCurrent;
-        mCurrent = mNext;
-        mNext = null;
+        if (mDoublePageMode) {
+            mPairMatrix.reset();
+            mIndex += 2;
+            if (mIndex >= size) {
+                // If we jumped past end, clamp?
+                // But mIndex logic usually points to start of pair.
+                // If mIndex was at start of last pair.
+                // If size=10, mIndex=8. Next=10? -> size-1?
+                // Logic: index must be valid start.
+                // But let's check bound.
+                if (mIndex >= size)
+                    mIndex = size - 1; // Or should we prevent the jump?
+            }
 
-        if (mIndex < size - 1) {
-            mNext = obtainPage();
-            mGalleryView.addComponent(mNext);
-            adapter.bind(mNext, mIndex + 1);
+            // If mIndex is odd due to clamping ??
+            if (mIndex % 2 != 0) {
+                mIndex--;
+                // Wait, if mIndex becomes same as old mIndex?
+                // e.g. size=10. old=8. new=10->9. 9->8. NO change.
+                // So checking mIndex vs old mIndex is important?
+                // But simplistic:
+            }
+
+            // Check if we actually advanced?
+            // To simplify: Just Re-Fill if logic is complex.
+            // But let's support shifting for animation.
+
+            if (mPrevious != null) {
+                removePage(mPrevious);
+            }
+            if (mPreviousSecondary != null) {
+                removePage(mPreviousSecondary);
+            }
+
+            mPrevious = mCurrent;
+            mPreviousSecondary = mCurrentSecondary;
+
+            mCurrent = mNext;
+            mCurrentSecondary = mNextSecondary;
+
+            mNext = null;
+            mNextSecondary = null;
+
+            if (mIndex + 2 < size) {
+                mNext = obtainPage();
+                mGalleryView.addComponent(mNext);
+                adapter.bind(mNext, mIndex + 2);
+
+                if (mIndex + 3 < size) {
+                    mNextSecondary = obtainPage();
+                    mGalleryView.addComponent(mNextSecondary);
+                    adapter.bind(mNextSecondary, mIndex + 3);
+                }
+            }
+        } else {
+            mIndex++;
+
+            if (mPrevious != null) {
+                removePage(mPrevious);
+            }
+            mPrevious = mCurrent;
+            mCurrent = mNext;
+            mNext = null;
+
+            if (mIndex < size - 1) {
+                mNext = obtainPage();
+                mGalleryView.addComponent(mNext);
+                adapter.bind(mNext, mIndex + 1);
+            }
         }
     }
 
@@ -534,10 +925,93 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
         while (remainX != 0 || remainY != 0) {
             if (mOffset == 0 && canImageScroll) {
-                ImageView image = mCurrent.getImageView();
-                image.scroll(remainX, remainY, mScrollRemain);
-                remainX = mScrollRemain[0];
-                remainY = mScrollRemain[1];
+                if (mDoublePageMode) {
+                    // Unified Double Page Scroll
+                    float dxF = remainX;
+                    float dyF = remainY;
+                    mPairMatrix.postTranslate(-dxF, -dyF);
+
+                    // Calc Union Rect
+                    android.graphics.RectF union = new android.graphics.RectF();
+                    mPairMatrix.mapRect(mDstRectPrimary, mBaseRectPrimary);
+                    union.set(mDstRectPrimary);
+                    // Check if secondary has valid base rect (width > 0)
+                    if (mBaseRectSecondary.width() > 0) {
+                        mPairMatrix.mapRect(mDstRectSecondary, mBaseRectSecondary);
+                        union.union(mDstRectSecondary);
+                    }
+
+                    int width = mGalleryView.getWidth();
+                    int height = mGalleryView.getHeight();
+
+                    // Fix X
+                    float fixX = 0;
+                    if (union.width() > width) {
+                        if (union.left > 0)
+                            fixX = -union.left;
+                        else if (union.right < width)
+                            fixX = width - union.right;
+                    } else {
+                        // Center
+                        float cx = (width - union.width()) / 2f;
+                        fixX = cx - union.left;
+                    }
+
+                    // Fix Y
+                    float fixY = 0;
+                    if (union.height() > height) {
+                        if (union.top > 0)
+                            fixY = -union.top;
+                        else if (union.bottom < height)
+                            fixY = height - union.bottom;
+                    } else {
+                        // Center
+                        float cy = (height - union.height()) / 2f;
+                        fixY = cy - union.top;
+                    }
+
+                    if (fixX != 0 || fixY != 0) {
+                        mPairMatrix.postTranslate(fixX, fixY);
+                    }
+
+                    updateDoublePageLayout();
+
+                    // Update remainX/Y
+                    // If content is smaller than screen, we force centered (fixX undoes movement).
+                    // So we consumed 0. remainX stays same.
+                    // If content > screen, and we hit wall (fixX != 0).
+                    // We consumed (dx - fixX?).
+                    // remainX should be what's left.
+                    // If fixX == dx (full revert), remainX = original.
+                    // If fixX == 0, remainX = 0.
+                    // So remainX = (int) -fixX.
+                    // Note: fixX matches delta direction processing.
+
+                    if (union.width() <= width) {
+                        // If we didn't actually scroll image (because it fits),
+                        // we shouldn't claim to have consumed it IF we want page turn.
+                        // remainX is unchanged.
+                    } else {
+                        // We consumed all except fix part
+                        remainX = (int) -fixX;
+                    }
+
+                    if (union.height() <= height) {
+                        remainY = (int) dy; // Unconsumed? Or just 0? Vertical scroll usually doesn't change page.
+                        // If fits vertically, we usually ignore vertical drag or overscroll?
+                        // Let's set 0 to avoid getting stuck in loop if vertical doesn't trigger
+                        // anything.
+                        remainY = 0;
+                    } else {
+                        remainY = (int) -fixY;
+                    }
+
+                } else {
+                    ImageView image = mCurrent.getImageView();
+                    image.scroll(remainX, remainY, mScrollRemain);
+                    remainX = mScrollRemain[0];
+                    remainY = mScrollRemain[1];
+                }
                 canImageScroll = false;
             } else if (remainX == 0 ||
                     (getLeftPage() == null && mOffset == 0 && remainX < 0) ||
@@ -567,10 +1041,20 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
     @Override
     public void onFling(float velocityX, float velocityY) {
+        // Double Page Fling?
+        // Standard fling relies on ImageView.
+        // If we are in "Custom Place" mode, ImageView.fling might not work as expected
+        // via standard calls.
+
         if (mCurrent == null || mOffset != 0 || !mCurrent.getImageView().isLoaded() ||
                 !mCurrent.getImageView().canFling()) {
             return;
         }
+
+        // If Double Page, disable fling for now or implement unified fling?
+        // Disabling fling to avoid glitches during test.
+        if (mDoublePageMode)
+            return;
 
         ImageView image = mCurrent.getImageView();
         mPageFling.startFling((int) velocityX, image.getMinDx(), image.getMaxDx(),
@@ -579,17 +1063,31 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
     @Override
     public boolean canScale() {
+        if (mDoublePageMode)
+            return mCurrent != null && mOffset == 0;
         return mCurrent != null && mOffset == 0 && mCurrent.getImageView().isLoaded();
     }
 
     @Override
     public void onScale(float focusX, float focusY, float scale) {
-        if (mCurrent == null || !mCurrent.getImageView().isLoaded()) {
+        if (mDoublePageMode) {
+            mPairMatrix.postScale(scale, scale, focusX, focusY);
+            updateDoublePageLayout();
+            // Need to update mScaleValue for consistency?
+            // mScaleValue = ... from box?
             return;
         }
 
-        mCurrent.getImageView().scale(focusX, focusY, scale);
-        mScaleValue = mCurrent.getImageView().getScale();
+        GalleryPageView page = findPageUnder(focusX, focusY);
+        if (page == null || !page.getImageView().isLoaded()) {
+            // Fallback to mCurrent if focused page is invalid/null to avoid crash
+            if (mCurrent == null || !mCurrent.getImageView().isLoaded())
+                return;
+            page = mCurrent;
+        }
+
+        page.getImageView().scale(focusX, focusY, scale);
+        mScaleValue = page.getImageView().getScale();
     }
 
     @Override
@@ -597,6 +1095,9 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         boolean invalidate = mSmoothScroller.calculate(time);
         invalidate |= mPageFling.calculate(time);
         invalidate |= mSmoothScaler.calculate(time);
+        if (invalidate) {
+            mGalleryView.requestFill();
+        }
         return invalidate;
     }
 
@@ -622,13 +1123,14 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
             return;
         }
 
+        int jump = mDoublePageMode ? 2 : 1;
         if (mMode == MODE_LEFT_TO_RIGHT) {
-            if (mIndex != 0) {
-                setCurrentIndex(mIndex - 1);
+            if (mIndex > 0) {
+                setCurrentIndex(mIndex - jump);
             }
         } else {
             if (mIndex < size - 1) {
-                setCurrentIndex(mIndex + 1);
+                setCurrentIndex(mIndex + jump);
             }
         }
     }
@@ -640,13 +1142,14 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
             return;
         }
 
+        int jump = mDoublePageMode ? 2 : 1;
         if (mMode == MODE_LEFT_TO_RIGHT) {
             if (mIndex < size - 1) {
-                setCurrentIndex(mIndex + 1);
+                setCurrentIndex(mIndex + jump);
             }
         } else {
-            if (mIndex != 0) {
-                setCurrentIndex(mIndex - 1);
+            if (mIndex > 0) {
+                setCurrentIndex(mIndex - jump);
             }
         }
     }
@@ -667,6 +1170,15 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         if (mNext != null && mNext.getIndex() == index) {
             return mNext;
         }
+        if (mCurrentSecondary != null && mCurrentSecondary.getIndex() == index) {
+            return mCurrentSecondary;
+        }
+        if (mPreviousSecondary != null && mPreviousSecondary.getIndex() == index) {
+            return mPreviousSecondary;
+        }
+        if (mNextSecondary != null && mNextSecondary.getIndex() == index) {
+            return mNextSecondary;
+        }
         return null;
     }
 
@@ -681,67 +1193,132 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
     @Override
     public void setCurrentIndex(int index) {
+        GalleryView galleryView = mGalleryView;
         int size = mAdapter.size();
         if (size <= 0) {
-            // Can't get size now, assume size is MAX
-            size = Integer.MAX_VALUE;
+            return;
         }
         if (index == mIndex || index < 0 || index >= size) {
             return;
         }
-        if (mCurrent == null) {
-            mIndex = index;
-        } else if (index == mIndex - 1) {
-            // Cancel all animations
-            cancelAllAnimations();
-            // Reset parameters
-            resetParameters();
-            // Go to previous
-            pagePrevious();
-            // Request fill
-            mGalleryView.requestFill();
-        } else if (index == mIndex + 1) {
-            // Cancel all animations
-            cancelAllAnimations();
-            // Reset parameters
-            resetParameters();
-            // Go to next
-            pageNext();
-            // Request fill
-            mGalleryView.requestFill();
+
+        if (mDoublePageMode) {
+            mPairMatrix.reset();
+            // Align to start of pair
+            if (index % 2 != 0) {
+                index--;
+            }
+        }
+
+        if (index == mIndex)
+            return;
+
+        int step = mDoublePageMode ? 2 : 1;
+        boolean isConnectedJump = (index == mIndex - step || index == mIndex + step);
+
+        cancelAllAnimations();
+        resetParameters();
+
+        if (isConnectedJump && mCurrent != null) {
+            if (index < mIndex) {
+                pagePrevious();
+            } else {
+                pageNext();
+            }
         } else {
             mIndex = index;
-            // It is attached, refill
-            // Cancel all animations
-            cancelAllAnimations();
-            // Remove all view
             removeProgress();
             removeErrorView();
             removeAllPages();
-            // Reset parameters
-            resetParameters();
-            // Request fill
-            mGalleryView.requestFill();
         }
+        galleryView.requestFill();
     }
 
     @Override
     public int getIndexUnder(float x, float y) {
-        if (mCurrent == null) {
+        if (mDoublePageMode) {
+            if (mCurrent != null) {
+                if (mDstRectPrimary.contains((int) x, (int) y)) {
+                    return mCurrent.getIndex();
+                }
+                if (mCurrentSecondary != null && mDstRectSecondary.contains((int) x, (int) y)) {
+                    return mCurrentSecondary.getIndex();
+                }
+            }
+            // In double page mode, we don't care about neighbors or raw bounds
             return GalleryPageView.INVALID_INDEX;
+        }
+
+        int intX = (int) x;
+        int intY = (int) y;
+        if (mCurrent != null && mCurrent.bounds().contains(intX, intY)) {
+            return mCurrent.getIndex();
+        } else if (mPrevious != null && mPrevious.bounds().contains(intX, intY)) {
+            return mPrevious.getIndex();
+        } else if (mNext != null && mNext.bounds().contains(intX, intY)) {
+            return mNext.getIndex();
         } else {
-            int intX = (int) x;
-            int intY = (int) y;
-            if (mCurrent.bounds().contains(intX, intY)) {
-                return mCurrent.getIndex();
-            } else if (mPrevious != null && mPrevious.bounds().contains(intX, intY)) {
-                return mPrevious.getIndex();
-            } else if (mNext != null && mNext.bounds().contains(intX, intY)) {
-                return mNext.getIndex();
-            } else {
-                return GalleryPageView.INVALID_INDEX;
+            return GalleryPageView.INVALID_INDEX;
+        }
+    }
+
+    public void onDoubleTapConfirmed(float x, float y) {
+        if (mDoublePageMode) {
+            // Zoom logic for Double Page
+            // Use mPairMatrix scale
+            // We can get current scale from matrix?
+            // Matrix.getValues()
+            float[] values = new float[9];
+            mPairMatrix.getValues(values);
+            float currentScale = values[android.graphics.Matrix.MSCALE_X];
+
+            // Define jump stops?
+            // Standard: 1.0 -> Fit Width/Height -> Max
+            // Simplified: 1.0 -> 2.0 -> 1.0
+            float endScale;
+            float endTx = 0, endTy = 0;
+            float startTx = values[android.graphics.Matrix.MTRANS_X];
+            float startTy = values[android.graphics.Matrix.MTRANS_Y];
+
+            if (currentScale < 1.5f) { // Zoom In
+                endScale = 2.0f;
+                // When zooming in, we keep translation (focus logic handles it)
+                endTx = startTx;
+                endTy = startTy;
+            } else { // Zoom Out
+                endScale = 1.0f;
+                // When zooming out to 1.0, we want to reset translation to 0
+                endTx = 0;
+                endTy = 0;
+            }
+
+            mSmoothScaler.startSmoothScaler(x, y, currentScale, endScale, startTx, endTx, startTy, endTy, 300, null); // Target
+                                                                                                                      // null
+                                                                                                                      // for
+                                                                                                                      // DoublePage
+            return;
+        }
+
+        int index = getIndexUnder(x, y);
+        GalleryPageView page = findPageByIndex(index);
+
+        if (page == null || !page.getImageView().isLoaded()) {
+            return;
+        }
+
+        float[] scales = mScaleDefault;
+        ImageView image = page.getImageView();
+        image.getScaleDefault(scales);
+        float scale = image.getScale();
+        float endScale = scales[0];
+        for (float value : scales) {
+            if (scale < value - 0.01f) {
+                endScale = value;
+                break;
             }
         }
+
+        mSmoothScaler.startSmoothScaler(x, y, scale, endScale, 0, 0, 0, 0, 300, page);
     }
 
     @Override
@@ -753,7 +1330,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         return currentIndex;
     }
 
-    @IntDef({MODE_LEFT_TO_RIGHT, MODE_RIGHT_TO_LEFT})
+    @IntDef({ MODE_LEFT_TO_RIGHT, MODE_RIGHT_TO_LEFT })
     @Retention(RetentionPolicy.SOURCE)
     private @interface Mode {
     }
@@ -804,7 +1381,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         }
 
         public void startFling(int velocityX, int minX, int maxX,
-                               int velocityY, int minY, int maxY) {
+                int velocityY, int minY, int maxY) {
             mDx = (int) (getSplineFlingDistance(velocityX) * Math.signum(velocityX));
             mDy = (int) (getSplineFlingDistance(velocityY) * Math.signum(velocityY));
             mLastX = 0;
@@ -857,19 +1434,31 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         private float mFocusY;
         private float mStartScale;
         private float mEndScale;
+        private float mStartTx;
+        private float mEndTx;
+        private float mStartTy;
+        private float mEndTy;
         private float mLastScale;
+        private GalleryPageView mTarget;
 
         public SmoothScaler() {
             setInterpolator(AnimationUtils.FAST_SLOW_INTERPOLATOR);
         }
 
         public void startSmoothScaler(float focusX, float focusY,
-                                      float startScale, float endScale, int duration) {
+                float startScale, float endScale, float startTx, float endTx, float startTy, float endTy, int duration,
+                GalleryPageView target) {
             mFocusX = focusX;
             mFocusY = focusY;
             mStartScale = startScale;
             mEndScale = endScale;
+            mStartTx = startTx;
+            mEndTx = endTx;
+            mStartTy = startTy;
+            mEndTy = endTy;
             mLastScale = startScale;
+            // Target is optional for Double Page Mode
+            mTarget = target;
             setDuration(duration);
             start();
             mGalleryView.invalidate();
@@ -877,12 +1466,41 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
         @Override
         protected void onCalculate(float progress) {
-            if (mCurrent == null) {
+            float scale = MathUtils.lerp(mStartScale, mEndScale, progress);
+
+            if (mDoublePageMode) {
+                float tx = MathUtils.lerp(mStartTx, mEndTx, progress);
+                float ty = MathUtils.lerp(mStartTy, mEndTy, progress);
+
+                // Set matrix with new scale and translation
+                // To avoid complex math of relative postScale with relative translation,
+                // we can just rebuild or use setValues if we track total state.
+                // However, postScale is focus-point based.
+                // Let's use a simpler approach:
+                float dScale = scale / mLastScale;
+                mPairMatrix.postScale(dScale, dScale, mFocusX, mFocusY);
+
+                // If we are zooming out to 1.0, we also nudge translation towards target 0
+                if (mEndScale == 1.0f) {
+                    float[] curValues = new float[9];
+                    mPairMatrix.getValues(curValues);
+                    float curTx = curValues[android.graphics.Matrix.MTRANS_X];
+                    float curTy = curValues[android.graphics.Matrix.MTRANS_Y];
+                    float targetTx = MathUtils.lerp(mStartTx, mEndTx, progress);
+                    float targetTy = MathUtils.lerp(mStartTy, mEndTy, progress);
+                    mPairMatrix.postTranslate(targetTx - curTx, targetTy - curTy);
+                }
+
+                updateDoublePageLayout();
+                mLastScale = scale;
                 return;
             }
 
-            float scale = MathUtils.lerp(mStartScale, mEndScale, progress);
-            mCurrent.getImageView().scale(mFocusX, mFocusY, scale / mLastScale);
+            if (mTarget == null) {
+                return;
+            }
+
+            mTarget.getImageView().scale(mFocusX, mFocusY, scale / mLastScale);
             mLastScale = scale;
             mScaleValue = scale;
         }

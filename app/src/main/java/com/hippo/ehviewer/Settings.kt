@@ -128,6 +128,8 @@ object Settings {
     private const val DEFAULT_CUSTOM_SCREEN_LIGHTNESS = false
     private const val KEY_SCREEN_LIGHTNESS = "screen_lightness"
     private const val DEFAULT_SCREEN_LIGHTNESS = 50
+    const val KEY_DOUBLE_PAGE_MODE = "double_page_mode"
+    private const val DEFAULT_DOUBLE_PAGE_MODE = false
 
     /********************
      ****** Download
@@ -583,6 +585,12 @@ object Settings {
         get() = getInt(KEY_SCREEN_LIGHTNESS, DEFAULT_SCREEN_LIGHTNESS)
     fun putScreenLightness(value: Int) {
         putInt(KEY_SCREEN_LIGHTNESS, value)
+    }
+
+    val doublePageMode: Boolean
+        get() = getBoolean(KEY_DOUBLE_PAGE_MODE, DEFAULT_DOUBLE_PAGE_MODE)
+    fun putDoublePageMode(value: Boolean) {
+        putBoolean(KEY_DOUBLE_PAGE_MODE, value)
     }
 
     val downloadLocation: UniFile?

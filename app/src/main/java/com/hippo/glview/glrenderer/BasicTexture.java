@@ -34,8 +34,7 @@ public abstract class BasicTexture implements Texture {
     private static final String TAG = "BasicTexture";
     // Log a warning if a texture is larger along a dimension
     private static final int MAX_TEXTURE_SIZE = 4096;
-    private final static WeakHashMap<BasicTexture, Object> sAllTextures
-            = new WeakHashMap<>();
+    private final static WeakHashMap<BasicTexture, Object> sAllTextures = new WeakHashMap<>();
     private static final ThreadLocal<Class<?>> sInFinalizer = new ThreadLocal<>();
     protected int mId = -1;
     protected int mState;
@@ -200,14 +199,4 @@ public abstract class BasicTexture implements Texture {
         setAssociatedCanvas(null);
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        try {
-            sInFinalizer.set(BasicTexture.class);
-            recycle();
-            sInFinalizer.remove();
-        } finally {
-            super.finalize();
-        }
-    }
 }
