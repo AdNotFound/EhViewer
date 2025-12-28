@@ -59,10 +59,10 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     public static final int START_POSITION_BOTTOM_LEFT = ImageView.START_POSITION_BOTTOM_LEFT;
     public static final int START_POSITION_BOTTOM_RIGHT = ImageView.START_POSITION_BOTTOM_RIGHT;
     public static final int START_POSITION_CENTER = ImageView.START_POSITION_CENTER;
-    private static final float[] LEFT_AREA = { 0.0f, 0.0f, 1.0f / 3.0f, 1f };
-    private static final float[] RIGHT_AREA = { 2.0f / 3.0f, 0.0f, 1.0f, 1f };
-    private static final float[] MENU_AREA = { 1.0f / 3.0f, 0.0f, 2.0f / 3.0f, 1.0f / 2.0f };
-    private static final float[] SLIDER_AREA = { 1.0f / 3.0f, 1.0f / 2.0f, 2.0f / 3.0f, 1.0f };
+    private static final float[] LEFT_AREA = new float[] { 0.0f, 0.0f, 1.0f / 3.0f, 1.0f };
+    private static final float[] RIGHT_AREA = new float[] { 2.0f / 3.0f, 0.0f, 1.0f, 1.0f };
+    private static final float[] MENU_AREA = new float[] { 1.0f / 3.0f, 0.0f, 2.0f / 3.0f, 1.0f / 2.0f };
+    private static final float[] SLIDER_AREA = new float[] { 1.0f / 3.0f, 1.0f / 2.0f, 2.0f / 3.0f, 1.0f };
     private static final int METHOD_ON_SINGLE_TAP_UP = 0;
     private static final int METHOD_ON_SINGLE_TAP_CONFIRMED = 1;
     private static final int METHOD_ON_DOUBLE_TAP = 2;
@@ -218,29 +218,29 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
 
         switch (mLayoutMode) {
-            case LAYOUT_LEFT_TO_RIGHT -> {
+            case LAYOUT_LEFT_TO_RIGHT:
                 ensurePagerLayoutManager();
                 mPagerLayoutManager.setMode(PagerLayoutManager.MODE_LEFT_TO_RIGHT);
                 mPagerLayoutManager.onAttach(mAdapter);
                 mPagerLayoutManager.setCurrentIndex(mIndex);
                 mAdapter = null;
                 mLayoutManager = mPagerLayoutManager;
-            }
-            case LAYOUT_RIGHT_TO_LEFT -> {
+                break;
+            case LAYOUT_RIGHT_TO_LEFT:
                 ensurePagerLayoutManager();
                 mPagerLayoutManager.setMode(PagerLayoutManager.MODE_RIGHT_TO_LEFT);
                 mPagerLayoutManager.onAttach(mAdapter);
                 mPagerLayoutManager.setCurrentIndex(mIndex);
                 mAdapter = null;
                 mLayoutManager = mPagerLayoutManager;
-            }
-            case LAYOUT_TOP_TO_BOTTOM -> {
+                break;
+            case LAYOUT_TOP_TO_BOTTOM:
                 ensureScrollLayoutManager();
                 mScrollLayoutManager.onAttach(mAdapter);
                 mScrollLayoutManager.setCurrentIndex(mIndex);
                 mAdapter = null;
                 mLayoutManager = mScrollLayoutManager;
-            }
+                break;
         }
 
         requestFill();
@@ -625,7 +625,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
 
         switch (mLayoutMode) {
-            case LAYOUT_LEFT_TO_RIGHT -> {
+            case LAYOUT_LEFT_TO_RIGHT:
                 if (mLayoutManager == mPagerLayoutManager) {
                     // mPagerLayoutManager already attached, just change mode
                     mPagerLayoutManager.setMode(PagerLayoutManager.MODE_LEFT_TO_RIGHT);
@@ -637,8 +637,8 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     mPagerLayoutManager.setCurrentIndex(index);
                     mLayoutManager = mPagerLayoutManager;
                 }
-            }
-            case LAYOUT_RIGHT_TO_LEFT -> {
+                break;
+            case LAYOUT_RIGHT_TO_LEFT:
                 if (mLayoutManager == mPagerLayoutManager) {
                     // mPagerLayoutManager already attached, just change mode
                     mPagerLayoutManager.setMode(PagerLayoutManager.MODE_RIGHT_TO_LEFT);
@@ -650,14 +650,14 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     mPagerLayoutManager.setCurrentIndex(index);
                     mLayoutManager = mPagerLayoutManager;
                 }
-            }
-            case LAYOUT_TOP_TO_BOTTOM -> {
+                break;
+            case LAYOUT_TOP_TO_BOTTOM:
                 ensureScrollLayoutManager();
                 int index = mLayoutManager.getInternalCurrentIndex();
                 mScrollLayoutManager.onAttach(mLayoutManager.onDetach());
                 mScrollLayoutManager.setCurrentIndex(index);
                 mLayoutManager = mScrollLayoutManager;
-            }
+                break;
         }
 
         requestFill();
@@ -750,36 +750,79 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
             Object[] args = argsListTemp.get(i);
 
             switch (method) {
-                case METHOD_ON_SINGLE_TAP_UP -> onSingleTapUpInternal();
-                case METHOD_ON_SINGLE_TAP_CONFIRMED ->
+                case METHOD_ON_SINGLE_TAP_UP:
+                    onSingleTapUpInternal();
+                    break;
+                case METHOD_ON_SINGLE_TAP_CONFIRMED:
                     onSingleTapConfirmedInternal((Float) args[0], (Float) args[1]);
-                case METHOD_ON_DOUBLE_TAP -> onDoubleTapInternal();
-                case METHOD_ON_DOUBLE_TAP_CONFIRMED ->
+                    break;
+                case METHOD_ON_DOUBLE_TAP:
+                    onDoubleTapInternal();
+                    break;
+                case METHOD_ON_DOUBLE_TAP_CONFIRMED:
                     onDoubleTapConfirmedInternal((Float) args[0], (Float) args[1]);
-                case METHOD_ON_LONG_PRESS -> onLongPressInternal((Float) args[0], (Float) args[1]);
-                case METHOD_ON_SCROLL ->
+                    break;
+                case METHOD_ON_LONG_PRESS:
+                    onLongPressInternal((Float) args[0], (Float) args[1]);
+                    break;
+                case METHOD_ON_SCROLL:
                     onScrollInternal((Float) args[0], (Float) args[1], (Float) args[2],
                             (Float) args[3], (Float) args[4], (Float) args[5]);
-                case METHOD_ON_FLING -> onFlingInternal((Float) args[0], (Float) args[1]);
-                case METHOD_ON_SCALE_BEGIN ->
+                    break;
+                case METHOD_ON_FLING:
+                    onFlingInternal((Float) args[0], (Float) args[1]);
+                    break;
+                case METHOD_ON_SCALE_BEGIN:
                     onScaleBeginInternal((Float) args[0], (Float) args[1]);
-                case METHOD_ON_SCALE ->
+                    break;
+                case METHOD_ON_SCALE:
                     onScaleInternal((Float) args[0], (Float) args[1], (Float) args[2]);
-                case METHOD_ON_SCALE_END -> onScaleEndInternal();
-                case METHOD_ON_DOWN -> onDownInternal();
-                case METHOD_ON_UP -> onUpInternal();
-                case METHOD_ON_POINTER_DOWN -> onPointerDownInternal();
-                case METHOD_ON_POINTER_UP -> onPointerUpInternal();
-                case METHOD_SET_LAYOUT_MODE -> setLayoutModeInternal((Integer) args[0]);
-                case METHOD_SET_CURRENT_PAGE -> setCurrentPageInternal((Integer) args[0]);
-                case METHOD_PAGE_LEFT -> pageLeftInternal();
-                case METHOD_PAGE_RIGHT -> pageRightInternal();
-                case METHOD_SET_SCALE_MODE -> setScaleModeInternal((Integer) args[0]);
-                case METHOD_SET_START_POSITION -> setStartPositionInternal((Integer) args[0]);
-                case METHOD_ON_ATTACH_TO_ROOT -> onAttachToRootInternal();
-                case METHOD_SET_PAGER_INTERVAL -> setPagerIntervalInternal((Integer) args[0]);
-                case METHOD_SET_SCROLL_INTERVAL -> setScrollIntervalInternal((Integer) args[0]);
-                case METHOD_SET_DOUBLE_PAGE_MODE -> setDoublePageModeInternal((Boolean) args[0]);
+                    break;
+                case METHOD_ON_SCALE_END:
+                    onScaleEndInternal();
+                    break;
+                case METHOD_ON_DOWN:
+                    onDownInternal();
+                    break;
+                case METHOD_ON_UP:
+                    onUpInternal();
+                    break;
+                case METHOD_ON_POINTER_DOWN:
+                    onPointerDownInternal();
+                    break;
+                case METHOD_ON_POINTER_UP:
+                    onPointerUpInternal();
+                    break;
+                case METHOD_SET_LAYOUT_MODE:
+                    setLayoutModeInternal((Integer) args[0]);
+                    break;
+                case METHOD_SET_CURRENT_PAGE:
+                    setCurrentPageInternal((Integer) args[0]);
+                    break;
+                case METHOD_PAGE_LEFT:
+                    pageLeftInternal();
+                    break;
+                case METHOD_PAGE_RIGHT:
+                    pageRightInternal();
+                    break;
+                case METHOD_SET_SCALE_MODE:
+                    setScaleModeInternal((Integer) args[0]);
+                    break;
+                case METHOD_SET_START_POSITION:
+                    setStartPositionInternal((Integer) args[0]);
+                    break;
+                case METHOD_ON_ATTACH_TO_ROOT:
+                    onAttachToRootInternal();
+                    break;
+                case METHOD_SET_PAGER_INTERVAL:
+                    setPagerIntervalInternal((Integer) args[0]);
+                    break;
+                case METHOD_SET_SCROLL_INTERVAL:
+                    setScrollIntervalInternal((Integer) args[0]);
+                    break;
+                case METHOD_SET_DOUBLE_PAGE_MODE:
+                    setDoublePageModeInternal((Boolean) args[0]);
+                    break;
             }
         }
 

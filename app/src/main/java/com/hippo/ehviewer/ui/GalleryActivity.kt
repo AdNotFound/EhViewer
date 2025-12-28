@@ -209,6 +209,8 @@ class GalleryActivity :
     private var dialogShown = false
     private var mAutoTransferJob: Job? = null
     private var mTurnPageIntervalVal = Settings.turnPageInterval
+    private val isDoublePageMode: Boolean
+        get() = Settings.doublePageMode && resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     private val galleryDetailUrl: String?
         get() {
@@ -515,7 +517,7 @@ class GalleryActivity :
 
     private fun updateDoublePageMode() {
         if (mGalleryView == null) return
-        mGalleryView!!.setDoublePageMode(Settings.doublePageMode)
+        mGalleryView!!.setDoublePageMode(isDoublePageMode)
     }
 
     private fun pageTurn(isPrevious: Boolean) {
@@ -653,18 +655,15 @@ class GalleryActivity :
     @SuppressLint("SetTextI18n")
     private fun updateProgress() {
         if (mCurrentIndex + 1 == mSize) autoTransfer()
-        val isDouble = Settings.doublePageMode && resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         if (mSize <= 0 || mCurrentIndex < 0) {
             mProgress?.text = null
-        } else if (isDouble) {
-            val nextIndex = mCurrentIndex + 1
-            if (nextIndex < mSize) {
-                mProgress?.text = "${mCurrentIndex + 1}-${nextIndex + 1}/$mSize"
-            } else {
-                mProgress?.text = "${mCurrentIndex + 1}/$mSize"
-            }
+            return
+        }
+        val current = mCurrentIndex + 1
+        mProgress?.text = if (isDoublePageMode && current < mSize) {
+            "$current-${current + 1}/$mSize"
         } else {
-            mProgress?.text = "${mCurrentIndex + 1}/$mSize"
+            "$current/$mSize"
         }
     }
 

@@ -451,222 +451,220 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
                 galleryView.bindErrorView(mErrorView, errorStr);
             }
             placeCenter(mErrorView);
-        } else {
-            removeProgress();
-            removeErrorView();
+            return;
+        }
 
-            int index = mIndex;
-            if (index < 0) {
-                index = 0;
+        removeProgress();
+        removeErrorView();
+
+        int index = mIndex;
+        if (index < 0) {
+            index = 0;
+        } else if (index >= size) {
+            index = size - 1;
+        }
+        if (mIndex != index) {
+            mIndex = index;
+            removeAllPages();
+        }
+
+        int widthSpec = GLView.MeasureSpec.makeMeasureSpec(width, GLView.MeasureSpec.EXACTLY);
+        int heightSpec = GLView.MeasureSpec.makeMeasureSpec(height, GLView.MeasureSpec.EXACTLY);
+        boolean isRTL = mMode == MODE_RIGHT_TO_LEFT;
+
+        if (mDoublePageMode) {
+            if (index % 2 != 0) {
+                index--;
                 mIndex = index;
-                removeAllPages();
-            } else if (index >= size) {
-                index = size - 1;
-                mIndex = index;
-                removeAllPages();
             }
 
-            if (mDoublePageMode) {
-                if (index % 2 != 0) {
-                    index--;
-                    mIndex = index;
+            // Previous
+            int previousIndex = index - 2;
+            if (previousIndex >= 0) {
+                if (mPrevious == null) {
+                    mPrevious = obtainPage();
+                    galleryView.addComponent(mPrevious);
+                    adapter.bind(mPrevious, previousIndex);
                 }
-
-                // Previous
-                int previousIndex = index - 2;
-                if (previousIndex >= 0) {
-                    if (mPrevious == null) {
-                        mPrevious = obtainPage();
-                        galleryView.addComponent(mPrevious);
-                        adapter.bind(mPrevious, previousIndex);
+                if (previousIndex + 1 < size) {
+                    if (mPreviousSecondary == null) {
+                        mPreviousSecondary = obtainPage();
+                        galleryView.addComponent(mPreviousSecondary);
+                        adapter.bind(mPreviousSecondary, previousIndex + 1);
                     }
-                    if (previousIndex + 1 < size) {
-                        if (mPreviousSecondary == null) {
-                            mPreviousSecondary = obtainPage();
-                            galleryView.addComponent(mPreviousSecondary);
-                            adapter.bind(mPreviousSecondary, previousIndex + 1);
-                        }
-                    } else if (mPreviousSecondary != null) {
-                        removePage(mPreviousSecondary);
-                        mPreviousSecondary = null;
-                    }
-                } else {
-                    if (mPrevious != null) {
-                        removePage(mPrevious);
-                        mPrevious = null;
-                    }
-                    if (mPreviousSecondary != null) {
-                        removePage(mPreviousSecondary);
-                        mPreviousSecondary = null;
-                    }
+                } else if (mPreviousSecondary != null) {
+                    removePage(mPreviousSecondary);
+                    mPreviousSecondary = null;
                 }
-
-                // Current
-                if (mCurrent == null) {
-                    mCurrent = obtainPage();
-                    galleryView.addComponent(mCurrent);
-                    adapter.bind(mCurrent, index);
-                }
-                if (index + 1 < size) {
-                    if (mCurrentSecondary == null) {
-                        mCurrentSecondary = obtainPage();
-                        galleryView.addComponent(mCurrentSecondary);
-                        adapter.bind(mCurrentSecondary, index + 1);
-                    }
-                } else if (mCurrentSecondary != null) {
-                    removePage(mCurrentSecondary);
-                    mCurrentSecondary = null;
-                }
-
-                // Next
-                int nextIndex = index + 2;
-                if (nextIndex < size) {
-                    if (mNext == null) {
-                        mNext = obtainPage();
-                        galleryView.addComponent(mNext);
-                        adapter.bind(mNext, nextIndex);
-                    }
-                    if (nextIndex + 1 < size) {
-                        if (mNextSecondary == null) {
-                            mNextSecondary = obtainPage();
-                            galleryView.addComponent(mNextSecondary);
-                            adapter.bind(mNextSecondary, nextIndex + 1);
-                        }
-                    } else if (mNextSecondary != null) {
-                        removePage(mNextSecondary);
-                        mNextSecondary = null;
-                    }
-                } else {
-                    if (mNext != null) {
-                        removePage(mNext);
-                        mNext = null;
-                    }
-                    if (mNextSecondary != null) {
-                        removePage(mNextSecondary);
-                        mNextSecondary = null;
-                    }
-                }
-
-                // Set page info positions to avoid overlap
-                boolean isRTL = mMode == MODE_RIGHT_TO_LEFT;
-                if (mCurrent != null)
-                    mCurrent.setPagePosition(isRTL ? 2 : 1);
-                if (mCurrentSecondary != null)
-                    mCurrentSecondary.setPagePosition(isRTL ? 1 : 2);
-                if (mPrevious != null)
-                    mPrevious.setPagePosition(isRTL ? 2 : 1);
-                if (mPreviousSecondary != null)
-                    mPreviousSecondary.setPagePosition(isRTL ? 1 : 2);
-                if (mNext != null)
-                    mNext.setPagePosition(isRTL ? 2 : 1);
-                if (mNextSecondary != null)
-                    mNextSecondary.setPagePosition(isRTL ? 1 : 2);
-
-                // Layout!
-                GalleryPageView leftPage = getLeftPage();
-                GalleryPageView rightPage = getRightPage();
-                int min = rightPage == null ? 0 : -width - mInterval + 1;
-                int max = leftPage == null ? 0 : width + mInterval - 1;
-                mOffset = MathUtils.clamp(mOffset, min, max);
-                int offset = mOffset;
-
-                int widthSpec = GLView.MeasureSpec.makeMeasureSpec(width, GLView.MeasureSpec.EXACTLY);
-                int heightSpec = GLView.MeasureSpec.makeMeasureSpec(height, GLView.MeasureSpec.EXACTLY);
-
-                // Current (Double Page Unified)
-                if (mCurrent != null) {
-                    // We layout both views to FULL SCREEN
-                    layoutPage(mCurrent, widthSpec, heightSpec, offset, offset + width, height);
-                    if (mCurrentSecondary != null) {
-                        layoutPage(mCurrentSecondary, widthSpec, heightSpec, offset, offset + width, height);
-                    }
-                    // Apply Unified Layout
-                    updateDoublePageLayout();
-                }
-
-                // Neighbors - use unified seamless layout
-                int prevOffset = isRTL ? offset + width + mInterval : offset - width - mInterval;
-                int nextOffset = isRTL ? offset - width - mInterval : offset + width + mInterval;
-
-                // Previous - layout to full screen then apply unified layout
-                if (mPrevious != null) {
-                    layoutPage(mPrevious, widthSpec, heightSpec, prevOffset, prevOffset + width, height);
-                    if (mPreviousSecondary != null) {
-                        layoutPage(mPreviousSecondary, widthSpec, heightSpec, prevOffset, prevOffset + width, height);
-                    }
-                    applyUnifiedLayoutToPagePair(mPrevious, mPreviousSecondary, isRTL);
-                }
-
-                // Next - layout to full screen then apply unified layout
-                if (mNext != null) {
-                    layoutPage(mNext, widthSpec, heightSpec, nextOffset, nextOffset + width, height);
-                    if (mNextSecondary != null) {
-                        layoutPage(mNextSecondary, widthSpec, heightSpec, nextOffset, nextOffset + width, height);
-                    }
-                    applyUnifiedLayoutToPagePair(mNext, mNextSecondary, isRTL);
-                }
-
             } else {
-                // Ensure pages (Standard Single)
+                if (mPrevious != null) {
+                    removePage(mPrevious);
+                    mPrevious = null;
+                }
                 if (mPreviousSecondary != null) {
                     removePage(mPreviousSecondary);
                     mPreviousSecondary = null;
                 }
-                if (mCurrentSecondary != null) {
-                    removePage(mCurrentSecondary);
-                    mCurrentSecondary = null;
+            }
+
+            // Current
+            if (mCurrent == null) {
+                mCurrent = obtainPage();
+                galleryView.addComponent(mCurrent);
+                adapter.bind(mCurrent, index);
+            }
+            if (index + 1 < size) {
+                if (mCurrentSecondary == null) {
+                    mCurrentSecondary = obtainPage();
+                    galleryView.addComponent(mCurrentSecondary);
+                    adapter.bind(mCurrentSecondary, index + 1);
+                }
+            } else if (mCurrentSecondary != null) {
+                removePage(mCurrentSecondary);
+                mCurrentSecondary = null;
+            }
+
+            // Next
+            int nextIndex = index + 2;
+            if (nextIndex < size) {
+                if (mNext == null) {
+                    mNext = obtainPage();
+                    galleryView.addComponent(mNext);
+                    adapter.bind(mNext, nextIndex);
+                }
+                if (nextIndex + 1 < size) {
+                    if (mNextSecondary == null) {
+                        mNextSecondary = obtainPage();
+                        galleryView.addComponent(mNextSecondary);
+                        adapter.bind(mNextSecondary, nextIndex + 1);
+                    }
+                } else if (mNextSecondary != null) {
+                    removePage(mNextSecondary);
+                    mNextSecondary = null;
+                }
+            } else {
+                if (mNext != null) {
+                    removePage(mNext);
+                    mNext = null;
                 }
                 if (mNextSecondary != null) {
                     removePage(mNextSecondary);
                     mNextSecondary = null;
                 }
+            }
 
-                if (mCurrent == null) {
-                    mCurrent = obtainPage();
-                    galleryView.addComponent(mCurrent);
-                    adapter.bind(mCurrent, index);
-                }
-                if (mPrevious == null && index > 0) {
-                    mPrevious = obtainPage();
-                    galleryView.addComponent(mPrevious);
-                    adapter.bind(mPrevious, index - 1);
-                } else if (mPrevious != null && index == 0) {
-                    removePage(mPrevious);
-                    mPrevious = null;
-                }
-                if (mNext == null && index < size - 1) {
-                    mNext = obtainPage();
-                    galleryView.addComponent(mNext);
-                    adapter.bind(mNext, index + 1);
-                } else if (mNext != null && index == size - 1) {
-                    removePage(mNext);
-                }
+            // Set page info positions to avoid overlap
+            if (mCurrent != null)
+                mCurrent.setPagePosition(isRTL ? 2 : 1);
+            if (mCurrentSecondary != null)
+                mCurrentSecondary.setPagePosition(isRTL ? 1 : 2);
+            if (mPrevious != null)
+                mPrevious.setPagePosition(isRTL ? 2 : 1);
+            if (mPreviousSecondary != null)
+                mPreviousSecondary.setPagePosition(isRTL ? 1 : 2);
+            if (mNext != null)
+                mNext.setPagePosition(isRTL ? 2 : 1);
+            if (mNextSecondary != null)
+                mNextSecondary.setPagePosition(isRTL ? 1 : 2);
 
-                GalleryPageView leftPage = getLeftPage();
-                GalleryPageView rightPage = getRightPage();
+            // Layout!
+            GalleryPageView leftPage = getLeftPage();
+            GalleryPageView rightPage = getRightPage();
+            int min = rightPage == null ? 0 : -width - mInterval + 1;
+            int max = leftPage == null ? 0 : width + mInterval - 1;
+            mOffset = MathUtils.clamp(mOffset, min, max);
+            int offset = mOffset;
 
-                final int min = rightPage == null ? 0 : -width - mInterval + 1;
-                final int max = leftPage == null ? 0 : width + mInterval - 1;
-                mOffset = MathUtils.clamp(mOffset, min, max);
+            // Current (Double Page Unified)
+            if (mCurrent != null) {
+                // We layout both views to FULL SCREEN
+                layoutPage(mCurrent, widthSpec, heightSpec, offset, offset + width, height);
+                if (mCurrentSecondary != null) {
+                    layoutPage(mCurrentSecondary, widthSpec, heightSpec, offset, offset + width, height);
+                }
+                // Apply Unified Layout
+                updateDoublePageLayout();
+            }
 
-                final int offset = mOffset;
-                final int widthSpec = GLView.MeasureSpec.makeMeasureSpec(width, GLView.MeasureSpec.EXACTLY);
-                final int heightSpec = GLView.MeasureSpec.makeMeasureSpec(height, GLView.MeasureSpec.EXACTLY);
+            // Neighbors - use unified seamless layout
+            int prevOffset = isRTL ? offset + width + mInterval : offset - width - mInterval;
+            int nextOffset = isRTL ? offset - width - mInterval : offset + width + mInterval;
 
-                if (mCurrent != null) {
-                    mCurrent.setPagePosition(0);
-                    layoutPage(mCurrent, widthSpec, heightSpec, offset, width + offset, height);
+            // Previous
+            if (mPrevious != null) {
+                layoutPage(mPrevious, widthSpec, heightSpec, prevOffset, prevOffset + width, height);
+                if (mPreviousSecondary != null) {
+                    layoutPage(mPreviousSecondary, widthSpec, heightSpec, prevOffset, prevOffset + width, height);
                 }
-                if (leftPage != null) {
-                    leftPage.setPagePosition(0);
-                    layoutPage(leftPage, widthSpec, heightSpec, -mInterval - width + offset, -mInterval + offset,
-                            height);
+                applyUnifiedLayoutToPagePair(mPrevious, mPreviousSecondary, isRTL);
+            }
+
+            // Next
+            if (mNext != null) {
+                layoutPage(mNext, widthSpec, heightSpec, nextOffset, nextOffset + width, height);
+                if (mNextSecondary != null) {
+                    layoutPage(mNextSecondary, widthSpec, heightSpec, nextOffset, nextOffset + width, height);
                 }
-                if (rightPage != null) {
-                    rightPage.setPagePosition(0);
-                    layoutPage(rightPage, widthSpec, heightSpec, width + mInterval + offset,
-                            width + mInterval + width + offset, height);
-                }
+                applyUnifiedLayoutToPagePair(mNext, mNextSecondary, isRTL);
+            }
+
+        } else {
+            // Single Page Mode
+            if (mPreviousSecondary != null) {
+                removePage(mPreviousSecondary);
+                mPreviousSecondary = null;
+            }
+            if (mCurrentSecondary != null) {
+                removePage(mCurrentSecondary);
+                mCurrentSecondary = null;
+            }
+            if (mNextSecondary != null) {
+                removePage(mNextSecondary);
+                mNextSecondary = null;
+            }
+
+            if (mCurrent == null) {
+                mCurrent = obtainPage();
+                galleryView.addComponent(mCurrent);
+                adapter.bind(mCurrent, index);
+            }
+            if (mPrevious == null && index > 0) {
+                mPrevious = obtainPage();
+                galleryView.addComponent(mPrevious);
+                adapter.bind(mPrevious, index - 1);
+            } else if (mPrevious != null && index == 0) {
+                removePage(mPrevious);
+                mPrevious = null;
+            }
+            if (mNext == null && index < size - 1) {
+                mNext = obtainPage();
+                galleryView.addComponent(mNext);
+                adapter.bind(mNext, index + 1);
+            } else if (mNext != null && index == size - 1) {
+                removePage(mNext);
+                mNext = null;
+            }
+
+            GalleryPageView leftPage = getLeftPage();
+            GalleryPageView rightPage = getRightPage();
+            int min = rightPage == null ? 0 : -width - mInterval + 1;
+            int max = leftPage == null ? 0 : width + mInterval - 1;
+            mOffset = MathUtils.clamp(mOffset, min, max);
+            int offset = mOffset;
+
+            if (mCurrent != null) {
+                mCurrent.setPagePosition(0);
+                layoutPage(mCurrent, widthSpec, heightSpec, offset, width + offset, height);
+            }
+            if (leftPage != null) {
+                leftPage.setPagePosition(0);
+                layoutPage(leftPage, widthSpec, heightSpec, -mInterval - width + offset, -mInterval + offset,
+                        height);
+            }
+            if (rightPage != null) {
+                rightPage.setPagePosition(0);
+                layoutPage(rightPage, widthSpec, heightSpec, width + mInterval + offset,
+                        width + mInterval + width + offset, height);
             }
         }
     }
