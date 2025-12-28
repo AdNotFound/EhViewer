@@ -991,7 +991,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
                         // remainX is unchanged.
                     } else {
                         // We consumed all except fix part
-                        remainX = (int) -fixX;
+                        remainX = (int) fixX;
                     }
 
                     if (union.height() <= height) {
@@ -1001,7 +1001,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
                         // anything.
                         remainY = 0;
                     } else {
-                        remainY = (int) -fixY;
+                        remainY = (int) fixY;
                     }
 
                 } else {
