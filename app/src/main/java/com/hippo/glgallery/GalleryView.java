@@ -87,6 +87,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private static final int METHOD_SET_PAGER_INTERVAL = 21;
     private static final int METHOD_SET_SCROLL_INTERVAL = 22;
     private static final int METHOD_SET_DOUBLE_PAGE_MODE = 23;
+    private static final int METHOD_SET_DOUBLE_PAGE_OFFSET = 24;
     private final Context mContext;
     private final GestureRecognizer mGestureRecognizer;
     @Nullable
@@ -131,6 +132,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private int mScaleMode;
     private int mStartPosition;
     private int mIndex;
+    private boolean mDoublePageOffset;
 
     private GalleryView(Builder build) {
         mContext = build.mContext;
@@ -158,6 +160,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         mErrorTextSize = build.mErrorTextSize;
 
         mEmptyString = build.mEmptyString;
+        mDoublePageOffset = build.mDoublePageOffset;
 
         setBackgroundColor(mBackgroundColor);
     }
@@ -203,6 +206,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         if (mPagerLayoutManager == null) {
             mPagerLayoutManager = new PagerLayoutManager(mContext, this,
                     mScaleMode, mStartPosition, 1.0f, mPagerInterval);
+            mPagerLayoutManager.setDoublePageOffset(mDoublePageOffset);
         }
     }
 
@@ -709,6 +713,19 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
     }
 
+    public void setDoublePageOffset(boolean doublePageOffset) {
+        mMethodList.add(METHOD_SET_DOUBLE_PAGE_OFFSET);
+        mArgsList.add(new Object[] { doublePageOffset });
+        invalidate();
+    }
+
+    private void setDoublePageOffsetInternal(boolean doublePageOffset) {
+        mDoublePageOffset = doublePageOffset;
+        if (mPagerLayoutManager != null) {
+            mPagerLayoutManager.setDoublePageOffset(doublePageOffset);
+        }
+    }
+
     void forceFill() {
         mRequestFill = true;
         fill();
@@ -822,6 +839,9 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     break;
                 case METHOD_SET_DOUBLE_PAGE_MODE:
                     setDoublePageModeInternal((Boolean) args[0]);
+                    break;
+                case METHOD_SET_DOUBLE_PAGE_OFFSET:
+                    setDoublePageOffsetInternal((Boolean) args[0]);
                     break;
             }
         }
@@ -956,6 +976,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         private int mPagerInterval = 48;
         private int mScrollInterval = 24;
         private boolean mDoublePageMode = false;
+        private boolean mDoublePageOffset = false;
         private int mPageMinHeight = 256;
         private int mPageInfoInterval = 24;
         private int mProgressColor = Color.WHITE;
@@ -1014,6 +1035,11 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
 
         public Builder setDoublePageMode(boolean doublePageMode) {
             mDoublePageMode = doublePageMode;
+            return this;
+        }
+
+        public Builder setDoublePageOffset(boolean doublePageOffset) {
+            mDoublePageOffset = doublePageOffset;
             return this;
         }
 

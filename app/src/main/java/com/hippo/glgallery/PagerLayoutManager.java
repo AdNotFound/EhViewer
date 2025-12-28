@@ -65,6 +65,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
     private GalleryPageView mCurrentSecondary;
     private GalleryPageView mNextSecondary;
     private boolean mDoublePageMode = false;
+    private boolean mDoublePageOffset = false;
     @Mode
     private int mMode = MODE_RIGHT_TO_LEFT;
     private int mScaleMode;
@@ -106,6 +107,21 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         }
     }
 
+    public void setDoublePageOffset(boolean enabled) {
+        if (mDoublePageOffset == enabled) {
+            return;
+        }
+        mDoublePageOffset = enabled;
+        if (mAdapter != null) {
+            cancelAllAnimations();
+            removeProgress();
+            removeErrorView();
+            removeAllPages();
+            resetParameters();
+            mGalleryView.requestFill();
+        }
+    }
+
     public void setInterval(int interval) {
         if (mInterval == interval) {
             return;
@@ -125,7 +141,27 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         mOffset = 0;
         mCanScrollBetweenPages = false;
         mStopAnimationFinger = false;
-        mPairMatrix.reset();
+    }
+
+    private int getPairStart(int index) {
+        if (!mDoublePageMode)
+            return index;
+        if (mDoublePageOffset) {
+            if (index <= 0)
+                return 0;
+            return (index - 1) / 2 * 2 + 1;
+        } else {
+            return index / 2 * 2;
+        }
+    }
+
+    private int getPairSize(int index) {
+        if (!mDoublePageMode)
+            return 1;
+        int start = getPairStart(index);
+        if (mDoublePageOffset && start == 0)
+            return 1;
+        return Math.min(2, mAdapter.size() - start);
     }
 
     private boolean cancelAllAnimations() {
@@ -473,20 +509,18 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         boolean isRTL = mMode == MODE_RIGHT_TO_LEFT;
 
         if (mDoublePageMode) {
-            if (index % 2 != 0) {
-                index--;
-                mIndex = index;
-            }
+            index = getPairStart(index);
+            mIndex = index;
 
             // Previous
-            int previousIndex = index - 2;
-            if (previousIndex >= 0) {
+            if (index > 0) {
+                int previousIndex = getPairStart(index - 1);
                 if (mPrevious == null) {
                     mPrevious = obtainPage();
                     galleryView.addComponent(mPrevious);
                     adapter.bind(mPrevious, previousIndex);
                 }
-                if (previousIndex + 1 < size) {
+                if (getPairSize(previousIndex) > 1) {
                     if (mPreviousSecondary == null) {
                         mPreviousSecondary = obtainPage();
                         galleryView.addComponent(mPreviousSecondary);
@@ -513,7 +547,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
                 galleryView.addComponent(mCurrent);
                 adapter.bind(mCurrent, index);
             }
-            if (index + 1 < size) {
+            if (getPairSize(index) > 1) {
                 if (mCurrentSecondary == null) {
                     mCurrentSecondary = obtainPage();
                     galleryView.addComponent(mCurrentSecondary);
@@ -525,14 +559,14 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
             }
 
             // Next
-            int nextIndex = index + 2;
+            int nextIndex = index + getPairSize(index);
             if (nextIndex < size) {
                 if (mNext == null) {
                     mNext = obtainPage();
                     galleryView.addComponent(mNext);
                     adapter.bind(mNext, nextIndex);
                 }
-                if (nextIndex + 1 < size) {
+                if (getPairSize(nextIndex) > 1) {
                     if (mNextSecondary == null) {
                         mNextSecondary = obtainPage();
                         galleryView.addComponent(mNextSecondary);
@@ -555,15 +589,20 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
             // Set page info positions to avoid overlap
             if (mCurrent != null)
-                mCurrent.setPagePosition(isRTL ? 2 : 1);
+                mCurrent.setPagePosition(getPairSize(index) > 1 ? (isRTL ? 2 : 1) : 0);
             if (mCurrentSecondary != null)
                 mCurrentSecondary.setPagePosition(isRTL ? 1 : 2);
-            if (mPrevious != null)
-                mPrevious.setPagePosition(isRTL ? 2 : 1);
+
+            if (mPrevious != null) {
+                int prevIndex = getPairStart(index - 1);
+                mPrevious.setPagePosition(getPairSize(prevIndex) > 1 ? (isRTL ? 2 : 1) : 0);
+            }
             if (mPreviousSecondary != null)
                 mPreviousSecondary.setPagePosition(isRTL ? 1 : 2);
-            if (mNext != null)
-                mNext.setPagePosition(isRTL ? 2 : 1);
+
+            if (mNext != null) {
+                mNext.setPagePosition(getPairSize(nextIndex) > 1 ? (isRTL ? 2 : 1) : 0);
+            }
             if (mNextSecondary != null)
                 mNextSecondary.setPagePosition(isRTL ? 1 : 2);
 
@@ -710,7 +749,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
         if (mDoublePageMode) {
             mPairMatrix.reset();
-            mIndex -= 2;
+            int jump = getPairSize(getPairStart(mIndex - 1));
+            mIndex -= jump;
             if (mIndex < 0) {
                 mIndex = 0;
             }
@@ -732,13 +772,13 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
             if (mIndex > 0) {
                 // Determine previous pair
-                int prevIndex = mIndex - 2;
+                int prevIndex = getPairStart(mIndex - 1);
                 if (prevIndex >= 0) {
                     mPrevious = obtainPage();
                     mGalleryView.addComponent(mPrevious);
                     mAdapter.bind(mPrevious, prevIndex);
 
-                    if (prevIndex + 1 < mAdapter.size()) {
+                    if (getPairSize(prevIndex) > 1) {
                         mPreviousSecondary = obtainPage();
                         mGalleryView.addComponent(mPreviousSecondary);
                         mAdapter.bind(mPreviousSecondary, prevIndex + 1);
@@ -772,25 +812,10 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
         if (mDoublePageMode) {
             mPairMatrix.reset();
-            mIndex += 2;
+            int jump = getPairSize(mIndex);
+            mIndex += jump;
             if (mIndex >= size) {
-                // If we jumped past end, clamp?
-                // But mIndex logic usually points to start of pair.
-                // If mIndex was at start of last pair.
-                // If size=10, mIndex=8. Next=10? -> size-1?
-                // Logic: index must be valid start.
-                // But let's check bound.
-                if (mIndex >= size)
-                    mIndex = size - 1; // Or should we prevent the jump?
-            }
-
-            // If mIndex is odd due to clamping ??
-            if (mIndex % 2 != 0) {
-                mIndex--;
-                // Wait, if mIndex becomes same as old mIndex?
-                // e.g. size=10. old=8. new=10->9. 9->8. NO change.
-                // So checking mIndex vs old mIndex is important?
-                // But simplistic:
+                mIndex = getPairStart(size - 1);
             }
 
             // Check if we actually advanced?
@@ -809,19 +834,20 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
 
             mCurrent = mNext;
             mCurrentSecondary = mNextSecondary;
-
             mNext = null;
             mNextSecondary = null;
 
-            if (mIndex + 2 < size) {
+            int nextIndex = mIndex + jump; // Current index was already updated by jump
+            if (mIndex + getPairSize(mIndex) < size) {
+                nextIndex = mIndex + getPairSize(mIndex);
                 mNext = obtainPage();
                 mGalleryView.addComponent(mNext);
-                adapter.bind(mNext, mIndex + 2);
+                adapter.bind(mNext, nextIndex);
 
-                if (mIndex + 3 < size) {
+                if (nextIndex + 1 < size && getPairSize(nextIndex) > 1) {
                     mNextSecondary = obtainPage();
                     mGalleryView.addComponent(mNextSecondary);
-                    adapter.bind(mNextSecondary, mIndex + 3);
+                    adapter.bind(mNextSecondary, nextIndex + 1);
                 }
             }
         } else {
@@ -1203,9 +1229,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         if (mDoublePageMode) {
             mPairMatrix.reset();
             // Align to start of pair
-            if (index % 2 != 0) {
-                index--;
-            }
+            index = getPairStart(index);
         }
 
         if (index == mIndex)

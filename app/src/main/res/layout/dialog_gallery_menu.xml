@@ -215,6 +215,14 @@
             android:visibility="gone" />
 
         <Switch
+            android:id="@+id/double_page_offset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_read_double_page_offset"
+            android:textColor="?android:attr/textColorPrimary"
+            android:visibility="gone" />
+
+        <Switch
             android:id="@+id/volume_page"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

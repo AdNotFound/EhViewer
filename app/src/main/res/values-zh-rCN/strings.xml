@@ -443,6 +443,7 @@
     <string name="settings_read_screen_rotation_sensor">自动旋转</string>
     <string name="settings_read_double_page_mode">双页模式</string>
     <string name="settings_read_double_page_mode_landscape">仅用于横屏</string>
+    <string name="settings_read_double_page_offset">双页模式偏移</string>
     <string name="settings_read_reading_direction">阅读方向</string>
     <string name="settings_read_reading_direction_left_to_right">从左至右</string>
     <string name="settings_read_reading_direction_right_to_Left">从右至左</string>
