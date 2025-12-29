@@ -146,19 +146,20 @@ class SearchBar @JvmOverloads constructor(
     private fun updateSuggestions(scrollToTop: Boolean = true) {
         launchIO {
             suggestionLock.withLock {
-                mSuggestionList = mergedSuggestionFlow().toList()
+                val suggestions = mergedSuggestionFlow().toList()
                 withUIContext {
+                    mSuggestionList = suggestions
                     if (mSuggestionList.isEmpty()) {
                         removeListHeader()
                     } else {
                         addListHeader()
                     }
                     mSuggestionAdapter.notifyDataSetChanged()
+                    if (scrollToTop) {
+                        mListView.scrollToPosition(0)
+                    }
                 }
             }
-        }
-        if (scrollToTop) {
-            mListView.scrollToPosition(0)
         }
     }
 
