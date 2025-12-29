@@ -22,8 +22,10 @@ import okhttp3.Request
 
 object UAPresets {
     private val version by lazy {
-        WebViewCompat.getCurrentWebViewPackage(EhApplication.application)
-            ?.versionName?.substringBefore('.')?.toInt() ?: 127
+        runCatching {
+            WebViewCompat.getCurrentWebViewPackage(EhApplication.application)
+                ?.versionName?.substringBefore('.')?.toInt()
+        }.getOrNull() ?: 127
     }
 
     private fun android(v: String = "") =

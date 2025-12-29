@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="user_agent_types">
+        <item>Chrome (PC)</item>
+        <item>Chrome (Android)</item>
+        <item>Firefox (PC)</item>
+        <item>Safari (PC)</item>
+        <item>WebView (Android)</item>
+        <item>自定義</item>
+    </string-array>
+</resources>
