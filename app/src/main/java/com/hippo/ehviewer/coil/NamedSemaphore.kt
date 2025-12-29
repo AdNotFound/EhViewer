@@ -30,9 +30,9 @@ class SemaphoreTracker(semaphore: Semaphore, private var count: Int = 0) : Semap
 
 class SemaphorePool(val permits: Int) : DefaultPool<SemaphoreTracker>(capacity = 32) {
     override fun produceInstance() = SemaphoreTracker(semaphore = Semaphore(permits = permits))
-    override fun validateInstance(semaphore: SemaphoreTracker) {
-        check(semaphore.availablePermits == permits)
-        check(semaphore.isFree)
+    override fun validateInstance(instance: SemaphoreTracker) {
+        check(instance.availablePermits == permits)
+        check(instance.isFree)
     }
 }
 

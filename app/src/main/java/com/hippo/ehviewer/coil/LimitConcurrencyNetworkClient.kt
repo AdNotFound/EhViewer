@@ -12,19 +12,19 @@ import okhttp3.OkHttpClient
 
 class LimitConcurrencyNetworkClient(val impl: NetworkClient) : NetworkClient {
     val semaphores = NamedSemaphore<String>(permits = 16)
-    override suspend fun <T> executeRequest(req: NetworkRequest, f: suspend (NetworkResponse) -> T): T {
-        val url = req.url
+    override suspend fun <T> executeRequest(request: NetworkRequest, block: suspend (NetworkResponse) -> T): T {
+        val url = request.url
         return when {
             // Ex thumb server may not have h2 multiplexing support
             URL_PREFIX_THUMB_EX in url -> semaphores.withLock(URL_PREFIX_THUMB_EX) {
-                withContext(NonCancellable) { impl.executeRequest(req, f) }
+                withContext(NonCancellable) { impl.executeRequest(request, block) }
             }
             // H@H server may not have h2 multiplexing support
             URL_SIGNATURE_THUMB_NORMAL in url -> semaphores.withLock(url.substringBefore(URL_SIGNATURE_THUMB_NORMAL)) {
-                withContext(NonCancellable) { impl.executeRequest(req, f) }
+                withContext(NonCancellable) { impl.executeRequest(request, block) }
             }
             // H2 multiplexing enabled
-            else -> impl.executeRequest(req, f)
+            else -> impl.executeRequest(request, block)
         }
     }
 }
