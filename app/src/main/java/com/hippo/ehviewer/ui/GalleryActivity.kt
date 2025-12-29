@@ -1265,7 +1265,13 @@ class GalleryActivity :
             val helper = GalleryMenuHelper(builder.context)
             builder.setTitle(R.string.gallery_menu_title)
                 .setView(helper.view)
-                .setPositiveButton(android.R.string.ok, helper).show()
+                .setPositiveButton(android.R.string.ok, helper)
+                .setOnDismissListener {
+                    if (Settings.readingFullscreen) {
+                        insetsController?.hide(WindowInsetsCompat.Type.systemBars())
+                    }
+                }
+                .show()
         }
 
         private fun onTapSliderArea() {
