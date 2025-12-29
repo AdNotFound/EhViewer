@@ -2,30 +2,31 @@ package com.hippo.ehviewer.preference
 
 import android.content.Context
 import android.content.DialogInterface
+import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.EditText
-import android.widget.Spinner
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.textfield.TextInputLayout
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.preference.DialogPreference
+import com.hippo.widget.CuteSpinner
 import com.hippo.yorozuya.ViewUtils
 
 class UserAgentPreference @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-) : DialogPreference(context, attrs), View.OnClickListener {
-    private var mType: Spinner? = null
-    private var mCustomUserAgentInputLayout: TextInputLayout? = null
-    private var mCustomUserAgent: EditText? = null
-    private val mArray: Array<String>
+) : DialogPreference(context, attrs), AdapterView.OnItemSelectedListener {
+    private var mSpinner: CuteSpinner? = null
+    private var mCustomInputLayout: TextInputLayout? = null
+    private var mCustomInput: EditText? = null
 
     init {
-        mArray = context.resources.getStringArray(R.array.user_agent_types)
         dialogLayoutResource = R.layout.preference_dialog_useragent
-        updateSummary(Settings.userAgent ?: Settings.DEFAULT_USER_AGENT)
+        updateSummary(Settings.userAgent)
     }
 
     private fun updateSummary(userAgent: String) {
@@ -39,63 +40,53 @@ class UserAgentPreference @JvmOverloads constructor(
 
     override fun onDialogCreated(dialog: AlertDialog) {
         super.onDialogCreated(dialog)
-        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener(this)
-        mType = ViewUtils.`$$`(dialog, R.id.type) as Spinner
-        mCustomUserAgentInputLayout = ViewUtils.`$$`(dialog, R.id.custom_useragent_input_layout) as TextInputLayout
-        mCustomUserAgent = ViewUtils.`$$`(dialog, R.id.custom_useragent) as EditText
+        mSpinner = ViewUtils.`$$`(dialog, R.id.type) as CuteSpinner
+        mCustomInputLayout = ViewUtils.`$$`(dialog, R.id.custom_useragent_input_layout) as TextInputLayout
+        mCustomInput = ViewUtils.`$$`(dialog, R.id.custom_useragent) as EditText
 
         val currentUA = Settings.userAgent
-        mCustomUserAgent!!.setText(currentUA)
-        if (currentUA in Settings.builtInUserAgents) {
-            mType!!.setSelection(Settings.builtInUserAgents.indexOf(currentUA))
-            mCustomUserAgentInputLayout!!.visibility = View.GONE
+        val builtInIndex = Settings.builtInUserAgents.indexOf(currentUA)
+
+        if (builtInIndex >= 0) {
+            mSpinner!!.setSelection(builtInIndex)
         } else {
-            mType!!.setSelection(Settings.builtInUserAgents.size) // Select "Custom"
-            mCustomUserAgentInputLayout!!.visibility = View.VISIBLE
+            mSpinner!!.setSelection(Settings.builtInUserAgents.size)
+            mCustomInputLayout!!.visibility = View.VISIBLE
+            mCustomInput!!.setText(currentUA)
         }
 
-        mType!!.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (position < Settings.builtInUserAgents.size) {
-                    mCustomUserAgentInputLayout!!.visibility = View.GONE
-                } else {
-                    mCustomUserAgentInputLayout!!.visibility = View.VISIBLE
-                }
-            }
+        mSpinner!!.onItemSelectedListener = this
 
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {
-                // Do nothing
+        dialog.getButton(DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+            val position = mSpinner!!.selectedItemPosition
+            val userAgent = if (position < Settings.builtInUserAgents.size) {
+                Settings.builtInUserAgents[position]
+            } else {
+                val custom = mCustomInput!!.text.toString().trim()
+                if (custom.isEmpty()) {
+                    mCustomInputLayout!!.error = context.getString(R.string.text_is_empty)
+                    return@setOnClickListener
+                }
+                custom
             }
+            Settings.putUserAgent(userAgent)
+            updateSummary(userAgent)
+            dialog.dismiss()
         }
     }
+
+    override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+        TransitionManager.beginDelayedTransition(mSpinner!!.parent as ViewGroup)
+        mCustomInputLayout!!.visibility = if (position == Settings.builtInUserAgents.size) View.VISIBLE else View.GONE
+        mCustomInputLayout!!.error = null
+    }
+
+    override fun onNothingSelected(parent: AdapterView<*>?) {}
 
     override fun onDialogClosed(positiveResult: Boolean) {
         super.onDialogClosed(positiveResult)
-        mType = null
-        mCustomUserAgentInputLayout = null
-        mCustomUserAgent = null
-    }
-
-    override fun onClick(v: View) {
-        val dialog = dialog
-        val context: Context = context
-        if (null == dialog || null == mType || null == mCustomUserAgentInputLayout || null == mCustomUserAgent) {
-            return
-        }
-        val type = mType!!.selectedItemPosition
-        val userAgent = if (type < Settings.builtInUserAgents.size) {
-            Settings.builtInUserAgents[type]
-        } else {
-            val customUserAgent = mCustomUserAgent!!.text.toString().trim()
-            if (customUserAgent.isEmpty()) {
-                mCustomUserAgentInputLayout!!.error = context.getString(R.string.text_is_empty)
-                return
-            }
-            customUserAgent
-        }
-        mCustomUserAgentInputLayout!!.error = null
-        Settings.putUserAgent(userAgent)
-        updateSummary(userAgent)
-        dialog.dismiss()
+        mSpinner = null
+        mCustomInputLayout = null
+        mCustomInput = null
     }
 }

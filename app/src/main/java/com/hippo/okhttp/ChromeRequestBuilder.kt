@@ -20,17 +20,29 @@ import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.Settings
 import okhttp3.Request
 
-private val WebViewVersion = runCatching {
-    WebViewCompat.getCurrentWebViewPackage(EhApplication.application)?.versionName?.substringBefore('.')?.toInt()
-}.getOrDefault(127)
-val CHROME_USER_AGENT = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/$WebViewVersion.0.0.0 Mobile Safari/537.36"
+object UAPresets {
+    private val version by lazy {
+        WebViewCompat.getCurrentWebViewPackage(EhApplication.application)
+            ?.versionName?.substringBefore('.')?.toInt() ?: 127
+    }
+
+    private fun android(v: String = "") =
+        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) ${v}Chrome/$version.0.0.0 Mobile Safari/537.36"
+
+    const val CHROME_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    const val FIREFOX_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
+    const val SAFARI_PC = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+    val CHROME_ANDROID get() = android()
+    val WEBVIEW_ANDROID get() = android("Version/4.0 ")
+}
+
 private const val CHROME_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9"
 private const val CHROME_ACCEPT_LANGUAGE = "en-US,en;q=0.9"
 
 open class ChromeRequestBuilder(url: String) : Request.Builder() {
     init {
         this.url(url)
-        this.addHeader("User-Agent", Settings.userAgent ?: CHROME_USER_AGENT)
+        this.addHeader("User-Agent", Settings.userAgent)
         this.addHeader("Accept", CHROME_ACCEPT)
         this.addHeader("Accept-Language", CHROME_ACCEPT_LANGUAGE)
     }

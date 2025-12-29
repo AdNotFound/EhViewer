@@ -50,7 +50,6 @@ import com.hippo.ehviewer.download.DownloadManager
 import com.hippo.ehviewer.ui.EhActivity
 import com.hippo.ehviewer.ui.keepNoMediaFileStatus
 import com.hippo.ehviewer.widget.SearchDatabase
-import com.hippo.okhttp.CHROME_USER_AGENT
 import com.hippo.scene.SceneApplication
 import com.hippo.util.ReadableTime
 import com.hippo.util.isAtLeastP
@@ -292,7 +291,7 @@ class EhApplication :
                 .addInterceptor { chain ->
                     val request = chain.request()
                     val newRequest = request.newBuilder()
-                        .header("User-Agent", CHROME_USER_AGENT)
+                        .header("User-Agent", Settings.userAgent)
                         .build()
                     chain.proceed(newRequest)
                 }

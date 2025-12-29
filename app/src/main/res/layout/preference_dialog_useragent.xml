@@ -1,6 +1,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingHorizontal="?attr/dialogPreferredPadding"
     android:paddingTop="18dp">
@@ -17,7 +17,9 @@
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="@string/custom_user_agent">
+        android:hint="@string/settings_advanced_custom_useragent_title"
+        android:layout_marginTop="16dp"
+        android:visibility="gone">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/custom_useragent"
@@ -26,4 +28,5 @@
             android:inputType="text" />
 
     </com.google.android.material.textfield.TextInputLayout>
+
 </LinearLayout>
