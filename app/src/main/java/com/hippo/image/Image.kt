@@ -22,6 +22,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Animatable
+import android.util.Log
 import androidx.core.graphics.createBitmap
 import coil3.BitmapImage
 import coil3.DrawableImage
@@ -35,6 +36,8 @@ import coil3.request.allowHardware
 import coil3.size.Dimension
 import coil3.size.Precision
 import com.hippo.ehviewer.EhApplication
+import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
+import com.hippo.ehviewer.coil.detectQrCode
 import com.hippo.ehviewer.jni.isGif
 import com.hippo.ehviewer.jni.mmap
 import com.hippo.ehviewer.jni.munmap
@@ -123,13 +126,16 @@ class Image private constructor(
         private val appCtx = EhApplication.application
         private val targetWidth = appCtx.resources.displayMetrics.widthPixels * 2
 
-        private suspend fun decodeCoil(data: Any): CoilImage {
+        private suspend fun decodeCoil(data: Any, detectQrCode: Boolean = false): CoilImage {
             val req = ImageRequest.Builder(appCtx).apply {
                 data(data)
                 size(Dimension(targetWidth), Dimension.Undefined)
                 precision(Precision.INEXACT)
                 allowHardware(false)
                 memoryCachePolicy(CachePolicy.DISABLED)
+                if (detectQrCode) {
+                    detectQrCode(true)
+                }
             }.build()
             return when (val result = appCtx.imageLoader.execute(req)) {
                 is SuccessResult -> result.image
@@ -137,7 +143,7 @@ class Image private constructor(
             }
         }
 
-        suspend fun decode(src: ImageSource): Image? {
+        suspend fun decode(src: ImageSource, detectQrCode: Boolean = false): Image? {
             return runCatching {
                 val image = when (src) {
                     is UniFileSource -> {
@@ -153,20 +159,38 @@ class Image private constructor(
                                             src.close()
                                         }
                                     }
-                                    return decode(source)
+                                    return decode(source, detectQrCode)
                                 }
                             }
                         }
-                        decodeCoil(src.source.uri)
+                        decodeCoil(src.source.uri, detectQrCode)
                     }
 
                     is ByteBufferSource -> {
                         if (!isAtLeastU) {
                             rewriteGifSource(src.source)
                         }
-                        decodeCoil(src.source)
+                        decodeCoil(src.source, detectQrCode)
                     }
                 }
+                
+                // Check if QR code was detected and should be filtered
+                if (detectQrCode) {
+                    val bitmap = when (image) {
+                        is BitmapImage -> image.bitmap
+                        is BitmapImageWithExtraInfo -> image.image.bitmap
+                        else -> null
+                    }
+                    if (bitmap != null) {
+                        val hasQr = com.hippo.ehviewer.jni.hasQrCode(bitmap)
+                        Log.d("QrCodeDebug", "Image hasQrCode=$hasQr, bitmap=${bitmap.width}x${bitmap.height}")
+                        if (hasQr) {
+                            src.close()
+                            throw AdDetectedException()
+                        }
+                    }
+                }
+                
                 when (image) {
                     is DrawableImage -> image.drawable.apply {
                         setBounds(0, 0, intrinsicWidth, intrinsicHeight)
@@ -176,6 +200,7 @@ class Image private constructor(
                 Image(image, src)
             }.onFailure {
                 src.close()
+                if (it is AdDetectedException) throw it
                 it.printStackTrace()
             }.getOrNull()
         }
@@ -194,3 +219,5 @@ interface UniFileSource : ImageSource {
 interface ByteBufferSource : ImageSource {
     val source: ByteBuffer
 }
+
+class AdDetectedException : Exception("Ad detected (QR code)")

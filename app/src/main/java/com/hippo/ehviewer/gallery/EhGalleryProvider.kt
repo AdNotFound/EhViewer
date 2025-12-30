@@ -96,6 +96,15 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
         mSpiderQueen.forceRequest(index)
     }
 
+    fun forceShow(index: Int) {
+        mSpiderQueen.addBypassQrCheckPage(index)
+        mSpiderQueen.request(index)
+    }
+
+    fun isAdBlocked(index: Int): Boolean {
+        return mSpiderQueen.isAdBlocked(index)
+    }
+
     override suspend fun awaitReady(): Boolean = mSpiderQueen.awaitReady()
 
     override val isReady: Boolean

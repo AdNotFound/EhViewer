@@ -28,6 +28,7 @@ import com.hippo.ehviewer.client.EhRequestBuilder
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils.isMPVAvailable
 import com.hippo.ehviewer.client.data.GalleryInfo
+import com.hippo.ehviewer.client.data.hasAds
 import com.hippo.ehviewer.client.exception.QuotaExceededException
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
@@ -75,6 +76,16 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     private var mOldHashMap: MutableMap<String, Int>? = null
     private var mReadReference = 0
     private var mDownloadReference = 0
+    private val mBypassQrCheckPages = java.util.Collections.synchronizedSet(HashSet<Int>())
+    private val mBlockedAdPages = java.util.Collections.synchronizedSet(HashSet<Int>())
+
+    fun addBypassQrCheckPage(index: Int) {
+        mBypassQrCheckPages.add(index)
+    }
+
+    fun isAdBlocked(index: Int): Boolean {
+        return mBlockedAdPages.contains(index)
+    }
 
     fun addOnSpiderListener(listener: OnSpiderListener) {
         synchronized(mSpiderListeners) { mSpiderListeners.add(listener) }
@@ -740,7 +751,25 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             private suspend fun doInJob(index: Int) {
                 mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
                 val src = mSpiderDen.getImageSource(index) ?: return
-                val image = mSemaphore.withPermit { Image.decode(src) }
+                
+                // Calculate if this page may be an ad (last 10 pages)
+                val totalPages = mPageStateArray.size
+                val mayBeAd = index >= totalPages - 10
+                // Simplified: detect QR on last 10 pages when setting is enabled
+                // AND not in bypass list
+                val shouldDetectQrCode = Settings.stripExtraneousAds && mayBeAd && !mBypassQrCheckPages.contains(index)
+                
+                Log.d("QrCodeDebug", "Page $index/$totalPages: stripAds=${Settings.stripExtraneousAds}, mayBeAd=$mayBeAd, bypass=${mBypassQrCheckPages.contains(index)}, detect=$shouldDetectQrCode")
+                
+                val image = try {
+                    mSemaphore.withPermit { Image.decode(src, shouldDetectQrCode) }
+                } catch (e: com.hippo.image.AdDetectedException) {
+                    Log.d("QrCodeDebug", "Page $index: Ad detected!")
+                    mBlockedAdPages.add(index)
+                    notifyGetImageFailure(index, GetText.getString(R.string.error_ad_detected))
+                    return
+                }
+                mBlockedAdPages.remove(index)
                 runCatching {
                     currentCoroutineContext().ensureActive()
                 }.onFailure {
@@ -748,6 +777,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     throw it
                 }
                 if (image == null) {
+                    Log.d("QrCodeDebug", "Page $index: image is null (decode failed)")
                     notifyGetImageFailure(index, DECODE_ERROR)
                 } else {
                     notifyGetImageSuccess(index, image)

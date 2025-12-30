@@ -66,6 +66,7 @@
     <string name="passwd_cannot_be_empty">密码不能为空</string>
     <string name="passwd_wrong">密码错误</string>
     <string name="page_menu_title">第 %d 页</string>
+    <string name="show_image">显示图片</string>
     <string name="page_menu_refresh">@string/refresh</string>
     <string name="page_menu_share">@string/share</string>
     <string name="page_menu_save">保存</string>
@@ -476,6 +477,8 @@
     <string name="settings_read_reading_fullscreen">全屏</string>
     <string name="settings_read_custom_screen_lightness">自定义屏幕亮度</string>
     <string name="settings_read_screen_lightness">屏幕亮度</string>
+    <string name="settings_read_strip_extraneous_ads">移除外部广告</string>
+    <string name="settings_read_strip_extraneous_ads_summary">在标记有外部广告的画廊中跳过包含二维码的页面</string>
     <string name="settings_download">下载</string>
     <string name="settings_download_download_location">下载路径</string>
     <string name="settings_download_pick_new_location">选择新路径</string>
@@ -625,6 +628,7 @@
     <string name="error_cant_find_activity">找不到相应的应用</string>
     <string name="error_cannot_parse_the_url">无法解析链接</string>
     <string name="error_decoding_failed">解码失败</string>
+    <string name="error_ad_detected">检测到广告</string>
     <string name="error_empty">空</string>
     <string name="error_reading_failed">读取失败</string>
     <string name="error_out_of_range">越界</string>

@@ -135,6 +135,8 @@ object Settings {
     private const val DEFAULT_DOUBLE_PAGE_MODE_LANDSCAPE = true
     const val KEY_DOUBLE_PAGE_OFFSET = "double_page_offset"
     private const val DEFAULT_DOUBLE_PAGE_OFFSET = false
+    private const val KEY_STRIP_EXTRANEOUS_ADS = "strip_extraneous_ads"
+    private const val DEFAULT_STRIP_EXTRANEOUS_ADS = false
 
     /********************
      ****** Download
@@ -606,6 +608,12 @@ object Settings {
         get() = getBoolean(KEY_DOUBLE_PAGE_OFFSET, DEFAULT_DOUBLE_PAGE_OFFSET)
     fun putDoublePageOffset(value: Boolean) {
         putBoolean(KEY_DOUBLE_PAGE_OFFSET, value)
+    }
+
+    val stripExtraneousAds: Boolean
+        get() = getBoolean(KEY_STRIP_EXTRANEOUS_ADS, DEFAULT_STRIP_EXTRANEOUS_ADS)
+    fun putStripExtraneousAds(value: Boolean) {
+        putBoolean(KEY_STRIP_EXTRANEOUS_ADS, value)
     }
 
     val downloadLocation: UniFile?

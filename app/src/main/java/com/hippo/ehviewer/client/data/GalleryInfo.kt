@@ -131,3 +131,6 @@ interface GalleryInfo :
         )
     }
 }
+
+val GalleryInfo.hasAds: Boolean
+    get() = simpleTags?.any { "extraneous ads" in it } ?: false

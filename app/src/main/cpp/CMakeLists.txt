@@ -90,6 +90,24 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(libarchive)
 include_directories(${libarchive_SOURCE_DIR}/libarchive)
 
+# Fetch quirc QR code detection library
+FetchContent_Declare(
+        quirc
+        GIT_REPOSITORY https://github.com/dlbeer/quirc.git
+        GIT_TAG v1.2
+        GIT_SHALLOW 1
+)
+FetchContent_MakeAvailable(quirc)
+include_directories(${quirc_SOURCE_DIR}/lib)
+
 # Build and link our app's native lib
-add_library(${PROJECT_NAME} SHARED archive.c image.c gifutils.c hash.c natsort/strnatcmp.c)
+add_library(${PROJECT_NAME} SHARED
+        archive.c image.c gifutils.c hash.c natsort/strnatcmp.c
+        qrcode.c
+        ${quirc_SOURCE_DIR}/lib/decode.c
+        ${quirc_SOURCE_DIR}/lib/identify.c
+        ${quirc_SOURCE_DIR}/lib/quirc.c
+        ${quirc_SOURCE_DIR}/lib/version_db.c
+)
 target_link_libraries(${PROJECT_NAME} archive_static log jnigraphics GLESv3 -Wl,--exclude-libs,ALL)
+

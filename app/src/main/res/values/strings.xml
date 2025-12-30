@@ -71,6 +71,7 @@
     <string name="passwd_cannot_be_empty">Password can\'t be empty</string>
     <string name="passwd_wrong">Password Wrong</string>
     <string name="page_menu_title">Page %d</string>
+    <string name="show_image">Show image</string>
     <string name="page_menu_refresh">@string/refresh</string>
     <string name="page_menu_share">@string/share</string>
     <string name="page_menu_save">Save</string>
@@ -502,6 +503,8 @@
     <string name="settings_read_reading_fullscreen">Fullscreen</string>
     <string name="settings_read_custom_screen_lightness">Custom screen lightness</string>
     <string name="settings_read_screen_lightness">Screen lightness</string>
+    <string name="settings_read_strip_extraneous_ads">Strip extraneous ads</string>
+    <string name="settings_read_strip_extraneous_ads_summary">Skip pages containing QR codes in galleries tagged with extraneous ads</string>
     <string name="settings_download">Download</string>
     <string name="settings_download_download_location">Download location</string>
     <string name="settings_download_pick_new_location">Pick a new location</string>
@@ -688,6 +691,7 @@
     <string name="error_cant_find_activity">Can\'t find the application</string>
     <string name="error_cannot_parse_the_url">Can\'t parse the URL</string>
     <string name="error_decoding_failed">Decoding failed</string>
+    <string name="error_ad_detected">Ad detected</string>
     <string name="error_empty">Empty</string>
     <string name="error_reading_failed">Reading Failed</string>
     <string name="error_out_of_range">Out of range</string>

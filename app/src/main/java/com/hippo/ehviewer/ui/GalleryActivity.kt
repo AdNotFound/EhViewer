@@ -1048,13 +1048,18 @@ class GalleryActivity :
         val resources = this@GalleryActivity.resources
         val builder = AlertDialog.Builder(this@GalleryActivity)
         builder.setTitle(resources.getString(R.string.page_menu_title, page + 1))
+        val isAdBlocked = provider is EhGalleryProvider && provider.isAdBlocked(page)
+        if (isAdBlocked) {
+            items.add(getString(R.string.show_image))
+        }
         val items = arrayListOf<CharSequence>(
             getString(R.string.page_menu_refresh),
-            getString(R.string.page_menu_share),
-            getString(android.R.string.copy),
-            getString(R.string.page_menu_save),
-            getString(R.string.page_menu_save_to),
         )
+        val provider = mGalleryProvider
+        items.add(getString(R.string.page_menu_share))
+        items.add(getString(android.R.string.copy))
+        items.add(getString(R.string.page_menu_save))
+        items.add(getString(R.string.page_menu_save_to))
         if (ACTION_EH == mAction && !Settings.getDownloadOriginImage(false)) {
             items.add(getString(R.string.page_menu_download_original))
         }
@@ -1071,16 +1076,27 @@ class GalleryActivity :
             if (mGalleryProvider == null) {
                 return@setItems
             }
-            when (which) {
-                0 -> {
-                    mGalleryProvider!!.removeCache(page)
-                    mGalleryProvider!!.forceRequest(page)
+            val item = items[which]
+            val provider = mGalleryProvider!!
+            when (item) {
+                getString(R.string.page_menu_refresh) -> {
+                    provider.removeCache(page)
+                    provider.forceRequest(page)
                 }
-                1 -> shareImage(page)
-                2 -> copyImage(page)
-                3 -> saveImage(page)
-                4 -> saveImageTo(page)
-                5 -> saveImageTo(page, true)
+
+                getString(R.string.show_image) -> {
+                    if (provider is EhGalleryProvider) {
+                        provider.forceShow(page)
+                    } else {
+                        provider.forceRequest(page)
+                    }
+                }
+
+                getString(R.string.page_menu_share) -> shareImage(page)
+                getString(android.R.string.copy) -> copyImage(page)
+                getString(R.string.page_menu_save) -> saveImage(page)
+                getString(R.string.page_menu_save_to) -> saveImageTo(page)
+                getString(R.string.page_menu_download_original) -> saveImageTo(page, true)
             }
         }
     }
