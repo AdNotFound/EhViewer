@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License along with EhViewer.
  * If not, see <https://www.gnu.org/licenses/>.
  */
+
 package com.hippo.ehviewer.coil
 
 import coil3.Extras
@@ -24,24 +25,27 @@ import coil3.request.ImageRequest
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
 import com.hippo.ehviewer.jni.hasQrCode
+import com.hippo.ehviewer.jni.getDHash
 
-private val detectQrCodeKey = Extras.Key(default = false)
+private val analyzeAdFeaturesKey = Extras.Key(default = false)
 
-fun ImageRequest.Builder.detectQrCode(enable: Boolean) = apply {
-    extras[detectQrCodeKey] = enable
+fun ImageRequest.Builder.analyzeAdFeatures(enable: Boolean) = apply {
+    extras[analyzeAdFeaturesKey] = enable
 }
 
-val ImageRequest.detectQrCode: Boolean
-    get() = getExtra(detectQrCodeKey)
+val ImageRequest.analyzeAdFeatures: Boolean
+    get() = getExtra(analyzeAdFeaturesKey)
 
-object QrCodeInterceptor : Interceptor {
+object AdBlockInterceptor : Interceptor {
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
         val result = chain.proceed()
-        if (chain.request.detectQrCode && result is SuccessResult) {
+        if (chain.request.analyzeAdFeatures && result is SuccessResult) {
             val image = result.image
             if (image is BitmapImageWithExtraInfo) {
-                val hasQr = hasQrCode(image.image.bitmap)
-                val new = image.copy(hasQrCode = hasQr)
+                val bitmap = image.image.bitmap
+                val hasQr = hasQrCode(bitmap)
+                val hash = getDHash(bitmap)
+                val new = image.copy(hasQrCode = hasQr, dHash = hash)
                 return result.copy(image = new)
             }
         }

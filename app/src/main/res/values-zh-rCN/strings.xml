@@ -67,6 +67,7 @@
     <string name="passwd_wrong">密码错误</string>
     <string name="page_menu_title">第 %d 页</string>
     <string name="show_image">显示图片</string>
+    <string name="mark_as_ad">标记为广告</string>
     <string name="page_menu_refresh">@string/refresh</string>
     <string name="page_menu_share">@string/share</string>
     <string name="page_menu_save">保存</string>

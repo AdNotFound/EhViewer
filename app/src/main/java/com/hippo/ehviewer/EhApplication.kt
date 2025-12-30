@@ -46,7 +46,7 @@ import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.coil.DownloadThumbInterceptor
 import com.hippo.ehviewer.coil.MapExtraInfoInterceptor
 import com.hippo.ehviewer.coil.MergeInterceptor
-import com.hippo.ehviewer.coil.QrCodeInterceptor
+import com.hippo.ehviewer.coil.AdBlockInterceptor
 import com.hippo.ehviewer.dao.buildMainDB
 import com.hippo.ehviewer.download.DownloadManager
 import com.hippo.ehviewer.ui.EhActivity
@@ -240,7 +240,7 @@ class EhApplication :
             )
             add(MergeInterceptor)
             add(DownloadThumbInterceptor)
-            add(QrCodeInterceptor)
+            add(AdBlockInterceptor)
             add(MapExtraInfoInterceptor)
         }
         crossfade(300)

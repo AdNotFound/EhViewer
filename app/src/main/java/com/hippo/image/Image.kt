@@ -37,7 +37,10 @@ import coil3.size.Dimension
 import coil3.size.Precision
 import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
-import com.hippo.ehviewer.coil.detectQrCode
+import com.hippo.ehviewer.coil.analyzeAdFeatures
+import com.hippo.ehviewer.adblock.AdBlockManager
+import com.hippo.ehviewer.jni.getDHash
+import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.ehviewer.jni.isGif
 import com.hippo.ehviewer.jni.mmap
 import com.hippo.ehviewer.jni.munmap
@@ -49,7 +52,7 @@ import java.nio.ByteBuffer
 import coil3.Image as CoilImage
 
 class Image private constructor(
-    private val image: CoilImage,
+    val image: CoilImage,
     private val src: ImageSource? = null,
 ) {
     private var mBitmap: Bitmap? = null
@@ -126,15 +129,15 @@ class Image private constructor(
         private val appCtx = EhApplication.application
         private val targetWidth = appCtx.resources.displayMetrics.widthPixels * 2
 
-        private suspend fun decodeCoil(data: Any, detectQrCode: Boolean = false): CoilImage {
+        private suspend fun decodeCoil(data: Any, analyzeFeatures: Boolean = false): CoilImage {
             val req = ImageRequest.Builder(appCtx).apply {
                 data(data)
                 size(Dimension(targetWidth), Dimension.Undefined)
                 precision(Precision.INEXACT)
                 allowHardware(false)
                 memoryCachePolicy(CachePolicy.DISABLED)
-                if (detectQrCode) {
-                    detectQrCode(true)
+                if (analyzeFeatures) {
+                    analyzeAdFeatures(true)
                 }
             }.build()
             return when (val result = appCtx.imageLoader.execute(req)) {
@@ -143,7 +146,7 @@ class Image private constructor(
             }
         }
 
-        suspend fun decode(src: ImageSource, detectQrCode: Boolean = false): Image? {
+        suspend fun decode(src: ImageSource, analyzeFeatures: Boolean = false): Image? {
             return runCatching {
                 val image = when (src) {
                     is UniFileSource -> {
@@ -159,35 +162,41 @@ class Image private constructor(
                                             src.close()
                                         }
                                     }
-                                    return decode(source, detectQrCode)
+                                    return decode(source, analyzeFeatures)
                                 }
                             }
                         }
-                        decodeCoil(src.source.uri, detectQrCode)
+                        decodeCoil(src.source.uri, analyzeFeatures)
                     }
 
                     is ByteBufferSource -> {
                         if (!isAtLeastU) {
                             rewriteGifSource(src.source)
                         }
-                        decodeCoil(src.source, detectQrCode)
+                        decodeCoil(src.source, analyzeFeatures)
                     }
                 }
                 
-                // Check if QR code was detected and should be filtered
-                if (detectQrCode) {
-                    val bitmap = when (image) {
-                        is BitmapImage -> image.bitmap
-                        is BitmapImageWithExtraInfo -> image.image.bitmap
-                        else -> null
-                    }
-                    if (bitmap != null) {
-                        val hasQr = com.hippo.ehviewer.jni.hasQrCode(bitmap)
-                        Log.d("QrCodeDebug", "Image hasQrCode=$hasQr, bitmap=${bitmap.width}x${bitmap.height}")
-                        if (hasQr) {
-                            src.close()
-                            throw AdDetectedException()
+                // Check if QR code or dHash was detected and should be filtered
+                if (analyzeFeatures) {
+                    val (hasQr, hash) = if (image is BitmapImageWithExtraInfo) {
+                        image.hasQrCode to image.dHash
+                    } else {
+                        val bitmap = when (image) {
+                            is BitmapImage -> image.bitmap
+                            else -> null
                         }
+                        if (bitmap != null) {
+                            hasQrCode(bitmap) to getDHash(bitmap)
+                        } else {
+                            false to 0L
+                        }
+                    }
+
+                    if (hasQr || (hash != 0L && AdBlockManager.isBlocked(hash))) {
+                        Log.d("AdBlockDebug", "Image blocked: hasQr=$hasQr, dHash=${hash.toULong().toString(16)}")
+                        src.close()
+                        throw AdDetectedException()
                     }
                 }
                 

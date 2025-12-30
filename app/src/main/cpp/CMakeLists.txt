@@ -103,7 +103,7 @@ include_directories(${quirc_SOURCE_DIR}/lib)
 # Build and link our app's native lib
 add_library(${PROJECT_NAME} SHARED
         archive.c image.c gifutils.c hash.c natsort/strnatcmp.c
-        qrcode.c
+        qrcode.c image_hash.c
         ${quirc_SOURCE_DIR}/lib/decode.c
         ${quirc_SOURCE_DIR}/lib/identify.c
         ${quirc_SOURCE_DIR}/lib/quirc.c

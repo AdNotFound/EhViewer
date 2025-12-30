@@ -72,6 +72,7 @@
     <string name="passwd_wrong">Password Wrong</string>
     <string name="page_menu_title">Page %d</string>
     <string name="show_image">Show image</string>
+    <string name="mark_as_ad">Mark as ad</string>
     <string name="page_menu_refresh">@string/refresh</string>
     <string name="page_menu_share">@string/share</string>
     <string name="page_menu_save">Save</string>

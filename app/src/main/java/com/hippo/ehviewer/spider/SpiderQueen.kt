@@ -25,6 +25,8 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhRequestBuilder
+import com.hippo.ehviewer.jni.hasQrCode
+import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils.isMPVAvailable
 import com.hippo.ehviewer.client.data.GalleryInfo
@@ -32,7 +34,9 @@ import com.hippo.ehviewer.client.data.hasAds
 import com.hippo.ehviewer.client.exception.QuotaExceededException
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
+import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
 import com.hippo.image.Image
+import coil3.BitmapImage
 import com.hippo.unifile.UniFile
 import com.hippo.util.ExceptionUtils
 import com.hippo.util.launchIO
@@ -83,8 +87,48 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         mBypassQrCheckPages.add(index)
     }
 
+    suspend fun markAsAd(index: Int) {
+        val src = mSpiderDen.getImageSource(index) ?: return
+        val image = Image.decode(src, false)
+        image?.let {
+            val bitmap = when (val img = it.image) {
+                is BitmapImage -> img.bitmap
+                is BitmapImageWithExtraInfo -> img.image.bitmap
+                else -> null
+            }
+            bitmap?.let { b ->
+                val hash = com.hippo.ehviewer.jni.getDHash(b)
+                com.hippo.ehviewer.adblock.AdBlockManager.addHash(hash)
+                mBlockedAdPages.add(index)
+            }
+            it.recycle()
+        }
+    }
+
     fun isAdBlocked(index: Int): Boolean {
         return mBlockedAdPages.contains(index)
+    }
+
+    fun removeBlockedAdPage(index: Int) {
+        mBlockedAdPages.remove(index)
+    }
+
+    suspend fun unmarkAsAd(index: Int) {
+        val src = mSpiderDen.getImageSource(index) ?: return
+        val image = Image.decode(src, false)
+        image?.let {
+            val bitmap = when (val img = it.image) {
+                is BitmapImage -> img.bitmap
+                is BitmapImageWithExtraInfo -> img.image.bitmap
+                else -> null
+            }
+            bitmap?.let { b ->
+                val hash = com.hippo.ehviewer.jni.getDHash(b)
+                com.hippo.ehviewer.adblock.AdBlockManager.unblock(hash)
+                mBlockedAdPages.remove(index)
+            }
+            it.recycle()
+        }
     }
 
     fun addOnSpiderListener(listener: OnSpiderListener) {
@@ -757,14 +801,14 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 val mayBeAd = index >= totalPages - 10
                 // Simplified: detect QR on last 10 pages when setting is enabled
                 // AND not in bypass list
-                val shouldDetectQrCode = Settings.stripExtraneousAds && mayBeAd && !mBypassQrCheckPages.contains(index)
+                val shouldAnalyzeAds = Settings.stripExtraneousAds && mayBeAd && !mBypassQrCheckPages.contains(index)
                 
-                Log.d("QrCodeDebug", "Page $index/$totalPages: stripAds=${Settings.stripExtraneousAds}, mayBeAd=$mayBeAd, bypass=${mBypassQrCheckPages.contains(index)}, detect=$shouldDetectQrCode")
+                Log.d("AdBlockDebug", "Page $index/$totalPages: stripAds=${Settings.stripExtraneousAds}, mayBeAd=$mayBeAd, bypass=${mBypassQrCheckPages.contains(index)}, detect=$shouldAnalyzeAds")
                 
                 val image = try {
-                    mSemaphore.withPermit { Image.decode(src, shouldDetectQrCode) }
+                    mSemaphore.withPermit { Image.decode(src, shouldAnalyzeAds) }
                 } catch (e: com.hippo.image.AdDetectedException) {
-                    Log.d("QrCodeDebug", "Page $index: Ad detected!")
+                    Log.d("AdBlockDebug", "Page $index: Ad detected!")
                     mBlockedAdPages.add(index)
                     notifyGetImageFailure(index, GetText.getString(R.string.error_ad_detected))
                     return

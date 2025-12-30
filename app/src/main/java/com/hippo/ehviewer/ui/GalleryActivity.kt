@@ -1048,14 +1048,17 @@ class GalleryActivity :
         val resources = this@GalleryActivity.resources
         val builder = AlertDialog.Builder(this@GalleryActivity)
         builder.setTitle(resources.getString(R.string.page_menu_title, page + 1))
-        val isAdBlocked = provider is EhGalleryProvider && provider.isAdBlocked(page)
-        if (isAdBlocked) {
-            items.add(getString(R.string.show_image))
-        }
+        val provider = mGalleryProvider
         val items = arrayListOf<CharSequence>(
             getString(R.string.page_menu_refresh),
         )
-        val provider = mGalleryProvider
+        if (provider is EhGalleryProvider) {
+            if (provider.isAdBlocked(page)) {
+                items.add(getString(R.string.show_image))
+            } else {
+                items.add(getString(R.string.mark_as_ad))
+            }
+        }
         items.add(getString(R.string.page_menu_share))
         items.add(getString(android.R.string.copy))
         items.add(getString(R.string.page_menu_save))
@@ -1089,6 +1092,12 @@ class GalleryActivity :
                         provider.forceShow(page)
                     } else {
                         provider.forceRequest(page)
+                    }
+                }
+
+                getString(R.string.mark_as_ad) -> {
+                    if (provider is EhGalleryProvider) {
+                        provider.markAsAd(page)
                     }
                 }
 

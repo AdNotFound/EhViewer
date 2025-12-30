@@ -20,8 +20,11 @@ import com.hippo.ehviewer.spider.SpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.obtainSpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.releaseSpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.OnSpiderListener
+import com.hippo.ehviewer.GetText
+import com.hippo.ehviewer.R
 import com.hippo.image.Image
 import com.hippo.unifile.UniFile
+import com.hippo.util.launchIO
 import com.hippo.yorozuya.SimpleHandler
 import java.util.Locale
 
@@ -98,7 +101,18 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
 
     fun forceShow(index: Int) {
         mSpiderQueen.addBypassQrCheckPage(index)
+        mSpiderQueen.removeBlockedAdPage(index)
+        launchIO {
+            mSpiderQueen.unmarkAsAd(index)
+        }
         mSpiderQueen.request(index)
+    }
+
+    fun markAsAd(index: Int) {
+        launchIO {
+            mSpiderQueen.markAsAd(index)
+            notifyPageFailed(index, GetText.getString(R.string.error_ad_detected))
+        }
     }
 
     fun isAdBlocked(index: Int): Boolean {
