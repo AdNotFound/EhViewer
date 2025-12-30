@@ -57,7 +57,7 @@
         app:singleLineTitle="false" />
 
     <SeekBarPreference
-        android:defaultValue="128"
+        android:defaultValue="64"
         android:key="timeout_speed"
         android:max="1024"
         android:summary="@string/settings_download_timeout_speed_summary"
