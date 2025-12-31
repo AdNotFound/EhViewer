@@ -26,6 +26,7 @@ import coil3.load
 import coil3.request.allowHardware
 import coil3.request.crossfade
 import coil3.size.Size
+import coil3.size.SizeResolver
 import com.hippo.drawable.PreciselyClipDrawable
 import com.hippo.ehviewer.R
 
@@ -97,7 +98,7 @@ open class LoadImageView @JvmOverloads constructor(
             placeholderMemoryCacheKey(key)
             memoryCacheKey(key)
             diskCacheKey(key)
-            size(Size.ORIGINAL)
+            size(SizeResolver.ORIGINAL)
             if (!crossfade) crossfade(false)
             listener(
                 { setRetry(false) },

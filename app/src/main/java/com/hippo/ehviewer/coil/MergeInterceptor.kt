@@ -64,7 +64,7 @@ object MergeInterceptor : Interceptor {
         when (result) {
             is SuccessResult -> result.copy(
                 request = req,
-                dataSource = if (result.request === req) result.dataSource else DataSource.MEMORY,
+                dataSource = if (result.request === req || result.dataSource == DataSource.MEMORY_CACHE) result.dataSource else DataSource.MEMORY,
             )
 
             is ErrorResult -> result.copy(
