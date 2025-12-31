@@ -28,8 +28,7 @@ object UAPresets {
         }.getOrNull() ?: 127
     }
 
-    private fun android(v: String = "") =
-        "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) ${v}Chrome/$version.0.0.0 Mobile Safari/537.36"
+    private fun android(v: String = "") = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) ${v}Chrome/$version.0.0.0 Mobile Safari/537.36"
 
     const val CHROME_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     const val FIREFOX_PC = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"

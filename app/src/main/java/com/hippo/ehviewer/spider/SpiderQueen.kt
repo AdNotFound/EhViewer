@@ -43,8 +43,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.isActive
@@ -54,12 +54,12 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
+import okhttp3.coroutines.executeAsync
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
-import okhttp3.coroutines.executeAsync
-import java.util.concurrent.atomic.AtomicInteger
 import com.hippo.ehviewer.EhApplication.Companion.okHttpClient as plainTextOkHttpClient
 
 class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineScope {
@@ -705,7 +705,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                         val bytesDelta = currentReceived - lastReceived
                                         val speed = bytesDelta * 1_000_000_000 / interval
                                         val minSpeed = Settings.timeoutSpeed.toLong() * 1024
-                                        
+
                                         if (speed < minSpeed && currentReceived > 0) {
                                             lowSpeedCounter++
                                             if (lowSpeedCounter >= 3) {
@@ -738,7 +738,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                 watchdog.cancel()
                             }
                         }
-                        
+
                         Log.d(WORKER_DEBUG_TAG, "Download image $index succeed")
                         updatePageState(index, STATE_FINISHED)
                         return
