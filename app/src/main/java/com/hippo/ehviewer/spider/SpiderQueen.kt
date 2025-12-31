@@ -34,6 +34,7 @@ import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
 import com.hippo.image.Image
 import com.hippo.unifile.UniFile
 import com.hippo.util.ExceptionUtils
+import com.hippo.util.LowSpeedException
 import com.hippo.util.launchIO
 import com.hippo.util.runSuspendCatching
 import kotlinx.coroutines.CancellationException
@@ -43,19 +44,22 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeout
-import okhttp3.coroutines.executeAsync
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
+import okhttp3.coroutines.executeAsync
+import java.util.concurrent.atomic.AtomicInteger
 import com.hippo.ehviewer.EhApplication.Companion.okHttpClient as plainTextOkHttpClient
 
 class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineScope {
@@ -562,7 +566,11 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                             }
                             throw it
                         }
-                        updatePageState(index, STATE_FAILED, ExceptionUtils.getReadableString(it))
+                        val errorMessage = ExceptionUtils.getReadableString(it)
+                        if (errorMessage == "Invalid page.") {
+                            mSpiderInfo.pTokenMap.remove(index)
+                        }
+                        updatePageState(index, STATE_FAILED, errorMessage)
                     }
                 }
             }
@@ -599,12 +607,12 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             }
             updatePageState(index, STATE_DOWNLOADING)
 
+            var errorMessage: String? = null
             var skipHathKey: String? = null
             var originImageUrl: String? = null
-            var error: String? = null
             var forceHtml = false
             runSuspendCatching {
-                repeat(2) { retries ->
+                repeat(3) { retries ->
                     var imageUrl: String? = null
                     var localShowKey: String?
 
@@ -679,41 +687,89 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     }
                     checkNotNull(targetImageUrl)
 
-                    repeat(3) { times ->
-                        runCatching {
-                            Log.d(WORKER_DEBUG_TAG, "Start download image $index attempt #$times")
-                            val success = withTimeout(downloadTimeout) {
-                                mSpiderDen.makeHttpCallAndSaveImage(
-                                    index,
-                                    targetImageUrl,
-                                    referer,
-                                ) { contentLength: Long, receivedSize: Long, bytesRead: Int ->
-                                    notifyPageDownload(index, contentLength, receivedSize, bytesRead)
+                    runCatching {
+                        Log.d(WORKER_DEBUG_TAG, "Start download image $index attempt #$retries")
+                        coroutineScope {
+                            val received = AtomicLong(0)
+                            val watchdog = launch {
+                                var lastReceived = 0L
+                                var lastCheck = System.nanoTime()
+                                var lowSpeedCounter = 0
+                                delay(2000) // Initial grace period
+                                while (isActive) {
+                                    delay(1000)
+                                    val currentReceived = received.get()
+                                    val now = System.nanoTime()
+                                    val interval = now - lastCheck
+                                    if (interval >= 1_000_000_000) {
+                                        val bytesDelta = currentReceived - lastReceived
+                                        val speed = bytesDelta * 1_000_000_000 / interval
+                                        val minSpeed = Settings.timeoutSpeed.toLong() * 1024
+                                        
+                                        if (speed < minSpeed && currentReceived > 0) {
+                                            lowSpeedCounter++
+                                            if (lowSpeedCounter >= 3) {
+                                                val msg = "Speed: ${speed / 1024} KB/s < ${minSpeed / 1024} KB/s"
+                                                Log.d(WORKER_DEBUG_TAG, "Download image $index: $msg")
+                                                throw LowSpeedException(targetImageUrl, speed)
+                                            }
+                                        } else {
+                                            lowSpeedCounter = 0
+                                        }
+                                        lastReceived = currentReceived
+                                        lastCheck = now
+                                    }
                                 }
                             }
 
-                            check(success)
-                            Log.d(WORKER_DEBUG_TAG, "Download image $index succeed")
-                            updatePageState(index, STATE_FINISHED)
-                            return
-                        }.onFailure {
-                            mSpiderDen.remove(index)
-                            Log.d(WORKER_DEBUG_TAG, "Download image $index attempt #$times failed")
-                            error = when (it) {
-                                is TimeoutCancellationException -> ERROR_TIMEOUT
-                                is CancellationException -> throw it
-                                else -> ExceptionUtils.getReadableString(it)
+                            try {
+                                val success = withTimeout(downloadTimeout) {
+                                    mSpiderDen.makeHttpCallAndSaveImage(
+                                        index,
+                                        targetImageUrl,
+                                        referer,
+                                    ) { contentLength: Long, receivedSize: Long, bytesRead: Int ->
+                                        received.set(receivedSize)
+                                        notifyPageDownload(index, contentLength, receivedSize, bytesRead)
+                                    }
+                                }
+                                check(success)
+                            } finally {
+                                watchdog.cancel()
                             }
+                        }
+                        
+                        Log.d(WORKER_DEBUG_TAG, "Download image $index succeed")
+                        updatePageState(index, STATE_FINISHED)
+                        return
+                    }.onFailure {
+                        mSpiderDen.remove(index)
+                        Log.d(WORKER_DEBUG_TAG, "Download image $index attempt #$retries failed")
+                        errorMessage = when (it) {
+                            is TimeoutCancellationException -> ERROR_TIMEOUT
+                            is CancellationException -> throw it
+                            is LowSpeedException -> "Too slow: ${it.speed / 1024} KB/s"
+                            else -> ExceptionUtils.getReadableString(it)
                         }
                     }
                 }
             }.onFailure {
-                when (it) {
-                    is QuotaExceededException -> notifyGet509(index)
+                if (it is CancellationException) {
+                    if (mReadReference > 0) {
+                        Log.d(WORKER_DEBUG_TAG, "Download image $index cancelled")
+                        if (it.message != FORCE_RETRY) {
+                            updatePageState(index, STATE_FAILED, "Cancelled")
+                        }
+                    }
+                    throw it
                 }
-                error = ExceptionUtils.getReadableString(it)
+                errorMessage = ExceptionUtils.getReadableString(it)
+                if (errorMessage == "Invalid page.") {
+                    mSpiderInfo.pTokenMap.remove(index)
+                }
+                if (it is QuotaExceededException) notifyGet509(index)
             }
-            updatePageState(index, STATE_FAILED, error)
+            updatePageState(index, STATE_FAILED, errorMessage)
         }
 
         private val decoder = object {
@@ -738,19 +794,30 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             }
 
             private suspend fun doInJob(index: Int) {
-                mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
-                val src = mSpiderDen.getImageSource(index) ?: return
-                val image = mSemaphore.withPermit { Image.decode(src) }
                 runCatching {
-                    currentCoroutineContext().ensureActive()
+                    mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
+                    val src = mSpiderDen.getImageSource(index)
+                    if (src == null) {
+                        if (getPageState(index) == STATE_FINISHED) {
+                            updatePageState(index, STATE_FAILED, "Image file not found")
+                        }
+                        return
+                    }
+                    val image = mSemaphore.withPermit { Image.decode(src) }
+                    try {
+                        currentCoroutineContext().ensureActive()
+                    } catch (e: CancellationException) {
+                        image?.recycle()
+                        throw e
+                    }
+                    if (image == null) {
+                        notifyGetImageFailure(index, DECODE_ERROR)
+                    } else {
+                        notifyGetImageSuccess(index, image)
+                    }
                 }.onFailure {
-                    image?.recycle()
-                    throw it
-                }
-                if (image == null) {
-                    notifyGetImageFailure(index, DECODE_ERROR)
-                } else {
-                    notifyGetImageSuccess(index, image)
+                    if (it is CancellationException) throw it
+                    notifyGetImageFailure(index, ExceptionUtils.getReadableString(it))
                 }
             }
         }

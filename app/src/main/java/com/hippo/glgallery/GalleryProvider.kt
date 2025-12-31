@@ -33,7 +33,7 @@ abstract class GalleryProvider {
     private val mNotifyTaskPool = ConcurrentPool<NotifyTask>(5)
     private val mImageCache = lruCache<Int, ImageWrapper>(
         maxSize = if (isAtLeastO) {
-            (OSUtils.getTotalMemory() / 12).toInt().coerceIn(MIN_CACHE_SIZE, MAX_CACHE_SIZE)
+            (OSUtils.getTotalMemory() / 8).toInt().coerceIn(MIN_CACHE_SIZE, MAX_CACHE_SIZE)
         } else {
             (OSUtils.getAppMaxMemory() / 3 * 2).toInt()
         },
@@ -81,7 +81,7 @@ abstract class GalleryProvider {
         val end = if (preloadRange.step > 0) preloadRange.last else preloadRange.first
         preloadPages(
             preloadRange.filter { mImageCache[it] == null },
-            start - 8 to end + 8,
+            start - 12 to end + 12,
         )
 
         lastRequestIndex = index

@@ -151,7 +151,7 @@ class SpiderDen(private val mGalleryInfo: GalleryInfo) {
                     dst.openOutputStream().sink().buffer().use { sink ->
                         it.body.source().use { source ->
                             while (true) {
-                                val bytesRead = source.read(sink.buffer, 8192)
+                                val bytesRead = source.read(sink.buffer, 65536)
                                 if (bytesRead == -1L) break
                                 ret += bytesRead
                                 sink.emitCompleteSegments()
@@ -192,7 +192,7 @@ class SpiderDen(private val mGalleryInfo: GalleryInfo) {
                 outFile.openOutputStream().sink().buffer().use { sink ->
                     response.body.source().use { source ->
                         while (true) {
-                            val bytesRead = source.read(sink.buffer, 8192)
+                            val bytesRead = source.read(sink.buffer, 65536)
                             if (bytesRead == -1L) break
                             ret += bytesRead
                             sink.emitCompleteSegments()
