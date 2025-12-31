@@ -28,22 +28,31 @@ import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.ehviewer.jni.getDHash
 
 private val analyzeAdFeaturesKey = Extras.Key(default = false)
+private val scanQrCodeKey = Extras.Key(default = false)
 
 fun ImageRequest.Builder.analyzeAdFeatures(enable: Boolean) = apply {
     extras[analyzeAdFeaturesKey] = enable
 }
 
+fun ImageRequest.Builder.scanQrCode(enable: Boolean) = apply {
+    extras[scanQrCodeKey] = enable
+}
+
 val ImageRequest.analyzeAdFeatures: Boolean
     get() = getExtra(analyzeAdFeaturesKey)
+
+val ImageRequest.scanQrCode: Boolean
+    get() = getExtra(scanQrCodeKey)
 
 object AdBlockInterceptor : Interceptor {
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
         val result = chain.proceed()
-        if (chain.request.analyzeAdFeatures && result is SuccessResult) {
+        val request = chain.request
+        if (request.analyzeAdFeatures && result is SuccessResult) {
             val image = result.image
             if (image is BitmapImageWithExtraInfo) {
                 val bitmap = image.image.bitmap
-                val hasQr = hasQrCode(bitmap)
+                val hasQr = if (request.scanQrCode) hasQrCode(bitmap) else false
                 val hash = getDHash(bitmap)
                 val new = image.copy(hasQrCode = hasQr, dHash = hash)
                 return result.copy(image = new)

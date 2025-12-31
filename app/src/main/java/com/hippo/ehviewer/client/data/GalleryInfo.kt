@@ -133,4 +133,7 @@ interface GalleryInfo :
 }
 
 val GalleryInfo.hasAds: Boolean
-    get() = simpleTags?.any { "extraneous ads" in it } ?: false
+    get() {
+        val detail = (this as? GalleryDetail) ?: com.hippo.ehviewer.EhApplication.galleryDetailCache[gid]
+        return detail?.tags?.any { group -> group.any { "extraneous ads" in it } } ?: false
+    }

@@ -38,6 +38,7 @@ import coil3.size.Precision
 import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
 import com.hippo.ehviewer.coil.analyzeAdFeatures
+import com.hippo.ehviewer.coil.scanQrCode
 import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.jni.hasQrCode
@@ -129,7 +130,7 @@ class Image private constructor(
         private val appCtx = EhApplication.application
         private val targetWidth = appCtx.resources.displayMetrics.widthPixels * 2
 
-        private suspend fun decodeCoil(data: Any, analyzeFeatures: Boolean = false): CoilImage {
+        private suspend fun decodeCoil(data: Any, analyzeFeatures: Boolean = false, blockOnQr: Boolean = false): CoilImage {
             val req = ImageRequest.Builder(appCtx).apply {
                 data(data)
                 size(Dimension(targetWidth), Dimension.Undefined)
@@ -138,6 +139,7 @@ class Image private constructor(
                 memoryCachePolicy(CachePolicy.DISABLED)
                 if (analyzeFeatures) {
                     analyzeAdFeatures(true)
+                    scanQrCode(blockOnQr)
                 }
             }.build()
             return when (val result = appCtx.imageLoader.execute(req)) {
@@ -146,7 +148,7 @@ class Image private constructor(
             }
         }
 
-        suspend fun decode(src: ImageSource, analyzeFeatures: Boolean = false): Image? {
+        suspend fun decode(src: ImageSource, analyzeFeatures: Boolean = false, blockOnQr: Boolean = false): Image? {
             return runCatching {
                 val image = when (src) {
                     is UniFileSource -> {
@@ -162,18 +164,18 @@ class Image private constructor(
                                             src.close()
                                         }
                                     }
-                                    return decode(source, analyzeFeatures)
+                                    return decode(source, analyzeFeatures, blockOnQr)
                                 }
                             }
                         }
-                        decodeCoil(src.source.uri, analyzeFeatures)
+                        decodeCoil(src.source.uri, analyzeFeatures, blockOnQr)
                     }
 
                     is ByteBufferSource -> {
                         if (!isAtLeastU) {
                             rewriteGifSource(src.source)
                         }
-                        decodeCoil(src.source, analyzeFeatures)
+                        decodeCoil(src.source, analyzeFeatures, blockOnQr)
                     }
                 }
                 
@@ -187,14 +189,17 @@ class Image private constructor(
                             else -> null
                         }
                         if (bitmap != null) {
-                            hasQrCode(bitmap) to getDHash(bitmap)
+                            val qr = if (blockOnQr) hasQrCode(bitmap) else false
+                            qr to getDHash(bitmap)
                         } else {
                             false to 0L
                         }
                     }
 
-                    if (hasQr || (hash != 0L && AdBlockManager.isBlocked(hash))) {
-                        Log.d("AdBlockDebug", "Image blocked: hasQr=$hasQr, dHash=${hash.toULong().toString(16)}")
+                    val isBlockedByHash = hash != 0L && AdBlockManager.isBlocked(hash)
+                    val isBlockedByQr = blockOnQr && hasQr
+                    if (isBlockedByQr || isBlockedByHash) {
+                        Log.d("AdBlockDebug", "Image blocked: hasQr=$hasQr (autoBlock=$blockOnQr), dHash=${hash.toULong().toString(16)}, isBlockedByHash=$isBlockedByHash")
                         src.close()
                         throw AdDetectedException()
                     }

@@ -88,16 +88,21 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     suspend fun markAsAd(index: Int) {
+        if (!galleryInfo.hasAds) return
         val src = mSpiderDen.getImageSource(index) ?: return
-        val image = Image.decode(src, false)
+        val image = Image.decode(src, analyzeFeatures = true, blockOnQr = true)
         image?.let {
-            val bitmap = when (val img = it.image) {
-                is BitmapImage -> img.bitmap
-                is BitmapImageWithExtraInfo -> img.image.bitmap
-                else -> null
+            val hash = if (it.image is BitmapImageWithExtraInfo) {
+                it.image.dHash
+            } else {
+                val bitmap = when (val img = it.image) {
+                    is BitmapImage -> img.bitmap
+                    is BitmapImageWithExtraInfo -> img.image.bitmap
+                    else -> null
+                }
+                bitmap?.let { b -> com.hippo.ehviewer.jni.getDHash(b) } ?: 0L
             }
-            bitmap?.let { b ->
-                val hash = com.hippo.ehviewer.jni.getDHash(b)
+            if (hash != 0L) {
                 com.hippo.ehviewer.adblock.AdBlockManager.addHash(hash)
                 mBlockedAdPages.add(index)
             }
@@ -114,16 +119,21 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     suspend fun unmarkAsAd(index: Int) {
+        if (!galleryInfo.hasAds) return
         val src = mSpiderDen.getImageSource(index) ?: return
-        val image = Image.decode(src, false)
+        val image = Image.decode(src, analyzeFeatures = true, blockOnQr = true)
         image?.let {
-            val bitmap = when (val img = it.image) {
-                is BitmapImage -> img.bitmap
-                is BitmapImageWithExtraInfo -> img.image.bitmap
-                else -> null
+            val hash = if (it.image is BitmapImageWithExtraInfo) {
+                it.image.dHash
+            } else {
+                val bitmap = when (val img = it.image) {
+                    is BitmapImage -> img.bitmap
+                    is BitmapImageWithExtraInfo -> img.image.bitmap
+                    else -> null
+                }
+                bitmap?.let { b -> com.hippo.ehviewer.jni.getDHash(b) } ?: 0L
             }
-            bitmap?.let { b ->
-                val hash = com.hippo.ehviewer.jni.getDHash(b)
+            if (hash != 0L) {
                 com.hippo.ehviewer.adblock.AdBlockManager.unblock(hash)
                 mBlockedAdPages.remove(index)
             }
@@ -801,12 +811,16 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 val mayBeAd = index >= totalPages - 10
                 // Simplified: detect QR on last 10 pages when setting is enabled
                 // AND not in bypass list
-                val shouldAnalyzeAds = Settings.stripExtraneousAds && mayBeAd && !mBypassQrCheckPages.contains(index)
+                // Strict optimization: only analyze features if gallery HAS the tag
+                val hasAdsTag = galleryInfo.hasAds
+                val shouldAnalyzeAds = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && !mBypassQrCheckPages.contains(index)
                 
-                Log.d("AdBlockDebug", "Page $index/$totalPages: stripAds=${Settings.stripExtraneousAds}, mayBeAd=$mayBeAd, bypass=${mBypassQrCheckPages.contains(index)}, detect=$shouldAnalyzeAds")
+                if (mayBeAd || hasAdsTag) {
+                    Log.d("AdBlockDebug", "Page $index/$totalPages: stripAds=${Settings.stripExtraneousAds}, hasAdsTag=$hasAdsTag, mayBeAd=$mayBeAd, bypass=${mBypassQrCheckPages.contains(index)}, finalAnalyze=$shouldAnalyzeAds")
+                }
                 
                 val image = try {
-                    mSemaphore.withPermit { Image.decode(src, shouldAnalyzeAds) }
+                    mSemaphore.withPermit { Image.decode(src, shouldAnalyzeAds, hasAdsTag) }
                 } catch (e: com.hippo.image.AdDetectedException) {
                     Log.d("AdBlockDebug", "Page $index: Ad detected!")
                     mBlockedAdPages.add(index)

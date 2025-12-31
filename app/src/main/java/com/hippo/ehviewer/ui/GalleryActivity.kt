@@ -76,6 +76,7 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.data.GalleryInfo
+import com.hippo.ehviewer.client.data.hasAds
 import com.hippo.ehviewer.gallery.ArchiveGalleryProvider
 import com.hippo.ehviewer.gallery.EhGalleryProvider
 import com.hippo.ehviewer.gallery.GalleryProvider2
@@ -1052,7 +1053,7 @@ class GalleryActivity :
         val items = arrayListOf<CharSequence>(
             getString(R.string.page_menu_refresh),
         )
-        if (provider is EhGalleryProvider) {
+        if (provider is EhGalleryProvider && mGalleryInfo?.hasAds == true) {
             if (provider.isAdBlocked(page)) {
                 items.add(getString(R.string.show_image))
             } else {
