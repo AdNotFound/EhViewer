@@ -185,7 +185,7 @@ object EhEngine {
                 hasRated = true
             }
         }
-        val needApi = filter && sEhFilter.needTags() && !hasTags || Settings.showGalleryPages && !hasPages || hasRated
+        val needApi = (filter && sEhFilter.needTags() && !hasTags) || (Settings.showGalleryPages && !hasPages) || hasRated
         if (needApi) {
             fillGalleryListByApi(list, url)
         }

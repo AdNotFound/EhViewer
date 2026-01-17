@@ -24,8 +24,8 @@ import coil3.intercept.Interceptor
 import coil3.request.ImageRequest
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
-import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.ehviewer.jni.getDHash
+import com.hippo.ehviewer.jni.hasQrCode
 
 private val analyzeAdFeaturesKey = Extras.Key(default = false)
 private val scanQrCodeKey = Extras.Key(default = false)

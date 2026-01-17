@@ -81,8 +81,10 @@ class ImageLimitsPreference(
         return when (maximum) {
             HomeParser.IP_NORMAL -> mActivity.getString(R.string.settings_eh_image_limits_summary_ip) +
                 mActivity.getString(R.string.settings_eh_image_limits_summary_ip_ok)
+
             HomeParser.IP_RESTRICTED -> mActivity.getString(R.string.settings_eh_image_limits_summary_ip) +
                 mActivity.getString(R.string.settings_eh_image_limits_summary_ip_restricted)
+
             else -> mActivity.getString(R.string.settings_eh_image_limits_summary_acc, current, maximum)
         }
     }

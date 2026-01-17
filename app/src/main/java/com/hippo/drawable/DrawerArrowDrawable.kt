@@ -189,7 +189,7 @@ class DrawerArrowDrawable(context: Context, color: Int) : Drawable() {
     }
 
     private fun setShape(arrow: Boolean, duration: Long) {
-        if (!(!arrow && mProgress == 0f || arrow && mProgress == 1f)) {
+        if (!((!arrow && mProgress == 0f) || (arrow && mProgress == 1f))) {
             val endProgress = if (arrow) 1f else 0f
             if (duration <= 0) {
                 progress = endProgress

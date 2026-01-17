@@ -99,9 +99,11 @@ private fun readLegacySpiderInfo(inputStream: InputStream): SpiderInfo? {
             // Read next line
             startPage = read().toInt(16).coerceAtLeast(0)
         }
+
         1 -> {
             // pass
         }
+
         else -> {
             // Invalid version
             return null

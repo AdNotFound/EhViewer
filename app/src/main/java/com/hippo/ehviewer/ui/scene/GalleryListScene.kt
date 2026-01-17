@@ -234,11 +234,16 @@ class GalleryListScene :
         args ?: return
         mUrlBuilder = when (args.getString(KEY_ACTION)) {
             ACTION_HOMEPAGE -> ListUrlBuilder()
+
             ACTION_SUBSCRIPTION -> ListUrlBuilder(MODE_SUBSCRIPTION)
+
             ACTION_WHATS_HOT -> ListUrlBuilder(MODE_WHATS_HOT)
+
             ACTION_TOP_LIST -> ListUrlBuilder(MODE_TOPLIST, mKeyword = Settings.defaultTopList)
+
             ACTION_LIST_URL_BUILDER -> args.getParcelableCompat<ListUrlBuilder>(KEY_LIST_URL_BUILDER)
                 ?.copy() ?: ListUrlBuilder()
+
             else -> throw IllegalStateException("Wrong KEY_ACTION:${args.getString(KEY_ACTION)} when handle args!")
         }
     }
@@ -676,10 +681,12 @@ class GalleryListScene :
         var handle = false
         when (mState) {
             STATE_NORMAL -> handle = checkDoubleClickExit()
+
             STATE_SIMPLE_SEARCH, STATE_SEARCH -> {
                 setState(STATE_NORMAL)
                 handle = true
             }
+
             STATE_SEARCH_SHOW_LIST -> {
                 setState(STATE_SEARCH)
                 handle = true
@@ -811,12 +818,15 @@ class GalleryListScene :
         when (position) {
             // Open right
             0 -> openDrawer(GravityCompat.END)
+
             // Go to
             1 -> {
                 if (!mIsTopList || mHelper!!.canGoTo()) showGoToDialog()
             }
+
             // Last page
             2 -> showGidDialog()
+
             // Refresh
             3 -> mHelper!!.refresh()
         }
@@ -1066,6 +1076,7 @@ class GalleryListScene :
                         mSearchBarMover!!.returnSearchBarPosition()
                         selectSearchFab(animation)
                     }
+
                     STATE_SEARCH -> {
                         mViewTransition!!.showView(1, animation)
                         mSearchLayout!!.scrollSearchContainerToTop()
@@ -1073,6 +1084,7 @@ class GalleryListScene :
                         mSearchBarMover!!.returnSearchBarPosition()
                         selectSearchFab(animation)
                     }
+
                     STATE_SEARCH_SHOW_LIST -> {
                         mViewTransition!!.showView(1, animation)
                         mSearchLayout!!.scrollSearchContainerToTop()
@@ -1088,12 +1100,14 @@ class GalleryListScene :
                         mSearchBarMover!!.returnSearchBarPosition()
                         selectActionFab(animation)
                     }
+
                     STATE_SEARCH -> {
                         mViewTransition!!.showView(1, animation)
                         mSearchLayout!!.scrollSearchContainerToTop()
                         mSearchBar!!.setState(SearchBar.STATE_SEARCH, animation)
                         mSearchBarMover!!.returnSearchBarPosition()
                     }
+
                     STATE_SEARCH_SHOW_LIST -> {
                         mViewTransition!!.showView(1, animation)
                         mSearchLayout!!.scrollSearchContainerToTop()
@@ -1109,11 +1123,13 @@ class GalleryListScene :
                         mSearchBarMover!!.returnSearchBarPosition()
                         selectActionFab(animation)
                     }
+
                     STATE_SIMPLE_SEARCH -> {
                         mViewTransition!!.showView(0, animation)
                         mSearchBar!!.setState(SearchBar.STATE_SEARCH_LIST, animation)
                         mSearchBarMover!!.returnSearchBarPosition()
                     }
+
                     STATE_SEARCH_SHOW_LIST -> {
                         mSearchBar!!.setState(SearchBar.STATE_SEARCH_LIST, animation)
                         mSearchBarMover!!.returnSearchBarPosition()
@@ -1127,11 +1143,13 @@ class GalleryListScene :
                         mSearchBarMover!!.returnSearchBarPosition()
                         selectActionFab(animation)
                     }
+
                     STATE_SIMPLE_SEARCH -> {
                         mViewTransition!!.showView(0, animation)
                         mSearchBar!!.setState(SearchBar.STATE_SEARCH_LIST, animation)
                         mSearchBarMover!!.returnSearchBarPosition()
                     }
+
                     STATE_SEARCH -> {
                         mSearchBar!!.setState(SearchBar.STATE_SEARCH, animation)
                         mSearchBarMover!!.returnSearchBarPosition()
@@ -1241,10 +1259,12 @@ class GalleryListScene :
                 mLeftDrawable!!.setArrow(if (animation) ANIMATE_TIME else 0)
                 mRightDrawable!!.setDelete(if (animation) ANIMATE_TIME else 0)
             }
+
             SearchBar.STATE_SEARCH -> if (newState == SearchBar.STATE_NORMAL) {
                 mLeftDrawable!!.setMenu(if (animation) ANIMATE_TIME else 0)
                 mRightDrawable!!.setAdd(if (animation) ANIMATE_TIME else 0)
             }
+
             SearchBar.STATE_SEARCH_LIST -> if (newState == SearchBar.STATE_NORMAL) {
                 mLeftDrawable!!.setMenu(if (animation) ANIMATE_TIME else 0)
                 mRightDrawable!!.setAdd(if (animation) ANIMATE_TIME else 0)

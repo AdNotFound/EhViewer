@@ -44,5 +44,3 @@ object MapExtraInfoInterceptor : Interceptor {
         return result
     }
 }
-
-

@@ -20,13 +20,12 @@ import android.util.Log
 import androidx.annotation.IntDef
 import androidx.collection.LongSparseArray
 import androidx.collection.set
+import coil3.BitmapImage
 import com.hippo.ehviewer.GetText
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhRequestBuilder
-import com.hippo.ehviewer.jni.hasQrCode
-import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils.isMPVAvailable
 import com.hippo.ehviewer.client.data.GalleryInfo
@@ -35,9 +34,10 @@ import com.hippo.ehviewer.client.exception.QuotaExceededException
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
+import com.hippo.ehviewer.jni.getDHash
+import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.image.AdDetectedException
 import com.hippo.image.Image
-import coil3.BitmapImage
 import com.hippo.unifile.UniFile
 import com.hippo.util.ExceptionUtils
 import com.hippo.util.LowSpeedException
@@ -120,9 +120,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         }
     }
 
-    fun isAdBlocked(index: Int): Boolean {
-        return mBlockedAdPages.contains(index)
-    }
+    fun isAdBlocked(index: Int): Boolean = mBlockedAdPages.contains(index)
 
     fun removeBlockedAdPage(index: Int) {
         mBlockedAdPages.remove(index)
@@ -386,7 +384,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         val state = getPageState(index)
 
         // Fix state for force
-        if (force && state == STATE_FINISHED || state == STATE_FAILED) {
+        if (force && (state == STATE_FINISHED || state == STATE_FAILED)) {
             // Update state to none at once
             updatePageState(index, STATE_NONE)
         }

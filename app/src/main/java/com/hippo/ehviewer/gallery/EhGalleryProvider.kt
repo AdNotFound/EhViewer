@@ -15,13 +15,13 @@
  */
 package com.hippo.ehviewer.gallery
 
+import com.hippo.ehviewer.GetText
+import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.spider.SpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.obtainSpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.releaseSpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.OnSpiderListener
-import com.hippo.ehviewer.GetText
-import com.hippo.ehviewer.R
 import com.hippo.image.Image
 import com.hippo.unifile.UniFile
 import com.hippo.util.launchIO
@@ -115,9 +115,7 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
         }
     }
 
-    fun isAdBlocked(index: Int): Boolean {
-        return mSpiderQueen.isAdBlocked(index)
-    }
+    fun isAdBlocked(index: Int): Boolean = mSpiderQueen.isAdBlocked(index)
 
     override suspend fun awaitReady(): Boolean = mSpiderQueen.awaitReady()
 

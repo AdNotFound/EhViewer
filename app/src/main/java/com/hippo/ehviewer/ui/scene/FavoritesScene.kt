@@ -616,10 +616,13 @@ class FavoritesScene :
             when (position) {
                 // Open right
                 0 -> openDrawer(GravityCompat.END)
+
                 // Go to
                 1 -> showGoToDialog()
+
                 // Last page
                 2 -> mHelper!!.goTo("1-0", false)
+
                 // Refresh
                 3 -> mHelper!!.refresh()
             }
@@ -639,6 +642,7 @@ class FavoritesScene :
         when (position) {
             // Check all
             4 -> mRecyclerView!!.checkAll()
+
             // Download
             5 -> {
                 val activity: Activity? = mainActivity
@@ -651,6 +655,7 @@ class FavoritesScene :
                     mRecyclerView!!.outOfCustomChoiceMode()
                 }
             }
+
             // Delete
             6 -> {
                 val helper = DeleteDialogHelper()
@@ -666,6 +671,7 @@ class FavoritesScene :
                     .setOnCancelListener(helper)
                     .show()
             }
+
             // Move
             7 -> {
                 val helper = MoveDialogHelper()

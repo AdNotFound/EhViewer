@@ -415,6 +415,7 @@ class GalleryDetailScene :
                             }
                             return true
                         }
+
                         R.id.action_add_tag -> {
                             if (mGalleryDetail == null) {
                                 return false
@@ -435,6 +436,7 @@ class GalleryDetailScene :
                                 }
                             return true
                         }
+
                         R.id.action_clear_image_cache -> {
                             if (mGalleryDetail == null) {
                                 return false
@@ -446,6 +448,7 @@ class GalleryDetailScene :
                             showTip(R.string.action_image_cache_cleared, LENGTH_LONG)
                             return true
                         }
+
                         R.id.action_open_in_other_app -> {
                             val url = galleryDetailUrl
                             val activity: Activity? = mainActivity
@@ -719,11 +722,13 @@ class GalleryDetailScene :
                 // Show mBelowHeader
                 mViewTransition2!!.showView(0, doAnimation)
             }
+
             STATE_REFRESH -> {
                 setLightStatusBar(true)
                 // Show mProgressView
                 mViewTransition!!.showView(1, doAnimation)
             }
+
             STATE_REFRESH_HEADER -> {
                 setLightStatusBar(false)
                 // Show mMainView
@@ -731,6 +736,7 @@ class GalleryDetailScene :
                 // Show mProgress
                 mViewTransition2!!.showView(1, doAnimation)
             }
+
             STATE_INIT, STATE_FAILED -> {
                 setLightStatusBar(true)
                 // Show mFailedView
@@ -1036,10 +1042,12 @@ class GalleryDetailScene :
             mBackAction -> {
                 onBackPressed()
             }
+
             mOtherActions -> {
                 ensurePopMenu()
                 mPopupMenu?.show()
             }
+
             mUploader -> {
                 if (uploader.isNullOrEmpty() || disowned) {
                     return
@@ -1049,6 +1057,7 @@ class GalleryDetailScene :
                 lub.keyword = uploader
                 GalleryListScene.startScene(this, lub)
             }
+
             mCategory -> {
                 val category = category
                 if (category == EhUtils.NONE || category == EhUtils.PRIVATE || category == EhUtils.UNKNOWN) {
@@ -1058,6 +1067,7 @@ class GalleryDetailScene :
                 lub.category = category
                 GalleryListScene.startScene(this, lub)
             }
+
             mDownload -> {
                 val downloadState = EhDownloadManager.getDownloadState(galleryDetail.gid)
                 when (downloadState) {
@@ -1065,9 +1075,11 @@ class GalleryDetailScene :
                         // CommonOperations Actions
                         CommonOperations.startDownload(activity, galleryDetail, false)
                     }
+
                     DownloadInfo.STATE_FINISH if galleryDetail.newerVersions.isNotEmpty() -> {
                         showGalleryUpgradeDialog(galleryDetail)
                     }
+
                     else -> {
                         val builder = CheckBoxDialogBuilder(
                             context,
@@ -1082,12 +1094,14 @@ class GalleryDetailScene :
                     }
                 }
             }
+
             mRead -> {
                 val intent = Intent(activity, GalleryActivity::class.java)
                 intent.action = GalleryActivity.ACTION_EH
                 intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail)
                 startActivity(intent)
             }
+
             mNewerVersion -> {
                 val titles = ArrayList<CharSequence>()
                 for (newerVersion in galleryDetail.newerVersions) {
@@ -1110,11 +1124,13 @@ class GalleryDetailScene :
                     }
                     .show()
             }
+
             mInfo -> {
                 val args = Bundle()
                 args.putParcelable(GalleryInfoScene.KEY_GALLERY_DETAIL, galleryDetail)
                 startScene(Announcer(GalleryInfoScene::class.java).setArgs(args))
             }
+
             mHeartGroup -> {
                 // DB Actions
                 // CommonOperations Actions
@@ -1141,11 +1157,13 @@ class GalleryDetailScene :
                     updateFavoriteDrawable()
                 }
             }
+
             mShare -> {
                 galleryDetailUrl?.let {
                     AppHelper.share(activity, it)
                 }
             }
+
             mTorrent -> {
                 if (!isAtLeastQ &&
                     ContextCompat.checkSelfPermission(
@@ -1164,6 +1182,7 @@ class GalleryDetailScene :
                     helper.setDialog(dialog, galleryDetail.torrentUrl)
                 }
             }
+
             mArchive -> {
                 if (!isAtLeastQ &&
                     ContextCompat.checkSelfPermission(
@@ -1186,6 +1205,7 @@ class GalleryDetailScene :
                     helper.setDialog(dialog, galleryDetail.archiveUrl)
                 }
             }
+
             mRate -> {
                 if (galleryDetail.apiUid < 0) {
                     showTip(R.string.error_please_login_first, LENGTH_LONG)
@@ -1200,9 +1220,11 @@ class GalleryDetailScene :
                     .show()
                 helper.setDialog(dialog, galleryDetail.rating)
             }
+
             mSimilar -> {
                 showSimilarGalleryList()
             }
+
             mComments -> {
                 val args = Bundle()
                 args.putLong(GalleryCommentsScene.KEY_API_UID, galleryDetail.apiUid)
@@ -1217,6 +1239,7 @@ class GalleryDetailScene :
                         .setRequestCode(this, REQUEST_CODE_COMMENT_GALLERY),
                 )
             }
+
             mPreviews -> {
                 val previewNum = Settings.previewNum
                 var scrollTo = 0
@@ -1230,6 +1253,7 @@ class GalleryDetailScene :
                 args.putInt(GalleryPreviewsScene.KEY_SCROLL_TO, scrollTo)
                 startScene(Announcer(GalleryPreviewsScene::class.java).setArgs(args))
             }
+
             else -> {
                 var o = v.getTag(R.id.tag)
                 if (o is String) {
@@ -1425,18 +1449,23 @@ class GalleryDetailScene :
                     R.id.vote_up -> {
                         voteTag(tag, 1)
                     }
+
                     R.id.vote_down -> {
                         voteTag(tag, -1)
                     }
+
                     R.id.show_definition -> {
                         UrlOpener.openUrl(context, EhUrl.getTagDefinitionUrl(temp), false)
                     }
+
                     R.id.add_filter -> {
                         showFilterTagDialog(tag)
                     }
+
                     R.id.copy -> {
                         requireActivity().addTextToClipboard(tag, false)
                     }
+
                     R.id.copy_trans -> {
                         var transText = tv.text.toString().trim()
                         if (transText.endsWith(TAG_STATUS_UP) || transText.endsWith(TAG_STATUS_DN)) {
@@ -1553,9 +1582,13 @@ class GalleryDetailScene :
         mDownload?.run {
             when (mDownloadState) {
                 DownloadInfo.STATE_INVALID -> setText(R.string.download)
+
                 DownloadInfo.STATE_NONE -> setText(R.string.download_state_none)
+
                 DownloadInfo.STATE_WAIT -> setText(R.string.download_state_wait)
+
                 DownloadInfo.STATE_DOWNLOAD -> setText(R.string.download_state_downloading)
+
                 DownloadInfo.STATE_FINISH -> setText(
                     if (mGalleryDetail != null && mGalleryDetail!!.newerVersions.isNotEmpty()) {
                         R.string.download_upgradeable
@@ -1563,6 +1596,7 @@ class GalleryDetailScene :
                         R.string.download_state_downloaded
                     },
                 )
+
                 DownloadInfo.STATE_FAILED -> setText(R.string.download_state_failed)
             }
         }

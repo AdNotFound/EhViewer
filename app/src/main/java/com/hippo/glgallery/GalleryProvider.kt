@@ -193,8 +193,11 @@ abstract class GalleryProvider {
                 }
 
                 TYPE_WAIT -> mListener.onPageWait(mIndex)
+
                 TYPE_PERCENT -> mListener.onPagePercent(mIndex, mPercent)
+
                 TYPE_SUCCEED -> mListener.onPageSucceed(mIndex, mImage)
+
                 TYPE_FAILED -> mListener.onPageFailed(mIndex, mError)
             }
 

@@ -91,16 +91,16 @@ open class FixedAspectImageView @JvmOverloads constructor(
         mAdjustViewBounds = adjustViewBounds
     }
 
+    /**
+     * Enable aspect will set AdjustViewBounds true.
+     * Any negative float to disable it,
+     * disable Aspect will not disable AdjustViewBounds.
+     *
+     * @param aspect width/height
+     */
     var aspect: Float
         get() = mAspect
 
-        /**
-         * Enable aspect will set AdjustViewBounds true.
-         * Any negative float to disable it,
-         * disable Aspect will not disable AdjustViewBounds.
-         *
-         * @param aspect width/height
-         */
         set(aspect) {
             mAspect = if (aspect > 0) {
                 aspect

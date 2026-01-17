@@ -223,12 +223,15 @@ class SearchLayout @JvmOverloads constructor(
                     R.id.search_subscription_search -> {
                         urlBuilder.mode = ListUrlBuilder.MODE_SUBSCRIPTION
                     }
+
                     R.id.search_specify_uploader -> {
                         urlBuilder.mode = ListUrlBuilder.MODE_UPLOADER
                     }
+
                     R.id.search_specify_tag -> {
                         urlBuilder.mode = ListUrlBuilder.MODE_TAG
                     }
+
                     else -> {
                         urlBuilder.mode = ListUrlBuilder.MODE_NORMAL
                     }

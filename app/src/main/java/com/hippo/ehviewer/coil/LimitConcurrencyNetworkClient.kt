@@ -19,10 +19,12 @@ class LimitConcurrencyNetworkClient(val impl: NetworkClient) : NetworkClient {
             URL_PREFIX_THUMB_EX in url -> semaphores.withLock(URL_PREFIX_THUMB_EX) {
                 withContext(NonCancellable) { impl.executeRequest(request, block) }
             }
+
             // H@H server may not have h2 multiplexing support
             URL_SIGNATURE_THUMB_NORMAL in url -> semaphores.withLock(url.substringBefore(URL_SIGNATURE_THUMB_NORMAL)) {
                 withContext(NonCancellable) { impl.executeRequest(request, block) }
             }
+
             // H2 multiplexing enabled
             else -> impl.executeRequest(request, block)
         }

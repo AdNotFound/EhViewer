@@ -409,9 +409,11 @@ class GalleryActivity :
                     GalleryView.LAYOUT_RIGHT_TO_LEFT -> {
                         mGalleryView?.run { if (isNext) pageLeft() else pageRight() }
                     }
+
                     GalleryView.LAYOUT_LEFT_TO_RIGHT -> {
                         mGalleryView?.run { if (isNext) pageRight() else pageLeft() }
                     }
+
                     GalleryView.LAYOUT_TOP_TO_BOTTOM -> {
                         mGalleryView?.onScroll(0f, -scroll, 0f, -scroll, 0f, -scroll)
                     }
@@ -619,9 +621,11 @@ class GalleryActivity :
             }
 
             KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_DPAD_UP -> pageTurn(true).let { true }
+
             KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_DPAD_DOWN -> pageTurn(false).let { true }
 
             KeyEvent.KEYCODE_DPAD_LEFT -> mGalleryView!!.pageLeft().let { true }
+
             KeyEvent.KEYCODE_DPAD_RIGHT -> mGalleryView!!.pageRight().let { true }
 
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_MENU -> {
@@ -1103,9 +1107,13 @@ class GalleryActivity :
                 }
 
                 getString(R.string.page_menu_share) -> shareImage(page)
+
                 getString(android.R.string.copy) -> copyImage(page)
+
                 getString(R.string.page_menu_save) -> saveImage(page)
+
                 getString(R.string.page_menu_save_to) -> saveImageTo(page)
+
                 getString(R.string.page_menu_download_original) -> saveImageTo(page, true)
             }
         }
@@ -1329,19 +1337,25 @@ class GalleryActivity :
                     mLayoutMode = mValue
                     updateSlider()
                 }
+
                 NOTIFY_KEY_SIZE -> {
                     mSize = mValue
                     updateSlider()
                     updateProgress()
                 }
+
                 NOTIFY_KEY_CURRENT_INDEX -> {
                     mCurrentIndex = mValue
                     updateSlider()
                     updateProgress()
                 }
+
                 NOTIFY_KEY_TAP_MENU_AREA -> onTapMenuArea()
+
                 NOTIFY_KEY_TAP_SLIDER_AREA -> onTapSliderArea()
+
                 NOTIFY_KEY_TAP_ERROR_TEXT -> onTapErrorText(mValue)
+
                 NOTIFY_KEY_LONG_PRESS_PAGE -> onLongPressPage(mValue)
             }
             mNotifyTaskPool.push(this)

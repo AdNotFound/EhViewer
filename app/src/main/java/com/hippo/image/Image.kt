@@ -36,10 +36,10 @@ import coil3.request.allowHardware
 import coil3.size.Dimension
 import coil3.size.Precision
 import com.hippo.ehviewer.EhApplication
+import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
 import com.hippo.ehviewer.coil.analyzeAdFeatures
 import com.hippo.ehviewer.coil.scanQrCode
-import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.ehviewer.jni.isGif
@@ -82,6 +82,7 @@ class Image private constructor(
                 mBitmap?.recycle()
                 mBitmap = null
             }
+
             is BitmapImage -> image.bitmap.recycle()
         }
         isRecycled = true
@@ -178,7 +179,7 @@ class Image private constructor(
                         decodeCoil(src.source, analyzeFeatures, blockOnQr)
                     }
                 }
-                
+
                 // Check if QR code or dHash was detected and should be filtered
                 if (analyzeFeatures) {
                     val (hasQr, hash) = if (image is BitmapImageWithExtraInfo) {
@@ -204,11 +205,12 @@ class Image private constructor(
                         throw AdDetectedException()
                     }
                 }
-                
+
                 when (image) {
                     is DrawableImage -> image.drawable.apply {
                         setBounds(0, 0, intrinsicWidth, intrinsicHeight)
                     }
+
                     is BitmapImage -> src.close()
                 }
                 Image(image, src)

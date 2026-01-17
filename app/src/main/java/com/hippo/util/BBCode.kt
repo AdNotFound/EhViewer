@@ -43,7 +43,9 @@ fun Spanned.toBBCode(): String {
                 }
 
                 is UnderlineSpan -> append("[u]")
+
                 is StrikethroughSpan -> append("[s]")
+
                 is URLSpan -> {
                     append("[url=")
                     append(it.url)
@@ -71,7 +73,9 @@ fun Spanned.toBBCode(): String {
                 }
 
                 is UnderlineSpan -> append("[/u]")
+
                 is StrikethroughSpan -> append("[/s]")
+
                 is URLSpan -> append("[/url]")
             }
         }
