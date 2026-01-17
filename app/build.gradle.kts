@@ -64,8 +64,8 @@ android {
 
     defaultConfig {
         applicationId = "org.error.ehviewer"
-        versionCode = 173901
-        versionName = "1.7.39.1"
+        versionCode = 174000
+        versionName = "1.7.40.0"
         buildConfigField("String", "VERSION_CODE", "\"${defaultConfig.versionCode}\"")
         buildConfigField("String", "COMMIT_SHA", "\"$commitSha\"")
         ndk {
