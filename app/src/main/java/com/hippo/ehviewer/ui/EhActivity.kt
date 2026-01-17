@@ -43,6 +43,7 @@ abstract class EhActivity : AppCompatActivity() {
     override fun onApplyThemeResource(theme: Theme, resid: Int, first: Boolean) {
         theme.applyStyle(resid, true)
         theme.applyStyle(getThemeStyleRes(), true)
+        theme.applyStyle(ThemeColors.fromKey(Settings.themeColor).styleRes, true)
     }
 
     override fun onNightModeChanged(mode: Int) {
