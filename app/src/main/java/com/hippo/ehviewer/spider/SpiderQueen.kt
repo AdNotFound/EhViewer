@@ -95,32 +95,33 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     suspend fun markAsAd(index: Int) {
         if (!galleryInfo.hasAds) return
-        val src = mSpiderDen.getImageSource(index) ?: return
-        val image = try {
-            Image.decode(src, analyzeFeatures = true, blockOnQr = true)
-        } catch (e: AdDetectedException) {
-            mBlockedAdPages.add(index)
-            return
-        }
-        image?.let {
-            var hash = if (it.image is BitmapImageWithExtraInfo) {
-                it.image.dHash
-            } else {
-                0L
-            }
-            if (hash == 0L) {
-                val bitmap = when (val img = it.image) {
-                    is BitmapImage -> img.bitmap
-                    is BitmapImageWithExtraInfo -> img.image.bitmap
-                    else -> null
-                }
-                hash = bitmap?.let { b -> getDHash(b) } ?: 0L
-            }
-            if (hash != 0L) {
-                AdBlockManager.addHash(hash)
+        mSpiderDen.getImageSource(index)?.use { src ->
+            val image = try {
+                Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+            } catch (e: AdDetectedException) {
                 mBlockedAdPages.add(index)
+                return
             }
-            it.recycle()
+            image?.let {
+                var hash = if (it.image is BitmapImageWithExtraInfo) {
+                    it.image.dHash
+                } else {
+                    0L
+                }
+                if (hash == 0L) {
+                    val bitmap = when (val img = it.image) {
+                        is BitmapImage -> img.bitmap
+                        is BitmapImageWithExtraInfo -> img.image.bitmap
+                        else -> null
+                    }
+                    hash = bitmap?.let { b -> getDHash(b) } ?: 0L
+                }
+                if (hash != 0L) {
+                    AdBlockManager.addHash(hash)
+                    mBlockedAdPages.add(index)
+                }
+                it.recycle()
+            }
         }
     }
 
@@ -132,28 +133,29 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     suspend fun unmarkAsAd(index: Int) {
         if (!galleryInfo.hasAds) return
-        val src = mSpiderDen.getImageSource(index) ?: return
-        val image = try {
-            Image.decode(src, analyzeFeatures = true, blockOnQr = true)
-        } catch (e: AdDetectedException) {
-            return
-        }
-        image?.let {
-            val hash = if (it.image is BitmapImageWithExtraInfo) {
-                it.image.dHash
-            } else {
-                val bitmap = when (val img = it.image) {
-                    is BitmapImage -> img.bitmap
-                    is BitmapImageWithExtraInfo -> img.image.bitmap
-                    else -> null
+        mSpiderDen.getImageSource(index)?.use { src ->
+            val image = try {
+                Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+            } catch (e: AdDetectedException) {
+                return
+            }
+            image?.let {
+                val hash = if (it.image is BitmapImageWithExtraInfo) {
+                    it.image.dHash
+                } else {
+                    val bitmap = when (val img = it.image) {
+                        is BitmapImage -> img.bitmap
+                        is BitmapImageWithExtraInfo -> img.image.bitmap
+                        else -> null
+                    }
+                    bitmap?.let { b -> getDHash(b) } ?: 0L
                 }
-                bitmap?.let { b -> getDHash(b) } ?: 0L
+                if (hash != 0L) {
+                    AdBlockManager.unblock(hash)
+                    mBlockedAdPages.remove(index)
+                }
+                it.recycle()
             }
-            if (hash != 0L) {
-                AdBlockManager.unblock(hash)
-                mBlockedAdPages.remove(index)
-            }
-            it.recycle()
         }
     }
 
@@ -810,7 +812,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                         notifyPageDownload(index, contentLength, receivedSize, bytesRead)
                                     }
                                 }
-                                check(success)
+                                 check(success) { "Failed to download image $index" }
                             } finally {
                                 watchdog.cancel()
                             }
@@ -873,29 +875,31 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             private suspend fun doInJob(index: Int) {
                 mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
                 val src = mSpiderDen.getImageSource(index) ?: return
-                val totalPages = mPageStateArray.size
-                val mayBeAd = index >= totalPages - 10
-                val hasAdsTag = galleryInfo.hasAds
-                // Simplified: detect QR on last 10 pages when setting is enabled
-                // AND not in bypass list
-                val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
-                val image = try {
-                    mSemaphore.withPermit { Image.decode(src, analyzeFeatures = analyzeFeatures, blockOnQr = hasAdsTag) }
-                } catch (e: AdDetectedException) {
-                    mBlockedAdPages.add(index)
-                    notifyGetImageFailure(index, AD_DETECTED_ERROR)
-                    return
-                }
-                runCatching {
-                    currentCoroutineContext().ensureActive()
-                }.onFailure {
-                    image?.recycle()
-                    throw it
-                }
-                if (image == null) {
-                    notifyGetImageFailure(index, DECODE_ERROR)
-                } else {
-                    notifyGetImageSuccess(index, image)
+                src.use {
+                    val totalPages = mPageStateArray.size
+                    val mayBeAd = index >= totalPages - 10
+                    val hasAdsTag = galleryInfo.hasAds
+                    // Simplified: detect QR on last 10 pages when setting is enabled
+                    // AND not in bypass list
+                    val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
+                    val image = try {
+                        mSemaphore.withPermit { Image.decode(it, analyzeFeatures = analyzeFeatures, blockOnQr = hasAdsTag) }
+                    } catch (e: AdDetectedException) {
+                        mBlockedAdPages.add(index)
+                        notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                        return
+                    }
+                    runCatching {
+                        currentCoroutineContext().ensureActive()
+                    }.onFailure {
+                        image?.recycle()
+                        throw it
+                    }
+                    if (image == null) {
+                        notifyGetImageFailure(index, DECODE_ERROR)
+                    } else {
+                        notifyGetImageSuccess(index, image)
+                    }
                 }
             }
         }

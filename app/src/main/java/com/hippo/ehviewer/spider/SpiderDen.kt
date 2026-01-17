@@ -210,7 +210,8 @@ class SpiderDen(private val mGalleryInfo: GalleryInfo) {
         }
 
         findDownloadFileForIndex(index, extension)?.runSuspendCatching {
-            return doSave(this) == length
+            val received = doSave(this)
+            return length < 0 || received == length
         }?.onFailure {
             it.printStackTrace()
             return false
@@ -220,16 +221,13 @@ class SpiderDen(private val mGalleryInfo: GalleryInfo) {
         if (mode == SpiderQueen.MODE_READ) {
             val key = getImageKey(mGid, index)
             var received: Long = 0
-            runSuspendCatching {
+            val success = runSuspendCatching {
                 sCache.edit(key) {
                     metadata.toFile().writeText(extension)
                     received = doSave(UniFile.fromFile(data.toFile())!!)
-                }
-            }.onFailure {
-                it.printStackTrace()
-            }.onSuccess {
-                return received == length
-            }
+                } != null
+            }.getOrDefault(false)
+            if (success) return length < 0 || received == length
         }
 
         return false
