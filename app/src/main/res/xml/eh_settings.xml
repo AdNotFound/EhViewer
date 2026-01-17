@@ -69,7 +69,7 @@
     <com.hippo.ehviewer.preference.ColorPreference
         android:key="theme_color"
         android:title="@string/theme_color"
-        android:icon="@drawable/ic_palette" />
+        app:iconSpaceReserved="false" />
 
     <rikka.preference.SimpleMenuPreference
         android:defaultValue="0"

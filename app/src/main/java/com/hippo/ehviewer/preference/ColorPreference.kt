@@ -28,41 +28,40 @@ import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.preference.Preference
+import androidx.preference.PreferenceViewHolder
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.ui.ThemeColors
-import com.hippo.yorozuya.LayoutUtils
+import com.hippo.widget.CheckableColorView
 import com.hippo.widget.ColorView
+import com.hippo.yorozuya.LayoutUtils
 import kotlin.math.roundToInt
 
 class ColorPreference @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null
+    context: Context,
+    attrs: AttributeSet? = null,
 ) : Preference(context, attrs) {
 
-    override fun onSetInitialValue(defaultValue: Any?) {
-        super.onSetInitialValue(defaultValue)
-        updateIcon()
+    init {
+        widgetLayoutResource = R.layout.preference_widget_color
     }
 
-    private fun updateIcon() {
-        val colorCode = Settings.themeColor
-        val colorRes = ThemeColors.fromKey(colorCode).colorRes
-        val color = ContextCompat.getColor(context, colorRes)
-        
-        val shape = GradientDrawable()
-        shape.shape = GradientDrawable.OVAL
-        shape.setColor(color)
-        val size = LayoutUtils.dp2pix(context, 24f)
-        shape.setSize(size, size)
-        
-        icon = shape
+    override fun onBindViewHolder(holder: PreferenceViewHolder) {
+        super.onBindViewHolder(holder)
+        val colorView = holder.findViewById(R.id.color_view) as? CheckableColorView
+        if (colorView != null) {
+            val colorCode = Settings.themeColor
+            val colorRes = ThemeColors.fromKey(colorCode).colorRes
+            colorView.setColor(ContextCompat.getColor(context, colorRes))
+            colorView.setChecked(false)
+        }
     }
 
     override fun onClick() {
         val inflater = LayoutInflater.from(context)
         val view = inflater.inflate(R.layout.dialog_color_picker_grid, null)
         val gridView = view.findViewById<GridView>(R.id.card_grid)
-        
+
         val dialog = AlertDialog.Builder(context)
             .setTitle(title)
             .setView(view)
@@ -72,15 +71,15 @@ class ColorPreference @JvmOverloads constructor(
         val adapter = ColorAdapter(context, dialog)
         gridView.adapter = adapter
         gridView.onItemClickListener = adapter
-        
+
         dialog.show()
     }
 
     private inner class ColorAdapter(
         private val context: Context,
-        private val dialog: Dialog
+        private val dialog: Dialog,
     ) : BaseAdapter(), android.widget.AdapterView.OnItemClickListener {
-        
+
         private val colors = ThemeColors.values()
         private val inflater = LayoutInflater.from(context)
 
@@ -92,15 +91,14 @@ class ColorPreference @JvmOverloads constructor(
 
         override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
             val view = convertView ?: inflater.inflate(R.layout.item_color_picker, parent, false)
-            val colorView = view.findViewById<ColorView>(R.id.color_view)
-            val checkIcon = view.findViewById<ImageView>(R.id.check_icon)
+            val colorView = view.findViewById<CheckableColorView>(R.id.color_view)
 
             val item = colors[position]
             colorView.setColor(ContextCompat.getColor(context, item.colorRes))
 
             val isSelected = item.key == Settings.themeColor
-            checkIcon.visibility = if (isSelected) View.VISIBLE else View.GONE
-            
+            colorView.setChecked(isSelected)
+
             return view
         }
 
@@ -108,12 +106,7 @@ class ColorPreference @JvmOverloads constructor(
             val item = colors[position]
             if (callChangeListener(item.key)) {
                 Settings.putThemeColor(item.key)
-                updateIcon()
-                // Recreate activity to apply theme? 
-                // Settings activity handles recreation mainly on theme change preference.
-                // We might need to trigger recreation manually or rely on listener.
-                // For now just save. The Activity needs a restart to pick up the new Theme.
-                // We'll handle restart logic by result or listener in Fragment.
+                notifyChanged()
                 dialog.dismiss()
             }
         }

@@ -22,7 +22,7 @@ import com.hippo.ehviewer.R
 enum class ThemeColors(
     val key: String,
     @ColorRes val colorRes: Int,
-    @StyleRes val styleRes: Int
+    @StyleRes val styleRes: Int,
 ) {
     TEAL("teal", R.color.teal_500, R.style.ThemeOverlay_EhViewer_Accent_Teal),
     RED("red", R.color.red_500, R.style.ThemeOverlay_EhViewer_Accent_Red),
@@ -42,10 +42,10 @@ enum class ThemeColors(
     DEEP_ORANGE("deep_orange", R.color.deep_orange_500, R.style.ThemeOverlay_EhViewer_Accent_DeepOrange),
     BROWN("brown", R.color.brown_700, R.style.ThemeOverlay_EhViewer_Accent_Brown),
     GREY("grey", R.color.grey_500, R.style.ThemeOverlay_EhViewer_Accent_Grey),
-    BLUE_GREY("blue_grey", R.color.blue_grey_500, R.style.ThemeOverlay_EhViewer_Accent_BlueGrey);
+    BLUE_GREY("blue_grey", R.color.blue_grey_500, R.style.ThemeOverlay_EhViewer_Accent_BlueGrey),
+    ;
 
     companion object {
-        fun fromKey(key: String): ThemeColors =
-            entries.find { it.key == key } ?: TEAL
+        fun fromKey(key: String): ThemeColors = entries.find { it.key == key } ?: TEAL
     }
 }
