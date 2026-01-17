@@ -1053,7 +1053,7 @@ class GalleryActivity :
         val items = arrayListOf<CharSequence>(
             getString(R.string.page_menu_refresh),
         )
-        if (provider is EhGalleryProvider && mGalleryInfo?.hasAds == true) {
+        if (provider is EhGalleryProvider && mGalleryInfo?.hasAds == true && Settings.stripExtraneousAds) {
             if (provider.isAdBlocked(page)) {
                 items.add(getString(R.string.show_image))
             } else {

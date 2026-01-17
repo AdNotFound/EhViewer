@@ -1,23 +1,27 @@
 package com.hippo.ehviewer.adblock
 
 import com.hippo.ehviewer.AppConfig
-import com.hippo.yorozuya.FileUtils
-import com.hippo.yorozuya.IOUtils
+import com.hippo.util.launchIO
+import com.hippo.util.withIOContext
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.atomic.AtomicBoolean
 
 object AdBlockManager {
     private val blockedHashes = CopyOnWriteArraySet<Long>()
     private val file = File(AppConfig.getFilesDir("adblock"), "ad_blocked_hashes.txt")
+    private val isSaving = AtomicBoolean(false)
 
     init {
-        load()
+        launchIO {
+            load()
+        }
     }
 
-    private fun load() {
-        if (!file.exists()) return
+    private suspend fun load() = withIOContext {
+        if (!file.exists()) return@withIOContext
         runCatching {
             FileInputStream(file).use { input ->
                 input.bufferedReader().useLines { lines ->
@@ -30,16 +34,24 @@ object AdBlockManager {
     }
 
     private fun save() {
-        runCatching {
-            FileOutputStream(file).use { output ->
-                output.bufferedWriter().use { writer ->
-                    blockedHashes.forEach { hash ->
-                        writer.write(hash.toString())
-                        writer.newLine()
+        if (isSaving.compareAndSet(false, true)) {
+            launchIO {
+                try {
+                    withIOContext {
+                        FileOutputStream(file).use { output ->
+                            output.bufferedWriter().use { writer ->
+                                blockedHashes.forEach { hash ->
+                                    writer.write(hash.toString())
+                                    writer.newLine()
+                                }
+                            }
+                        }
                     }
+                } finally {
+                    isSaving.set(false)
                 }
             }
-        }.onFailure { it.printStackTrace() }
+        }
     }
 
     fun addHash(hash: Long) {

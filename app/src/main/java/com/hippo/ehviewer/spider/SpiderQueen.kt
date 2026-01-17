@@ -35,6 +35,7 @@ import com.hippo.ehviewer.client.exception.QuotaExceededException
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
+import com.hippo.image.AdDetectedException
 import com.hippo.image.Image
 import coil3.BitmapImage
 import com.hippo.unifile.UniFile
@@ -94,7 +95,12 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     suspend fun markAsAd(index: Int) {
         if (!galleryInfo.hasAds) return
         val src = mSpiderDen.getImageSource(index) ?: return
-        val image = Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+        val image = try {
+            Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+        } catch (e: AdDetectedException) {
+            mBlockedAdPages.add(index)
+            return
+        }
         image?.let {
             val hash = if (it.image is BitmapImageWithExtraInfo) {
                 it.image.dHash
@@ -125,7 +131,11 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     suspend fun unmarkAsAd(index: Int) {
         if (!galleryInfo.hasAds) return
         val src = mSpiderDen.getImageSource(index) ?: return
-        val image = Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+        val image = try {
+            Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+        } catch (e: AdDetectedException) {
+            return
+        }
         image?.let {
             val hash = if (it.image is BitmapImageWithExtraInfo) {
                 it.image.dHash
@@ -861,7 +871,19 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             private suspend fun doInJob(index: Int) {
                 mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
                 val src = mSpiderDen.getImageSource(index) ?: return
-                val image = mSemaphore.withPermit { Image.decode(src) }
+                val totalPages = mPageStateArray.size
+                val mayBeAd = index >= totalPages - 10
+                val hasAdsTag = galleryInfo.hasAds
+                // Simplified: detect QR on last 10 pages when setting is enabled
+                // AND not in bypass list
+                val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
+                val image = try {
+                    mSemaphore.withPermit { Image.decode(src, analyzeFeatures = analyzeFeatures, blockOnQr = hasAdsTag) }
+                } catch (e: AdDetectedException) {
+                    mBlockedAdPages.add(index)
+                    notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                    return
+                }
                 runCatching {
                     currentCoroutineContext().ensureActive()
                 }.onFailure {
@@ -890,6 +912,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         private val PTOKEN_FAILED_MESSAGE = GetText.getString(R.string.error_get_ptoken_error)
         private val ERROR_TIMEOUT = GetText.getString(R.string.error_timeout)
         private val DECODE_ERROR = GetText.getString(R.string.error_decoding_failed)
+        private val AD_DETECTED_ERROR = GetText.getString(R.string.error_ad_detected)
         private val URL_509_PATTERN = Regex("\\.org/.+/509s?\\.gif")
         private const val FORCE_RETRY = "Force retry"
         private const val WORKER_DEBUG_TAG = "SpiderQueenWorker"

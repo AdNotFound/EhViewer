@@ -33,6 +33,7 @@ import com.hippo.ehviewer.jni.openArchive
 import com.hippo.ehviewer.jni.providePassword
 import com.hippo.ehviewer.jni.releaseByteBuffer
 import com.hippo.image.ByteBufferSource
+import com.hippo.image.AdDetectedException
 import com.hippo.image.Image
 import com.hippo.unifile.UniFile
 import com.hippo.yorozuya.FileUtils
@@ -126,7 +127,11 @@ class ArchiveGalleryProvider(context: Context, private val uri: Uri, passwdFlow:
             src.close()
             throw it
         }
-        val image = Image.decode(src) ?: return notifyPageFailed(index, GetText.getString(R.string.error_decoding_failed))
+        val image = try {
+            Image.decode(src) ?: return notifyPageFailed(index, GetText.getString(R.string.error_decoding_failed))
+        } catch (e: AdDetectedException) {
+            return notifyPageFailed(index, GetText.getString(R.string.error_ad_detected))
+        }
         runCatching {
             currentCoroutineContext().ensureActive()
         }.onFailure {
