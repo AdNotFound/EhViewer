@@ -461,6 +461,7 @@
     <string name="settings_read_start_position_bottom_right">右下角</string>
     <string name="settings_read_start_position_center">中心</string>
     <string name="settings_read_theme">色彩主题</string>
+    <string name="theme_color">强调色</string>
     <string name="settings_read_theme_follow_app">跟随应用</string>
     <string name="settings_read_theme_dark">暗色</string>
     <string name="settings_read_theme_light">亮色</string>

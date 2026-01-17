@@ -44,6 +44,7 @@ class EhFragment : BasePreferenceFragment() {
         val account = findPreference<Preference>(Settings.KEY_ACCOUNT)
         val gallerySite = findPreference<Preference>(Settings.KEY_GALLERY_SITE)
         val theme = findPreference<Preference>(Settings.KEY_THEME)
+        val themeColor = findPreference<Preference>(Settings.KEY_THEME_COLOR)
         val blackDarkTheme = findPreference<Preference>(Settings.KEY_BLACK_DARK_THEME)
         val listMode = findPreference<Preference>(Settings.KEY_LIST_MODE)
         val showTagTranslations = findPreference<Preference>(Settings.KEY_SHOW_TAG_TRANSLATIONS)
@@ -56,6 +57,7 @@ class EhFragment : BasePreferenceFragment() {
 
         gallerySite!!.onPreferenceChangeListener = this
         theme!!.onPreferenceChangeListener = this
+        themeColor!!.onPreferenceChangeListener = this
         blackDarkTheme!!.onPreferenceChangeListener = this
         listMode!!.onPreferenceChangeListener = this
         showTagTranslations!!.onPreferenceChangeListener = this
@@ -85,6 +87,8 @@ class EhFragment : BasePreferenceFragment() {
         if (Settings.KEY_THEME == key) {
             AppCompatDelegate.setDefaultNightMode((newValue as String).toInt())
             requireActivity().recreate()
+        } else if (Settings.KEY_THEME_COLOR == key) {
+            EhApplication.application.recreateAllActivity()
         } else if (Settings.KEY_BLACK_DARK_THEME == key) {
             if (requireActivity().resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES > 0) {
                 EhApplication.application.recreateAllActivity()

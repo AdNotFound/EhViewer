@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GridView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/card_grid"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:numColumns="4"
+    android:padding="16dp"
+    android:verticalSpacing="16dp"
+    android:horizontalSpacing="16dp"
+    android:clipToPadding="false"
+    android:scrollbarStyle="outsideOverlay"
+    android:gravity="center"
+    android:stretchMode="columnWidth" />
