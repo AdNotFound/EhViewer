@@ -9,3 +9,4 @@
 release
 google-services.json
 /.kotlin
+/test
