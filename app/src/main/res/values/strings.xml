@@ -487,7 +487,6 @@
     <string name="settings_read_start_position_bottom_right">Bottom right</string>
     <string name="settings_read_start_position_center">Center</string>
     <string name="settings_read_theme">Color theme</string>
-    <string name="theme_color">Accent Color</string>
     <string name="settings_read_theme_follow_app">Follow app</string>
     <string name="settings_read_theme_dark">Dark</string>
     <string name="settings_read_theme_light">Light</string>
