@@ -278,7 +278,9 @@ object GalleryDetailParser {
         } else if (key.startsWith("Favorited")) {
             when (value) {
                 "Never" -> gd.favoriteCount = 0
+
                 "Once" -> gd.favoriteCount = 1
+
                 else -> {
                     val index = value.indexOf(' ')
                     if (index == -1) {
@@ -371,10 +373,12 @@ object GalleryDetailParser {
                             comment.voteUpAble = true
                             comment.voteUpEd = StringUtils.trim(e.attr("style")).isNotEmpty()
                         }
+
                         "Vote-" -> {
                             comment.voteDownAble = true
                             comment.voteDownEd = StringUtils.trim(e.attr("style")).isNotEmpty()
                         }
+
                         "Edit" -> comment.editable = true
                     }
                 }

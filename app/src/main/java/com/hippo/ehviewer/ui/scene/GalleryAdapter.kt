@@ -149,6 +149,7 @@ internal abstract class GalleryAdapter(
                 holder.thumb.layoutParams = lp
                 holder.title.maxLines = if (Settings.listTitleSingleLine) 1 else 2
             }
+
             TYPE_GRID -> {
                 val columnWidth = Settings.thumbSize
                 val textSize = columnWidth / 14
@@ -226,6 +227,7 @@ internal abstract class GalleryAdapter(
                 holder.downloaded!!.visibility =
                     if (downloadManager.containDownloadInfo(gi.gid)) View.VISIBLE else View.GONE
             }
+
             TYPE_GRID -> {
                 (holder.thumb as TileThumb).setThumbSize(gi.thumbWidth, gi.thumbHeight)
                 holder.thumb.load(getThumbKey(gi.gid), gi.thumbUrl!!, hardware = false)

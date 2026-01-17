@@ -20,6 +20,7 @@ import android.util.Log
 import androidx.annotation.IntDef
 import androidx.collection.LongSparseArray
 import androidx.collection.set
+import coil3.BitmapImage
 import com.hippo.ehviewer.GetText
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
@@ -311,7 +312,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         val state = getPageState(index)
 
         // Fix state for force
-        if (force && state == STATE_FINISHED || state == STATE_FAILED) {
+        if (force && (state == STATE_FINISHED || state == STATE_FAILED)) {
             // Update state to none at once
             updatePageState(index, STATE_NONE)
         }

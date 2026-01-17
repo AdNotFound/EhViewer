@@ -121,21 +121,29 @@ object ReadableTime {
         val diff = now - time
         return when {
             (diff < 0L || time <= 0L) -> resources.getString(R.string.from_the_future)
+
             diff < MINUTE_MILLIS -> resources.getString(R.string.just_now)
+
             diff < 2 * MINUTE_MILLIS -> resources.getQuantityString(R.plurals.some_minutes_ago, 1, 1)
+
             diff < 50 * MINUTE_MILLIS -> {
                 val minutes = (diff / MINUTE_MILLIS).toInt()
                 resources.getQuantityString(R.plurals.some_minutes_ago, minutes, minutes)
             }
+
             diff < 90 * MINUTE_MILLIS -> resources.getQuantityString(R.plurals.some_hours_ago, 1, 1)
+
             diff < 24 * HOUR_MILLIS -> {
                 val hours = (diff / HOUR_MILLIS).toInt()
                 resources.getQuantityString(R.plurals.some_hours_ago, hours, hours)
             }
+
             diff < 48 * HOUR_MILLIS -> {
                 resources.getString(R.string.yesterday)
             }
+
             diff < WEEK_MILLIS -> resources.getString(R.string.some_days_ago, (diff / DAY_MILLIS).toInt())
+
             else -> {
                 val timeZone = TimeZone.currentSystemDefault()
                 val nowDate = nowInstant.toLocalDateTime(timeZone).date

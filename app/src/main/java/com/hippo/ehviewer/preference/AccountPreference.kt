@@ -61,7 +61,9 @@ class AccountPreference(
             EhCookieStore.getCookies(EhUrl.HOST_EX.toHttpUrl()).forEach {
                 when (it.name) {
                     EhCookieStore.KEY_IPB_MEMBER_ID -> ipbMemberId = it.value
+
                     EhCookieStore.KEY_IPB_PASS_HASH -> ipbPassHash = it.value
+
                     EhCookieStore.KEY_IGNEOUS -> {
                         igneous = it.value
                         igneousExpire = it.expiresAt

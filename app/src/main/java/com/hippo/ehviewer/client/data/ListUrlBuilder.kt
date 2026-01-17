@@ -233,12 +233,15 @@ data class ListUrlBuilder(
                 }
 
                 "f_srdd" -> minRating = NumberUtils.parseIntSafely(value, -1)
+
                 "f_sp" -> if ("on" == value) {
                     enablePage = true
                 }
 
                 "f_spf" -> pageFrom = NumberUtils.parseIntSafely(value, -1)
+
                 "f_spt" -> pageTo = NumberUtils.parseIntSafely(value, -1)
+
                 "f_shash" -> hash = value
             }
         }

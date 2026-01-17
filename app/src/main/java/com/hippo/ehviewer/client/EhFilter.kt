@@ -61,8 +61,11 @@ object EhFilter {
                 }
 
                 MODE_UPLOADER -> mUploaderFilterList.add(filter)
+
                 MODE_COMMENTER -> mCommenterFilterList.add(filter)
+
                 MODE_COMMENT -> mCommentFilterList.add(filter)
+
                 else -> Log.d(TAG, "Unknown mode: " + filter.mode)
             }
             i++
@@ -130,8 +133,11 @@ object EhFilter {
             }
 
             MODE_UPLOADER -> mUploaderFilterList.add(filter)
+
             MODE_COMMENTER -> mCommenterFilterList.add(filter)
+
             MODE_COMMENT -> mCommentFilterList.add(filter)
+
             else -> Log.d(TAG, "Unknown mode: " + filter.mode)
         }
         return true

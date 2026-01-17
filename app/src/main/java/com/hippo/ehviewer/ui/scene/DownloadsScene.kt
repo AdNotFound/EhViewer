@@ -190,7 +190,7 @@ class DownloadsScene :
         if (mType != -1) {
             mList = ArrayList()
             list.forEach {
-                if (mKeyword != null && EhUtils.getSuitableTitle(it).contains(mKeyword!!, true) || it.state == mType) {
+                if ((mKeyword != null && EhUtils.getSuitableTitle(it).contains(mKeyword!!, true)) || it.state == mType) {
                     mList!!.add(it)
                 }
             }
@@ -604,6 +604,7 @@ class DownloadsScene :
                     recyclerView.outOfCustomChoiceMode()
                     updateForLabel()
                 }
+
                 // Start
                 2 -> {
                     val intent = Intent(activity, DownloadService::class.java)
@@ -613,6 +614,7 @@ class DownloadsScene :
                     // Cancel check mode
                     recyclerView.outOfCustomChoiceMode()
                 }
+
                 // Stop
                 3 -> {
                     // DownloadManager Actions
@@ -620,6 +622,7 @@ class DownloadsScene :
                     // Cancel check mode
                     recyclerView.outOfCustomChoiceMode()
                 }
+
                 // Delete
                 4 -> {
                     val builder = CheckBoxDialogBuilder(
@@ -637,6 +640,7 @@ class DownloadsScene :
                         .setPositiveButton(android.R.string.ok, helper)
                         .show()
                 }
+
                 // Move
                 5 -> {
                     val labelRawList = DownloadManager.labelList
@@ -730,6 +734,7 @@ class DownloadsScene :
             )
 
             DownloadInfo.STATE_DOWNLOAD -> bindProgress(holder, info)
+
             DownloadInfo.STATE_FAILED -> {
                 val text: String = if (info.legacy <= 0) {
                     context.getString(R.string.download_state_failed)
@@ -862,6 +867,7 @@ class DownloadsScene :
                                         RenameLabelDialogHelper(builder, dialog, label)
                                         return true
                                     }
+
                                     R.id.menu_label_remove -> {
                                         AlertDialog.Builder(requireContext())
                                             .setTitle(R.string.delete_label_title)
@@ -895,9 +901,11 @@ class DownloadsScene :
                 0 -> {
                     DownloadManager.allDownloadInfoList
                 }
+
                 1 -> {
                     DownloadManager.defaultDownloadInfoList
                 }
+
                 else -> {
                     DownloadManager.getLabelDownloadInfoList(label)
                 }

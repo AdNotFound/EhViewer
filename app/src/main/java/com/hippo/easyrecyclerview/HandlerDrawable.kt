@@ -70,9 +70,11 @@ class HandlerDrawable : Drawable() {
             0xff -> {
                 PixelFormat.OPAQUE
             }
+
             0x00 -> {
                 PixelFormat.TRANSPARENT
             }
+
             else -> {
                 PixelFormat.TRANSLUCENT
             }

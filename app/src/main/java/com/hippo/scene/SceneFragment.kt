@@ -59,10 +59,10 @@ open class SceneFragment : Fragment() {
         activity?.finish()
     }
 
+    /**
+     * @return negative for error
+     */
     val stackIndex: Int
-        /**
-         * @return negative for error
-         */
         get() {
             val activity = activity
             return if (activity is StageActivity) {

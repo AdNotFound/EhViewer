@@ -83,93 +83,47 @@ abstract class DialogPreference(
         }
     }
 
+    /**
+     * The title to be shown on subsequent dialogs.
+     */
     var dialogTitle: CharSequence?
-        /**
-         * Returns the title to be shown on subsequent dialogs.
-         *
-         * @return The title.
-         */
         get() = mDialogTitle
-
-        /**
-         * Sets the title of the dialog. This will be shown on subsequent dialogs.
-         *
-         * @param dialogTitle The title.
-         */
         set(dialogTitle) {
             mDialogTitle = dialogTitle
         }
 
+    /**
+     * The icon to be shown on subsequent dialogs.
+     */
     var dialogIcon: Drawable?
-        /**
-         * Returns the icon to be shown on subsequent dialogs.
-         *
-         * @return The icon, as a [Drawable].
-         */
         get() = mDialogIcon
-
-        /**
-         * Sets the icon of the dialog. This will be shown on subsequent dialogs.
-         *
-         * @param dialogIcon The icon, as a [Drawable].
-         */
         set(dialogIcon) {
             mDialogIcon = dialogIcon
         }
 
+    /**
+     * The text of the positive button to be shown on subsequent dialogs.
+     */
     var positiveButtonText: CharSequence?
-        /**
-         * Returns the text of the negative button to be shown on subsequent
-         * dialogs.
-         *
-         * @return The text of the positive button.
-         */
         get() = mPositiveButtonText
-
-        /**
-         * Sets the text of the negative button of the dialog. This will be shown on
-         * subsequent dialogs.
-         *
-         * @param positiveButtonText The text of the negative button.
-         */
         set(positiveButtonText) {
             mPositiveButtonText = positiveButtonText
         }
 
+    /**
+     * The text of the negative button to be shown on subsequent dialogs.
+     */
     var negativeButtonText: CharSequence?
-        /**
-         * Returns the text of the negative button to be shown on subsequent
-         * dialogs.
-         *
-         * @return The text of the negative button.
-         */
         get() = mNegativeButtonText
-
-        /**
-         * Sets the text of the negative button of the dialog. This will be shown on
-         * subsequent dialogs.
-         *
-         * @param negativeButtonText The text of the negative button.
-         */
         set(negativeButtonText) {
             mNegativeButtonText = negativeButtonText
         }
 
+    /**
+     * The layout resource that is used as the content View for subsequent dialogs.
+     */
     var dialogLayoutResource: Int
-        /**
-         * Returns the layout resource that is used as the content View for
-         * subsequent dialogs.
-         *
-         * @return The layout resource.
-         */
         get() = mDialogLayoutResId
-
-        /**
-         * Sets the layout resource that is inflated as the [View] to be shown
-         * as the content View of subsequent dialogs.
-         *
-         * @param dialogLayoutResource The layout resource ID to be inflated.
-         */
         set(dialogLayoutResource) {
             mDialogLayoutResId = dialogLayoutResource
         }
@@ -318,12 +272,12 @@ abstract class DialogPreference(
      */
     protected open fun onDialogClosed(positiveResult: Boolean) {}
 
+    /**
+     * The dialog that is shown by this preference.
+     *
+     * @return The dialog, or null if a dialog is not being shown.
+     */
     val dialog: Dialog?
-        /**
-         * Gets the dialog that is shown by this preference.
-         *
-         * @return The dialog, or null if a dialog is not being shown.
-         */
         get() = mDialog
 
     override fun onSaveInstanceState(): Parcelable? {

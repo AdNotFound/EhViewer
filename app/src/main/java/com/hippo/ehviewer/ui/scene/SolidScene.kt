@@ -34,6 +34,7 @@ open class SolidScene : BaseScene() {
                     startSceneForCheckStep(CHECK_STEP_SIGN_IN, args)
                 }
             }
+
             CHECK_STEP_SIGN_IN -> {
                 if (Settings.selectSite) {
                     startScene(Announcer(SelectSiteScene::class.java).setArgs(args), true)
@@ -41,6 +42,7 @@ open class SolidScene : BaseScene() {
                     startSceneForCheckStep(CHECK_STEP_SELECT_SITE, args)
                 }
             }
+
             CHECK_STEP_SELECT_SITE -> {
                 var targetScene: String? = null
                 var targetArgs: Bundle? = null

@@ -66,6 +66,7 @@ object CommonOperations {
                 EhDB.putLocalFavorites(galleryInfo)
                 listener.onSuccess(Unit)
             }
+
             in 0..9 -> {
                 if (!foreEdit && Settings.neverAddFavNotes) {
                     doAddToFavorites(activity, galleryInfo, slot, "", listener)
@@ -89,6 +90,7 @@ object CommonOperations {
                     dialog.setOnCancelListener { listener.onCancel() }
                 }
             }
+
             else -> {
                 listener.onFailure(Exception()) // TODO Add text
             }

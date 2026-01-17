@@ -75,6 +75,7 @@ class Image private constructor(
                 mBitmap?.recycle()
                 mBitmap = null
             }
+
             is BitmapImage -> image.bitmap.recycle()
         }
         isRecycled = true
@@ -171,6 +172,7 @@ class Image private constructor(
                     is DrawableImage -> image.drawable.apply {
                         setBounds(0, 0, intrinsicWidth, intrinsicHeight)
                     }
+
                     is BitmapImage -> src.close()
                 }
                 Image(image, src)

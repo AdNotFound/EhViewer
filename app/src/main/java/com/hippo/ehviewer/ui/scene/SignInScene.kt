@@ -130,9 +130,11 @@ class SignInScene :
             REQUEST_CODE_WEBVIEW -> if (resultCode == RESULT_OK) {
                 getProfile()
             }
+
             REQUEST_CODE_COOKIE -> if (resultCode == RESULT_OK) {
                 finishSignIn()
             }
+
             else -> super.onSceneResult(requestCode, resultCode, data)
         }
     }
@@ -142,12 +144,16 @@ class SignInScene :
         when (v) {
             mRegister ->
                 UrlOpener.openUrl(activity, EhUrl.URL_REGISTER, false)
+
             mSignIn ->
                 signIn()
+
             mSignInViaCookies ->
                 startScene(Announcer(CookieSignInScene::class.java).setRequestCode(this, REQUEST_CODE_COOKIE))
+
             mSignInViaWebView ->
                 startScene(Announcer(WebViewSignInScene::class.java).setRequestCode(this, REQUEST_CODE_WEBVIEW))
+
             mSkipSigningIn -> {
                 // Set gallery size SITE_E if skip sign in
                 Settings.putGallerySite(EhUrl.SITE_E)

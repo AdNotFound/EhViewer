@@ -15,6 +15,8 @@
  */
 package com.hippo.ehviewer.gallery
 
+import com.hippo.ehviewer.GetText
+import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.spider.SpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.obtainSpiderQueen
