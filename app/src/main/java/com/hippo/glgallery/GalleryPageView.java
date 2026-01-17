@@ -27,6 +27,9 @@ import com.hippo.glview.widget.GLLinearLayout;
 import com.hippo.glview.widget.GLProgressView;
 import com.hippo.glview.widget.GLTextureView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class GalleryPageView extends GLFrameLayout {
     public static final int INVALID_INDEX = -1;
 
@@ -42,6 +45,27 @@ public class GalleryPageView extends GLFrameLayout {
     private final int mMinHeight;
 
     private int mIndex = INVALID_INDEX;
+    private final List<OnLoadedListener> mOnLoadedListeners = new ArrayList<>();
+
+    public interface OnLoadedListener {
+        void onLoaded(GalleryPageView page);
+    }
+
+    public void addOnLoadedListener(OnLoadedListener listener) {
+        if (listener != null)
+            mOnLoadedListeners.add(listener);
+    }
+
+    public void removeOnLoadedListener(OnLoadedListener listener) {
+        if (listener != null)
+            mOnLoadedListeners.remove(listener);
+    }
+
+    private void notifyOnLoaded() {
+        for (OnLoadedListener listener : mOnLoadedListeners) {
+            listener.onLoaded(this);
+        }
+    }
 
     public GalleryPageView(ImageMovableTextTexture pageTextTexture,
             int progressColor, int progressBgColor, int progressSize,
@@ -133,6 +157,7 @@ public class GalleryPageView extends GLFrameLayout {
         unbindImage();
         if (imageTexture != null) {
             mImage.setImageTexture(imageTexture);
+            notifyOnLoaded();
         }
     }
 

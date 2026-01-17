@@ -114,6 +114,14 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final List<Object[]> mArgsListTemp = new ArrayList<>(5);
     private final AtomicInteger mCurrentIndex = new AtomicInteger(GalleryPageView.INVALID_INDEX);
     private Adapter mAdapter;
+
+    public int getPagePairSize(int index) {
+        if (mLayoutManager instanceof PagerLayoutManager) {
+            return ((PagerLayoutManager) mLayoutManager).getPairSize(index);
+        }
+        return 1;
+    }
+
     private ImageMovableTextTexture mPageTextTexture;
     private PagerLayoutManager mPagerLayoutManager;
     private ScrollLayoutManager mScrollLayoutManager;

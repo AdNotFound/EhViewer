@@ -671,12 +671,16 @@ class GalleryActivity :
             mProgress?.text = null
             return
         }
-        val current = mCurrentIndex + 1
-        val showPair = isDoublePageMode && (!Settings.doublePageOffset || current > 1) && current < mSize
-        mProgress?.text = if (showPair) {
-            "$current-${current + 1}/$mSize"
+        val range = getPageRange(mCurrentIndex)
+        mProgress?.text = "$range/$mSize"
+    }
+
+    private fun getPageRange(index: Int): String {
+        val count = mGalleryView?.getPagePairSize(index) ?: 1
+        return if (count > 1) {
+            "${index + 1}-${index + 2}"
         } else {
-            "$current/$mSize"
+            (index + 1).toString()
         }
     }
 
@@ -696,7 +700,7 @@ class GalleryActivity :
             end = mRightText!!
             mSeekBar!!.setReverse(false)
         }
-        start.text = (mCurrentIndex + 1).toString()
+        start.text = getPageRange(mCurrentIndex)
         end.text = mSize.toString()
         mSeekBar!!.max = mSize - 1
         mSeekBar!!.progress = mCurrentIndex
@@ -710,7 +714,7 @@ class GalleryActivity :
             mLeftText
         }
         if (fromUser && null != start) {
-            start.text = (progress + 1).toString()
+            start.text = getPageRange(progress)
         }
         if (fromUser && null != mGalleryView) {
             mGalleryView!!.setCurrentPage(progress)
