@@ -45,8 +45,6 @@ object Settings {
     private const val DEFAULT_THEME = -1
     const val KEY_BLACK_DARK_THEME = "black_dark_theme"
     private const val DEFAULT_BLACK_DARK_THEME = false
-    const val KEY_THEME_COLOR = "theme_color"
-    private const val DEFAULT_THEME_COLOR = "teal"
     private const val KEY_LAUNCH_PAGE = "launch_page"
     private const val DEFAULT_LAUNCH_PAGE = 0
     const val KEY_LIST_MODE = "list_mode"
@@ -419,12 +417,6 @@ object Settings {
 
     val blackDarkTheme
         get() = getBoolean(KEY_BLACK_DARK_THEME, DEFAULT_BLACK_DARK_THEME)
-
-    val themeColor: String
-        get() = getString(KEY_THEME_COLOR, DEFAULT_THEME_COLOR)!!
-    fun putThemeColor(value: String) {
-        putString(KEY_THEME_COLOR, value)
-    }
 
     val launchPageGalleryListSceneAction: String
         get() {
