@@ -529,6 +529,9 @@
     <string name="settings_advanced_save_crash_log_summary">错误日志可以帮助开发者修正问题</string>
     <string name="settings_advanced_dump_logcat">导出日志</string>
     <string name="settings_advanced_dump_logcat_summary">保存日志至外置存储器</string>
+    <string name="settings_advanced_clear_ad_block">清空广告屏蔽列表</string>
+    <string name="settings_advanced_clear_ad_block_summary">移除所有手动标记的广告特征</string>
+    <string name="settings_advanced_clear_ad_block_success">广告屏蔽列表已清空</string>
     <string name="settings_advanced_dump_logcat_failed">导出日志失败</string>
     <string name="settings_advanced_dump_logcat_to">已保存日志至 %s</string>
     <string name="settings_advanced_read_cache_size">阅读缓存大小</string>

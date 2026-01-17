@@ -14,6 +14,13 @@ object AdBlockManager {
     private val file = File(AppConfig.getFilesDir("adblock"), "ad_blocked_hashes.txt")
     private val isSaving = AtomicBoolean(false)
 
+    fun isEmpty() = blockedHashes.isEmpty()
+
+    fun clear() {
+        blockedHashes.clear()
+        save()
+    }
+
     init {
         launchIO {
             load()

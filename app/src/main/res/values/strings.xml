@@ -554,7 +554,10 @@
     <string name="settings_advanced_save_crash_log">Save crash log when app crashes</string>
     <string name="settings_advanced_save_crash_log_summary">Crash logs help developers fix bugs</string>
     <string name="settings_advanced_dump_logcat">Dump logcat</string>
-    <string name="settings_advanced_dump_logcat_summary">Save logcat to external storage</string>
+    <string name="settings_advanced_dump_logcat_summary">Save log to external storage</string>
+    <string name="settings_advanced_clear_ad_block">Clear ad block list</string>
+    <string name="settings_advanced_clear_ad_block_summary">Remove all manually marked ad signatures</string>
+    <string name="settings_advanced_clear_ad_block_success">Ad block list cleared</string>
     <string name="settings_advanced_dump_logcat_failed">Dump logcat failed</string>
     <string name="settings_advanced_dump_logcat_to">Logcat dumped to %s</string>
     <string name="settings_advanced_read_cache_size">Read cache size</string>

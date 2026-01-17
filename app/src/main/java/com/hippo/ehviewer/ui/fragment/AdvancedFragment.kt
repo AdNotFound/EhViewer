@@ -35,6 +35,7 @@ import com.hippo.ehviewer.EhDB
 import com.hippo.ehviewer.GetText
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.EhClient
+import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.client.EhRequest
 import com.hippo.ehviewer.client.data.FavListUrlBuilder
 import com.hippo.ehviewer.client.parser.FavoritesParser
@@ -246,6 +247,7 @@ class AdvancedFragment : BasePreferenceFragment() {
         val openByDefault = findPreference<Preference>(KEY_OPEN_BY_DEFAULT)
         val domainFronting = findPreference<Preference>(AppSettings.KEY_DOMAIN_FRONTING)
         val bypassVpn = findPreference<Preference>(AppSettings.KEY_BYPASS_VPN)
+        val clearAdBlock = findPreference<Preference>(KEY_CLEAR_AD_BLOCK)
         if (isAtLeastS) {
             openByDefault!!.onPreferenceClickListener = this
         } else {
@@ -255,6 +257,7 @@ class AdvancedFragment : BasePreferenceFragment() {
         importData!!.onPreferenceClickListener = this
         exportData!!.onPreferenceClickListener = this
         backupFavorite!!.onPreferenceClickListener = this
+        clearAdBlock!!.onPreferenceClickListener = this
         appLanguage!!.onPreferenceChangeListener = this
         bypassVpn!!.isVisible = AppSettings.dF
         domainFronting!!.setOnPreferenceChangeListener { _, newValue ->
@@ -312,6 +315,10 @@ class AdvancedFragment : BasePreferenceFragment() {
                 )
                 startActivity(intent)
             }
+            return true
+        } else if (KEY_CLEAR_AD_BLOCK == key) {
+            AdBlockManager.clear()
+            showTip(R.string.settings_advanced_clear_ad_block_success, BaseScene.LENGTH_SHORT)
             return true
         }
         return false
@@ -415,5 +422,6 @@ class AdvancedFragment : BasePreferenceFragment() {
         private const val KEY_EXPORT_DATA = "export_data"
         private const val KEY_OPEN_BY_DEFAULT = "open_by_default"
         private const val KEY_BACKUP_FAVORITE = "backup_favorite"
+        private const val KEY_CLEAR_AD_BLOCK = "clear_ad_block"
     }
 }

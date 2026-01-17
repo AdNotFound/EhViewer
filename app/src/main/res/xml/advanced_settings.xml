@@ -31,17 +31,23 @@
         android:title="@string/settings_advanced_save_crash_log"
         app:iconSpaceReserved="false" />
 
-    <Preference
-        android:key="dump_logcat"
-        android:summary="@string/settings_advanced_dump_logcat_summary"
-        android:title="@string/settings_advanced_dump_logcat"
-        app:iconSpaceReserved="false" />
-
     <SwitchPreferenceCompat
         android:defaultValue="false"
         android:key="strip_extraneous_ads"
         android:title="@string/settings_read_strip_extraneous_ads"
         android:summary="@string/settings_read_strip_extraneous_ads_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        android:key="clear_ad_block"
+        android:title="@string/settings_advanced_clear_ad_block"
+        android:summary="@string/settings_advanced_clear_ad_block_summary"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        android:key="dump_logcat"
+        android:summary="@string/settings_advanced_dump_logcat_summary"
+        android:title="@string/settings_advanced_dump_logcat"
         app:iconSpaceReserved="false" />
 
     <rikka.preference.SimpleMenuPreference

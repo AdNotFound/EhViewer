@@ -24,6 +24,7 @@ import coil3.intercept.Interceptor
 import coil3.request.ImageRequest
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
+import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.jni.hasQrCode
 
@@ -53,7 +54,7 @@ object AdBlockInterceptor : Interceptor {
             if (image is BitmapImageWithExtraInfo) {
                 val bitmap = image.image.bitmap
                 val hasQr = if (request.scanQrCode) hasQrCode(bitmap) else false
-                val hash = getDHash(bitmap)
+                val hash = if (!AdBlockManager.isEmpty()) getDHash(bitmap) else 0L
                 val new = image.copy(hasQrCode = hasQr, dHash = hash)
                 return result.copy(image = new)
             }

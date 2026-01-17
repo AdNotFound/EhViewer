@@ -34,6 +34,7 @@ import com.hippo.ehviewer.client.exception.QuotaExceededException
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
+import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.image.AdDetectedException
@@ -102,18 +103,21 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             return
         }
         image?.let {
-            val hash = if (it.image is BitmapImageWithExtraInfo) {
+            var hash = if (it.image is BitmapImageWithExtraInfo) {
                 it.image.dHash
             } else {
+                0L
+            }
+            if (hash == 0L) {
                 val bitmap = when (val img = it.image) {
                     is BitmapImage -> img.bitmap
                     is BitmapImageWithExtraInfo -> img.image.bitmap
                     else -> null
                 }
-                bitmap?.let { b -> com.hippo.ehviewer.jni.getDHash(b) } ?: 0L
+                hash = bitmap?.let { b -> getDHash(b) } ?: 0L
             }
             if (hash != 0L) {
-                com.hippo.ehviewer.adblock.AdBlockManager.addHash(hash)
+                AdBlockManager.addHash(hash)
                 mBlockedAdPages.add(index)
             }
             it.recycle()
@@ -143,10 +147,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     is BitmapImageWithExtraInfo -> img.image.bitmap
                     else -> null
                 }
-                bitmap?.let { b -> com.hippo.ehviewer.jni.getDHash(b) } ?: 0L
+                bitmap?.let { b -> getDHash(b) } ?: 0L
             }
             if (hash != 0L) {
-                com.hippo.ehviewer.adblock.AdBlockManager.unblock(hash)
+                AdBlockManager.unblock(hash)
                 mBlockedAdPages.remove(index)
             }
             it.recycle()
