@@ -31,7 +31,7 @@ import javax.net.ssl.SSLException
 
 class LowSpeedException(
     url: String,
-    speed: Long,
+    val speed: Long,
 ) : IOException("Response speed too slow [url=$url, speed=${FileUtils.humanReadableByteCount(speed, true)}]")
 
 object ExceptionUtils {
