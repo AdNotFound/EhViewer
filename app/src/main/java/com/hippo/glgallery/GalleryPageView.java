@@ -186,7 +186,7 @@ public class GalleryPageView extends GLFrameLayout {
         return mError.getVisibility() == VISIBLE;
     }
 
-    private int mPagePosition = 0; // 0: Center, 1: Left 1/4, 2: Right 1/4
+    private int mPagePosition = 0; // 0: Center, 1: Left 1/4, 2: Right 1/4, 3: Left Edge, 4: Right Edge
 
     public void setPagePosition(int position) {
         if (mPagePosition != position) {
@@ -200,7 +200,14 @@ public class GalleryPageView extends GLFrameLayout {
         super.onLayout(changed, left, top, right, bottom);
         if (mPagePosition != 0) {
             int width = right - left;
-            int centerX = (mPagePosition == 1) ? width / 4 : width * 3 / 4;
+            int centerX;
+            switch (mPagePosition) {
+                case 1 -> centerX = width / 4;
+                case 2 -> centerX = width * 3 / 4;
+                case 3 -> centerX = width / 8;
+                case 4 -> centerX = width * 7 / 8;
+                default -> centerX = width / 2;
+            }
             int infoWidth = mInfo.getWidth();
             int infoHeight = mInfo.getHeight();
             int centerY = (bottom - top) / 2;
