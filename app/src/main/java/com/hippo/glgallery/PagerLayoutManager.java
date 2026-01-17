@@ -430,7 +430,37 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
         }
 
         // Apply to Views
+        updatePagePairLayouts(mCurrent, mCurrentSecondary);
         primaryView.setCustomPlace(mDstRectPrimary);
+    }
+
+    private void updatePagePairLayouts(GalleryPageView primary, GalleryPageView secondary) {
+        if (primary == null)
+            return;
+        boolean pLoaded = primary.getImageView().isLoaded();
+        boolean sLoaded = secondary != null && secondary.getImageView().isLoaded();
+        boolean isRTL = mMode == MODE_RIGHT_TO_LEFT;
+
+        if (pLoaded && !sLoaded && secondary != null) {
+            primary.setVisibility(GLView.VISIBLE);
+            secondary.setVisibility(GLView.VISIBLE);
+            secondary.setPagePosition(isRTL ? 4 : 3); // Move to edge
+            // Re-order to ensure loaded page is on top for coverage
+            mGalleryView.removeComponent(primary);
+            mGalleryView.addComponent(primary);
+        } else if (!pLoaded && sLoaded && secondary != null) {
+            primary.setVisibility(GLView.VISIBLE);
+            secondary.setVisibility(GLView.VISIBLE);
+            primary.setPagePosition(isRTL ? 3 : 4); // Move to edge
+            // Re-order to ensure loaded page is on top for coverage
+            mGalleryView.removeComponent(secondary);
+            mGalleryView.addComponent(secondary);
+        } else {
+            primary.setVisibility(GLView.VISIBLE);
+            if (secondary != null) {
+                secondary.setVisibility(GLView.VISIBLE);
+            }
+        }
     }
 
     // Helper method to apply unified seamless layout to any page pair (for
@@ -454,6 +484,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager {
                 isRTL, rectPrimary, rectSecondary);
 
         // Apply to Views
+        updatePagePairLayouts(primary, secondary);
         primaryView.setCustomPlace(rectPrimary);
         if (secondary != null) {
             if (secondary.getImageView().isLoaded()) {
