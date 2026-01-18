@@ -508,15 +508,22 @@ class ImageView extends GLView implements ImageTexture.Callback {
 
         dstActual.set(dst);
         getValidRect(mValidRect);
-        if (dstActual.intersect(mValidRect.left, mValidRect.top, mValidRect.right, mValidRect.bottom)) {
-            srcActual.left = MathUtils.lerp(0, width,
-                    MathUtils.delerp(dst.left, dst.right, dstActual.left));
-            srcActual.right = MathUtils.lerp(0, width,
-                    MathUtils.delerp(dst.left, dst.right, dstActual.right));
-            srcActual.top = MathUtils.lerp(0, height,
-                    MathUtils.delerp(dst.top, dst.bottom, dstActual.top));
-            srcActual.bottom = MathUtils.lerp(0, height,
-                    MathUtils.delerp(dst.top, dst.bottom, dstActual.bottom));
+        float vL = mValidRect.left;
+        float vT = mValidRect.top;
+        float vR = mValidRect.right;
+        float vB = mValidRect.bottom;
+
+        if (dst.left >= vL && dst.right <= vR && dst.top >= vT && dst.bottom <= vB) {
+            // Fast Path: fully visible
+            srcActual.set(0, 0, width, height);
+            // dstActual is already set to dst
+        } else if (dstActual.intersect(vL, vT, vR, vB)) {
+            float dW = dst.width();
+            float dH = dst.height();
+            srcActual.left = (dstActual.left - dst.left) * width / dW;
+            srcActual.right = (dstActual.right - dst.left) * width / dW;
+            srcActual.top = (dstActual.top - dst.top) * height / dH;
+            srcActual.bottom = (dstActual.bottom - dst.top) * height / dH;
         } else {
             // Can't be seen, set src and dst empty
             srcActual.setEmpty();
