@@ -137,6 +137,8 @@ object Settings {
     private const val DEFAULT_DOUBLE_PAGE_OFFSET = false
     private const val KEY_STRIP_EXTRANEOUS_ADS = "strip_extraneous_ads"
     private const val DEFAULT_STRIP_EXTRANEOUS_ADS = false
+    const val KEY_READ_IMAGE_LIMIT = "read_image_limit"
+    private const val DEFAULT_READ_IMAGE_LIMIT = 1 // 1x equivalent (index 1 in [3/4, 1, 4/3, 1.5, 2, 3])
 
     /********************
      ****** Download
@@ -614,6 +616,12 @@ object Settings {
         get() = getBoolean(KEY_STRIP_EXTRANEOUS_ADS, DEFAULT_STRIP_EXTRANEOUS_ADS)
     fun putStripExtraneousAds(value: Boolean) {
         putBoolean(KEY_STRIP_EXTRANEOUS_ADS, value)
+    }
+
+    val readImageLimit: Int
+        get() = getInt(KEY_READ_IMAGE_LIMIT, DEFAULT_READ_IMAGE_LIMIT)
+    fun putReadImageLimit(value: Int) {
+        putInt(KEY_READ_IMAGE_LIMIT, value)
     }
 
     val downloadLocation: UniFile?

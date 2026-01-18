@@ -451,6 +451,8 @@
     <string name="settings_read_reading_direction_right_to_Left">从右至左</string>
     <string name="settings_read_reading_direction_top_to_bottom">从上至下</string>
     <string name="settings_read_page_scaling">页面缩放</string>
+    <string name="settings_read_image_limit">图片大小限制</string>
+    <string name="settings_read_image_limit_summary">限制图片分辨率以减少内存使用</string>
     <string name="settings_read_page_scaling_actual_size">原始尺寸</string>
     <string name="settings_read_page_scaling_fit_to_width">匹配宽度</string>
     <string name="settings_read_page_scaling_fit_to_height">匹配长度</string>
