@@ -113,6 +113,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final List<Integer> mMethodListTemp = new ArrayList<>(5);
     private final List<Object[]> mArgsListTemp = new ArrayList<>(5);
     private final AtomicInteger mCurrentIndex = new AtomicInteger(GalleryPageView.INVALID_INDEX);
+    private int mCurrentPairSize = 1;
     private Adapter mAdapter;
 
     public int getPagePairSize(int index) {
@@ -884,7 +885,11 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
         mCurrentIndex.lazySet(newCurrentIndex);
 
-        if (oldCurrentIndex != newCurrentIndex && mListener != null) {
+        int newPairSize = getPagePairSize(newCurrentIndex);
+        boolean pairSizeChanged = (mCurrentPairSize != newPairSize);
+        mCurrentPairSize = newPairSize;
+
+        if ((oldCurrentIndex != newCurrentIndex || pairSizeChanged) && mListener != null) {
             mListener.onUpdateCurrentIndex(newCurrentIndex);
         }
     }
