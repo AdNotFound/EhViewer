@@ -122,12 +122,14 @@ class Image private constructor(
 
     companion object {
         private val appCtx = EhApplication.application
-        private val targetWidth = appCtx.resources.displayMetrics.widthPixels * 2
+        private val targetSize = with(appCtx.resources.displayMetrics) {
+            minOf(widthPixels, heightPixels) * 4 / 3
+        }
 
         private suspend fun decodeCoil(data: Any): CoilImage {
             val req = ImageRequest.Builder(appCtx).apply {
                 data(data)
-                size(Dimension(targetWidth), Dimension.Undefined)
+                size(Dimension(targetSize), Dimension.Undefined)
                 precision(Precision.INEXACT)
                 allowHardware(false)
                 memoryCachePolicy(CachePolicy.DISABLED)
