@@ -17,7 +17,7 @@ package com.hippo.glgallery
 
 import androidx.annotation.CallSuper
 import androidx.annotation.IntDef
-import androidx.collection.lruCache
+import com.hippo.yorozuya.collect.SieveCache
 import com.hippo.ehviewer.Settings
 import com.hippo.glview.glrenderer.GLCanvas
 import com.hippo.glview.image.ImageWrapper
@@ -31,14 +31,14 @@ import com.hippo.yorozuya.OSUtils
 
 abstract class GalleryProvider {
     private val mNotifyTaskPool = ConcurrentPool<NotifyTask>(5)
-    private val mImageCache = lruCache<Int, ImageWrapper>(
+    private val mImageCache = SieveCache<Int, ImageWrapper>(
         maxSize = if (isAtLeastO) {
             (OSUtils.getTotalMemory() / 8).toInt().coerceIn(MIN_CACHE_SIZE, MAX_CACHE_SIZE)
         } else {
             (OSUtils.getAppMaxMemory() / 3 * 2).toInt()
         },
         sizeOf = { _, v -> v.width * v.height * if (v.animated) 20 else 4 },
-        onEntryRemoved = { _, _, o, _ -> o.release() },
+        onEntryRemoved = { _, o, _, _ -> o.release() },
     )
     private val mPreloads = MathUtils.clamp(Settings.preloadImage, 0, 100)
 
