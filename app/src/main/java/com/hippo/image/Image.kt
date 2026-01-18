@@ -104,11 +104,13 @@ class Image private constructor(
     }
 
     fun texImage(init: Boolean, offsetX: Int, offsetY: Int, width: Int, height: Int) {
-        val bitmap = if (image is BitmapImage) {
-            image.bitmap
-        } else {
-            updateBitmap()
-            mBitmap!!
+        val bitmap = when (image) {
+            is BitmapImage -> image.bitmap
+            is BitmapImageWithExtraInfo -> image.image.bitmap
+            else -> {
+                updateBitmap()
+                mBitmap!!
+            }
         }
         nativeTexImage(
             bitmap,
@@ -181,22 +183,9 @@ class Image private constructor(
                 }
 
                 // Check if QR code or dHash was detected and should be filtered
-                if (analyzeFeatures) {
-                    val (hasQr, hash) = if (image is BitmapImageWithExtraInfo) {
-                        image.hasQrCode to image.dHash
-                    } else {
-                        val bitmap = when (image) {
-                            is BitmapImage -> image.bitmap
-                            else -> null
-                        }
-                        if (bitmap != null) {
-                            val qr = if (blockOnQr) hasQrCode(bitmap) else false
-                            qr to getDHash(bitmap)
-                        } else {
-                            false to 0L
-                        }
-                    }
-
+                if (analyzeFeatures && image is BitmapImageWithExtraInfo) {
+                    val hasQr = image.hasQrCode
+                    val hash = image.dHash
                     val isBlockedByHash = hash != 0L && AdBlockManager.isBlocked(hash)
                     val isBlockedByQr = blockOnQr && hasQr
                     if (isBlockedByQr || isBlockedByHash) {

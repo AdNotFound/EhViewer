@@ -103,17 +103,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 return
             }
             image?.let {
-                var hash = if (it.image is BitmapImageWithExtraInfo) {
-                    it.image.dHash
-                } else {
-                    0L
-                }
+                var hash = (it.image as? BitmapImageWithExtraInfo)?.dHash ?: 0L
                 if (hash == 0L) {
-                    val bitmap = when (val img = it.image) {
-                        is BitmapImage -> img.bitmap
-                        is BitmapImageWithExtraInfo -> img.image.bitmap
-                        else -> null
-                    }
+                    val bitmap = (it.image as? BitmapImageWithExtraInfo)?.image?.bitmap
+                        ?: (it.image as? BitmapImage)?.bitmap
                     hash = bitmap?.let { b -> getDHash(b) } ?: 0L
                 }
                 if (hash != 0L) {
@@ -140,16 +133,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 return
             }
             image?.let {
-                val hash = if (it.image is BitmapImageWithExtraInfo) {
-                    it.image.dHash
-                } else {
-                    val bitmap = when (val img = it.image) {
-                        is BitmapImage -> img.bitmap
-                        is BitmapImageWithExtraInfo -> img.image.bitmap
-                        else -> null
-                    }
-                    bitmap?.let { b -> getDHash(b) } ?: 0L
-                }
+                val hash = (it.image as? BitmapImageWithExtraInfo)?.dHash ?: 0L
                 if (hash != 0L) {
                     AdBlockManager.unblock(hash)
                     mBlockedAdPages.remove(index)
@@ -879,11 +863,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     val totalPages = mPageStateArray.size
                     val mayBeAd = index >= totalPages - 10
                     val hasAdsTag = galleryInfo.hasAds
-                    // Simplified: detect QR on last 10 pages when setting is enabled
-                    // AND not in bypass list
                     val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
                     val image = try {
-                        mSemaphore.withPermit { Image.decode(it, analyzeFeatures = analyzeFeatures, blockOnQr = hasAdsTag) }
+                        val blockOnQr = analyzeFeatures && hasAdsTag
+                        mSemaphore.withPermit { Image.decode(it, analyzeFeatures = analyzeFeatures, blockOnQr = blockOnQr) }
                     } catch (e: AdDetectedException) {
                         mBlockedAdPages.add(index)
                         notifyGetImageFailure(index, AD_DETECTED_ERROR)

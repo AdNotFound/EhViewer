@@ -44,15 +44,19 @@ object AdBlockManager {
         if (isSaving.compareAndSet(false, true)) {
             launchIO {
                 try {
-                    withIOContext {
-                        FileOutputStream(file).use { output ->
-                            output.bufferedWriter().use { writer ->
-                                blockedHashes.forEach { hash ->
-                                    writer.write(hash.toString())
-                                    writer.newLine()
+                    while (true) {
+                        val currentHashes = blockedHashes.toList()
+                        withIOContext {
+                            FileOutputStream(file).use { output ->
+                                output.bufferedWriter().use { writer ->
+                                    currentHashes.forEach { hash ->
+                                        writer.write(hash.toString())
+                                        writer.newLine()
+                                    }
                                 }
                             }
                         }
+                        if (blockedHashes.size == currentHashes.size) break
                     }
                 } finally {
                     isSaving.set(false)
@@ -92,13 +96,5 @@ object AdBlockManager {
         return blockedHashes.any { hammingDistance(it, hash) <= 2 }
     }
 
-    private fun hammingDistance(h1: Long, h2: Long): Int {
-        var x = h1 xor h2
-        var count = 0
-        while (x != 0L) {
-            x = x and (x - 1)
-            count++
-        }
-        return count
-    }
+    private fun hammingDistance(h1: Long, h2: Long): Int = java.lang.Long.bitCount(h1 xor h2)
 }

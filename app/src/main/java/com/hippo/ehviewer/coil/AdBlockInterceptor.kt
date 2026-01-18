@@ -52,9 +52,15 @@ object AdBlockInterceptor : Interceptor {
         if (request.analyzeAdFeatures && result is SuccessResult) {
             val image = result.image
             if (image is BitmapImageWithExtraInfo) {
+                val needQrScan = request.scanQrCode
+                val needHashCheck = !AdBlockManager.isEmpty()
+                // Early exit: Skip if QR scanning and hash checking are not required.
+                if (!needQrScan && !needHashCheck) {
+                    return result
+                }
                 val bitmap = image.image.bitmap
-                val hasQr = if (request.scanQrCode) hasQrCode(bitmap) else false
-                val hash = if (!AdBlockManager.isEmpty()) getDHash(bitmap) else 0L
+                val hasQr = if (needQrScan) hasQrCode(bitmap) else false
+                val hash = if (needHashCheck) getDHash(bitmap) else 0L
                 val new = image.copy(hasQrCode = hasQr, dHash = hash)
                 return result.copy(image = new)
             }
