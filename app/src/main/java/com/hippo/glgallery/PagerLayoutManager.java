@@ -154,9 +154,9 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (mDoublePageOffset) {
             if (index == 0)
                 return 0;
-            return (index + 1) / 2; // 1→1, 2→1, 3→2, 4→2...
+            return (index + 1) / 2;
         } else {
-            return index / 2; // 0→0, 1→0, 2→1, 3→1...
+            return index / 2;
         }
     }
 
@@ -521,8 +521,16 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         }
 
+        // Track if this is the first valid layout (transition from unloaded to loaded)
+        boolean wasBaseEmpty = mBaseRectPrimary.isEmpty();
+
         calculateDoublePageRects(mCurrent, mCurrentSecondary,
                 mMode == MODE_RIGHT_TO_LEFT, mBaseRectPrimary, mBaseRectSecondary);
+
+        // Reset matrix on first load to prevent offset flash from pre-load touch events
+        if (wasBaseEmpty && !mBaseRectPrimary.isEmpty()) {
+            mPairMatrix.reset();
+        }
 
         // Apply Transformation Matrix
         mPairMatrix.mapRect(mDstRectPrimary, mBaseRectPrimary);
