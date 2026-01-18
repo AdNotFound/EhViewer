@@ -135,6 +135,9 @@ object Settings {
     private const val DEFAULT_DOUBLE_PAGE_MODE_LANDSCAPE = true
     const val KEY_DOUBLE_PAGE_OFFSET = "double_page_offset"
     private const val DEFAULT_DOUBLE_PAGE_OFFSET = false
+    const val KEY_READ_IMAGE_LIMIT = "read_image_limit"
+    private const val DEFAULT_READ_IMAGE_LIMIT = 1 // 1x equivalent (index 1 in [3/4, 1, 4/3, 1.5, 2, 3])
+
 
     /********************
      ****** Download
@@ -606,6 +609,12 @@ object Settings {
         get() = getBoolean(KEY_DOUBLE_PAGE_OFFSET, DEFAULT_DOUBLE_PAGE_OFFSET)
     fun putDoublePageOffset(value: Boolean) {
         putBoolean(KEY_DOUBLE_PAGE_OFFSET, value)
+    }
+
+    val readImageLimit: Int
+        get() = getInt(KEY_READ_IMAGE_LIMIT, DEFAULT_READ_IMAGE_LIMIT)
+    fun putReadImageLimit(value: Int) {
+        putInt(KEY_READ_IMAGE_LIMIT, value)
     }
 
     val downloadLocation: UniFile?

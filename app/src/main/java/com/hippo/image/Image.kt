@@ -35,6 +35,7 @@ import coil3.request.allowHardware
 import coil3.size.Dimension
 import coil3.size.Precision
 import com.hippo.ehviewer.EhApplication
+import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.jni.isGif
 import com.hippo.ehviewer.jni.mmap
 import com.hippo.ehviewer.jni.munmap
@@ -122,9 +123,19 @@ class Image private constructor(
 
     companion object {
         private val appCtx = EhApplication.application
-        private val targetSize = with(appCtx.resources.displayMetrics) {
-            minOf(widthPixels, heightPixels) * 4 / 3
-        }
+        private val targetSize
+            get() = with(appCtx.resources.displayMetrics) {
+                val factor = when (Settings.readImageLimit) {
+                    0 -> 0.75f
+                    1 -> 1.0f
+                    2 -> 1.33f
+                    3 -> 1.5f
+                    4 -> 2.0f
+                    5 -> 3.0f
+                    else -> 1.0f
+                }
+                (minOf(widthPixels, heightPixels) * factor).toInt()
+            }
 
         private suspend fun decodeCoil(data: Any): CoilImage {
             val req = ImageRequest.Builder(appCtx).apply {

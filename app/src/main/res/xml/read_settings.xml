@@ -44,6 +44,12 @@
         app:useSimpleSummaryProvider="true"
         app:iconSpaceReserved="false" />
 
+    <com.hippo.ehviewer.preference.ScaleSeekBarPreference
+        android:defaultValue="1"
+        android:key="read_image_limit"
+        android:title="@string/settings_read_image_limit"
+        app:iconSpaceReserved="false" />
+
     <rikka.preference.SimpleMenuPreference
         android:defaultValue="1"
         android:key="start_position"
