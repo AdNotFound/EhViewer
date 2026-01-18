@@ -1251,20 +1251,50 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
     @Override
     public void onFling(float velocityX, float velocityY) {
-        // Double Page Fling?
-        // Standard fling relies on ImageView.
-        // If we are in "Custom Place" mode, ImageView.fling might not work as expected
-        // via standard calls.
-
         if (mCurrent == null || mOffset != 0 || !mCurrent.getImageView().isLoaded() ||
                 !mCurrent.getImageView().canFling()) {
             return;
         }
 
-        // If Double Page, disable fling for now or implement unified fling?
-        // Disabling fling to avoid glitches during test.
-        if (mDoublePageMode)
+        if (mDoublePageMode) {
+            // Unified Double Page Fling
+            // Calculate Union Rect again to find limits
+            android.graphics.RectF union = mTempRectF;
+            calculateDoublePageRects(mCurrent, mCurrentSecondary,
+                    mMode == MODE_RIGHT_TO_LEFT, mBaseRectPrimary, mBaseRectSecondary);
+            mPairMatrix.mapRect(mDstRectPrimary, mBaseRectPrimary);
+            union.set(mDstRectPrimary);
+            if (mBaseRectSecondary.width() > 0) {
+                mPairMatrix.mapRect(mDstRectSecondary, mBaseRectSecondary);
+                union.union(mDstRectSecondary);
+            }
+
+            int width = mGalleryView.getWidth();
+            int height = mGalleryView.getHeight();
+
+            // Limits for TRANSLATION change
+            // dx+ moves content right (swipe right), dx- moves content left (swipe left)
+            // scrollInternal(dx, dy) uses postTranslate(-dx, -dy)
+            // So to move content right, we pass negative dx to scrollInternal.
+            // PageFling.onCalculate uses -offsetX.
+
+            int minX = 0, maxX = 0, minY = 0, maxY = 0;
+            if (union.width() > width) {
+                minX = (int) (width - union.right);
+                maxX = (int) (-union.left);
+            }
+            if (union.height() > height) {
+                minY = (int) (height - union.bottom);
+                maxY = (int) (-union.top);
+            }
+
+            if (minX == 0 && maxX == 0 && minY == 0 && maxY == 0) {
+                return;
+            }
+
+            mPageFling.startFling((int) velocityX, minX, maxX, (int) velocityY, minY, maxY);
             return;
+        }
 
         ImageView image = mCurrent.getImageView();
         mPageFling.startFling((int) velocityX, image.getMinDx(), image.getMaxDx(),
@@ -1604,8 +1634,12 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             int y = (int) (mDy * progress);
             int offsetX = x - mLastX;
             int offsetY = y - mLastY;
-            if (mCurrent != null && (offsetX != 0 || offsetY != 0)) {
-                mCurrent.getImageView().scroll(-offsetX, -offsetY, mTemp);
+            if (offsetX != 0 || offsetY != 0) {
+                if (mDoublePageMode) {
+                    scrollInternal(-offsetX, -offsetY);
+                } else if (mCurrent != null) {
+                    mCurrent.getImageView().scroll(-offsetX, -offsetY, mTemp);
+                }
             }
             mLastX = x;
             mLastY = y;
