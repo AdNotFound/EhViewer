@@ -73,7 +73,8 @@ public class GLView implements TouchOwner {
     }
 
     /**
-     * Position in parent, just like left, top, right, bottom in {@link android.view.View}
+     * Position in parent, just like left, top, right, bottom in
+     * {@link android.view.View}
      */
     protected final Rect mBounds = new Rect();
     protected final Rect mPaddings = new Rect();
@@ -127,12 +128,13 @@ public class GLView implements TouchOwner {
      * @param specSize      the child size
      * @param paddingBeign  the padding begin
      * @param paddingFinish the padding finish
-     * @param position      the {@link Gravity#POSITION_BEGIN} or {@link Gravity#POSITION_CENTER} or
+     * @param position      the {@link Gravity#POSITION_BEGIN} or
+     *                      {@link Gravity#POSITION_CENTER} or
      *                      {@link Gravity#POSITION_FINISH}
      * @return the begin size
      */
     public static int getDefaultBegin(int size, int specSize, int paddingBeign, int paddingFinish,
-                                      @Gravity.PositionMode int position) {
+            @Gravity.PositionMode int position) {
         if (position == Gravity.POSITION_FINISH) {
             return size - paddingFinish - specSize;
         } else if (position == Gravity.POSITION_CENTER) {
@@ -274,7 +276,8 @@ public class GLView implements TouchOwner {
 
     public void startAnimation(CanvasAnimation animation, boolean atOnce) {
         GLRoot root = getGLRoot();
-        if (root == null) throw new IllegalStateException();
+        if (root == null)
+            throw new IllegalStateException();
         mAnimation = animation;
         if (mAnimation != null) {
             mAnimation.start();
@@ -309,7 +312,8 @@ public class GLView implements TouchOwner {
     /**
      * Set the enabled state of this view.
      *
-     * @param visibility One of {@link #VISIBLE}, {@link #INVISIBLE}, or {@link #GONE}.
+     * @param visibility One of {@link #VISIBLE}, {@link #INVISIBLE}, or
+     *                   {@link #GONE}.
      */
     public void setVisibility(@Visibility int visibility) {
         @Visibility
@@ -422,7 +426,8 @@ public class GLView implements TouchOwner {
 
     // Removes a child from this GLView.
     public void removeComponent(GLView component) {
-        if (mComponents == null) return;
+        if (mComponents == null)
+            return;
         if (mComponents.remove(component)) {
             removeOneComponent(component);
         }
@@ -449,6 +454,24 @@ public class GLView implements TouchOwner {
         mComponents.clear();
     }
 
+    public void bringComponentToFront(GLView component) {
+        if (mComponents == null || component == null || component.mParent != this)
+            return;
+        if (mComponents.remove(component)) {
+            mComponents.add(component);
+            invalidate();
+        }
+    }
+
+    public void sendComponentToBack(GLView component) {
+        if (mComponents == null || component == null || component.mParent != this)
+            return;
+        if (mComponents.remove(component)) {
+            mComponents.add(0, component);
+            invalidate();
+        }
+    }
+
     private void removeOneComponent(GLView component) {
         if (mMotionTarget == component) {
             long now = SystemClock.uptimeMillis();
@@ -465,7 +488,7 @@ public class GLView implements TouchOwner {
      * Returns this GlView's identifier.
      *
      * @return a positive integer used to identify the view or {@link #NO_ID}
-     * if the view has no ID
+     *         if the view has no ID
      */
     public int getId() {
         return mID;
@@ -594,7 +617,8 @@ public class GLView implements TouchOwner {
     // This is used for animation or when the contents changed.
     public void invalidate() {
         GLRoot root = getGLRoot();
-        if (root != null) root.requestRender();
+        if (root != null)
+            root.requestRender();
     }
 
     // Request re-layout of the view hierarchy.
@@ -607,7 +631,8 @@ public class GLView implements TouchOwner {
         } else {
             // Is this a content pane ?
             GLRoot root = getGLRoot();
-            if (root != null) root.requestLayoutContentPane();
+            if (root != null)
+                root.requestLayoutContentPane();
         }
     }
 
@@ -666,7 +691,8 @@ public class GLView implements TouchOwner {
             anim.apply(canvas);
         }
         component.render(canvas);
-        if (anim != null) canvas.restore();
+        if (anim != null)
+            canvas.restore();
         canvas.translate(-xOffset, -yOffset);
     }
 
@@ -678,7 +704,7 @@ public class GLView implements TouchOwner {
     }
 
     protected boolean dispatchTouchEvent(MotionEvent event,
-                                         int x, int y, GLView component, boolean checkBounds) {
+            int x, int y, GLView component, boolean checkBounds) {
         Rect rect = component.mBounds;
         int left = rect.left;
         int top = rect.top;
@@ -716,7 +742,8 @@ public class GLView implements TouchOwner {
             // in the reverse rendering order
             for (int i = getComponentCount() - 1; i >= 0; --i) {
                 GLView component = getComponent(i);
-                if (component.getVisibility() != GLView.VISIBLE) continue;
+                if (component.getVisibility() != GLView.VISIBLE)
+                    continue;
                 if (dispatchTouchEvent(event, x, y, component, true)) {
                     mMotionTarget = component;
                     return true;
@@ -806,7 +833,8 @@ public class GLView implements TouchOwner {
 
     // There is a little different between GLView.layout() and View.layout().
     // onMeasure() is not called in GLView.layout().
-    // For the content view of GLRootView, GLView.measure() is called before GLView.layout().
+    // For the content view of GLRootView, GLView.measure() is called before
+    // GLView.layout().
     // For component, GLView.measure() in called in parent's GLView.onMeasure().
     // So it is OK.
     public void layout(int left, int top, int right, int bottom) {
@@ -1040,7 +1068,8 @@ public class GLView implements TouchOwner {
         int yOffset = 0;
         GLView view = descendant;
         while (view != this) {
-            if (view == null) return false;
+            if (view == null)
+                return false;
             Rect bounds = view.mBounds;
             xOffset += bounds.left;
             yOffset += bounds.top;
@@ -1104,7 +1133,7 @@ public class GLView implements TouchOwner {
         }
     }
 
-    @IntDef({VISIBLE, INVISIBLE, GONE})
+    @IntDef({ VISIBLE, INVISIBLE, GONE })
     @Retention(RetentionPolicy.SOURCE)
     public @interface Visibility {
     }
@@ -1118,20 +1147,23 @@ public class GLView implements TouchOwner {
     }
 
     /**
-     * A MeasureSpec encapsulates the layout requirements passed from parent to child.
+     * A MeasureSpec encapsulates the layout requirements passed from parent to
+     * child.
      * Each MeasureSpec represents a requirement for either the width or the height.
      * A MeasureSpec is comprised of a size and a mode. There are three possible
      * modes:
      * <dl>
      * <dt>UNSPECIFIED</dt>
      * <dd>
-     * The parent has not imposed any constraint on the child. It can be whatever size
+     * The parent has not imposed any constraint on the child. It can be whatever
+     * size
      * it wants.
      * </dd>
      *
      * <dt>EXACTLY</dt>
      * <dd>
-     * The parent has determined an exact size for the child. The child is going to be
+     * The parent has determined an exact size for the child. The child is going to
+     * be
      * given those bounds regardless of how big it wants to be.
      * </dd>
      *
@@ -1169,17 +1201,19 @@ public class GLView implements TouchOwner {
          * <p>
          * The mode must always be one of the following:
          * <ul>
-         *  <li>{@link #UNSPECIFIED}</li>
-         *  <li>{@link #EXACTLY}</li>
-         *  <li>{@link #AT_MOST}</li>
+         * <li>{@link #UNSPECIFIED}</li>
+         * <li>{@link #EXACTLY}</li>
+         * <li>{@link #AT_MOST}</li>
          * </ul>
          *
-         * <p><strong>Note:</strong> On API level 17 and lower, makeMeasureSpec's
+         * <p>
+         * <strong>Note:</strong> On API level 17 and lower, makeMeasureSpec's
          * implementation was such that the order of arguments did not matter
          * and overflow in either value could impact the resulting MeasureSpec.
          * {@link android.widget.RelativeLayout} was affected by this bug.
          * Apps targeting API levels greater than 17 will get the fixed, more strict
-         * behavior.</p>
+         * behavior.
+         * </p>
          *
          * @param size the size of the measure specification
          * @param mode the mode of the measure specification
@@ -1194,8 +1228,8 @@ public class GLView implements TouchOwner {
          *
          * @param measureSpec the measure specification to extract the mode from
          * @return {@link #UNSPECIFIED},
-         * {@link #AT_MOST} or
-         * {@link #EXACTLY}
+         *         {@link #AT_MOST} or
+         *         {@link #EXACTLY}
          */
         public static int getMode(int measureSpec) {
             return (measureSpec & MODE_MASK);

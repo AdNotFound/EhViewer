@@ -563,14 +563,12 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             primary.setVisibility(GLView.VISIBLE);
             secondary.setVisibility(GLView.VISIBLE);
             secondary.setPagePosition(isRTL ? 4 : 3); // Move to edge
-            mGalleryView.removeComponent(primary);
-            mGalleryView.addComponent(primary);
+            mGalleryView.bringComponentToFront(primary);
         } else if (!pLoaded && sLoaded && secondary != null) {
             primary.setVisibility(GLView.VISIBLE);
             secondary.setVisibility(GLView.VISIBLE);
             primary.setPagePosition(isRTL ? 3 : 4); // Move to edge
-            mGalleryView.removeComponent(secondary);
-            mGalleryView.addComponent(secondary);
+            mGalleryView.bringComponentToFront(secondary);
         } else {
             primary.setVisibility(GLView.VISIBLE);
             if (secondary != null) {
