@@ -57,6 +57,10 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     private final android.graphics.RectF mBaseRectSecondary = new android.graphics.RectF();
     private final android.graphics.RectF mDstRectPrimary = new android.graphics.RectF();
     private final android.graphics.RectF mDstRectSecondary = new android.graphics.RectF();
+    private final android.graphics.RectF mTempRectF1 = new android.graphics.RectF();
+    private final android.graphics.RectF mTempRectF2 = new android.graphics.RectF();
+    private final android.graphics.RectF mTempRectF = new android.graphics.RectF();
+    private final float[] mMatrixValues = new float[9];
     private GalleryView.Adapter mAdapter;
     private GLProgressView mProgress;
     private String mErrorStr;
@@ -393,6 +397,22 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         return mMode == MODE_LEFT_TO_RIGHT ? mNext : mPrevious;
     }
 
+    private boolean updateSpread(GalleryPageView page) {
+        ImageView view = page != null ? page.getImageView() : null;
+        if (view != null && view.isLoaded()) {
+            int w = view.getImageTexture().getWidth();
+            int h = view.getImageTexture().getHeight();
+            if (w > h) {
+                int index = page.getIndex();
+                if (index != -1 && !mSpreads.get(index)) {
+                    mSpreads.set(index);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private GalleryPageView obtainPage() {
         GalleryPageView page = mGalleryView.obtainPage();
         page.addOnLoadedListener(this);
@@ -405,18 +425,13 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (mGalleryView == null)
             return;
 
-        ImageView view = page.getImageView();
-        if (view != null && view.isLoaded()) {
-            int w = view.getImageTexture().getWidth();
-            int h = view.getImageTexture().getHeight();
-            if (w > h) {
-                int index = page.getIndex();
-                if (index != -1 && !mSpreads.get(index)) {
-                    mSpreads.set(index);
-                }
-            }
+        if (updateSpread(page)) {
+            // New spread detected, need to re-fill to adjust pairing
+            mGalleryView.requestFill();
+        } else {
+            // Just normal image load, request fill to render texture
+            mGalleryView.requestFill();
         }
-        mGalleryView.requestFill();
     }
 
     private void layoutPage(GalleryPageView page, int widthSpec, int heightSpec,
@@ -445,12 +460,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         int h1 = primaryView.getImageTexture().getHeight();
 
         // Spread Detection - mark if spread and nullify secondary
-        if (w1 > h1) {
-            int index = primary.getIndex();
-            if (index != -1 && !mSpreads.get(index)) {
-                mSpreads.set(index);
-                // No need to requestFill here, onLoaded already does it
-            }
+        if (updateSpread(primary)) {
             secondary = null;
         }
 
@@ -461,12 +471,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             int h2Raw = secondaryView.getImageTexture().getHeight();
 
             // Check if secondary is spread
-            if (w2Raw > h2Raw) {
-                int sIndex = secondary.getIndex();
-                if (sIndex != -1 && !mSpreads.get(sIndex)) {
-                    mSpreads.set(sIndex);
-                    // No need to requestFill here, onLoaded already does it
-                }
+            if (updateSpread(secondary)) {
                 secondaryView = null;
                 w2 = 0;
             } else {
@@ -596,8 +601,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         }
 
-        android.graphics.RectF rectPrimary = new android.graphics.RectF();
-        android.graphics.RectF rectSecondary = new android.graphics.RectF();
+        android.graphics.RectF rectPrimary = mTempRectF1;
+        android.graphics.RectF rectSecondary = mTempRectF2;
 
         calculateDoublePageRects(primary, secondary,
                 isRTL, rectPrimary, rectSecondary);
@@ -1137,7 +1142,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
                     mPairMatrix.postTranslate(-dxF, -dyF);
 
                     // Calc Union Rect
-                    android.graphics.RectF union = new android.graphics.RectF();
+                    android.graphics.RectF union = mTempRectF;
                     mPairMatrix.mapRect(mDstRectPrimary, mBaseRectPrimary);
                     union.set(mDstRectPrimary);
                     // Check if secondary has valid base rect (width > 0)
@@ -1446,9 +1451,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (mDoublePageMode) {
             // Zoom logic for Double Page
             // Use mPairMatrix scale
-            // We can get current scale from matrix?
-            // Matrix.getValues()
-            float[] values = new float[9];
+            float[] values = mMatrixValues;
             mPairMatrix.getValues(values);
             float currentScale = values[android.graphics.Matrix.MSCALE_X];
 
