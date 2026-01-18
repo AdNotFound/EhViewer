@@ -85,6 +85,13 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     // Current index
     private int mIndex;
 
+    // Layout Cache
+    private int mLastGalleryWidth = -1;
+    private int mLastGalleryHeight = -1;
+    private int mLastPrimaryIndex = -1;
+    private int mLastSecondaryIndex = -1;
+    private boolean mLastIsRTL = false;
+
     public PagerLayoutManager(Context context, @NonNull GalleryView galleryView,
             int scaleMode, int startPoint, float scaleValue, int interval) {
         super(galleryView);
@@ -454,13 +461,32 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         int height = mGalleryView.getHeight();
 
         ImageView primaryView = primary.getImageView();
+        if (!primaryView.isLoaded())
+            return;
+
+        int pIndex = primary.getIndex();
+        int sIndex = secondary != null ? secondary.getIndex() : -1;
+
+        // Check Cache (Only for main current pages)
+        if (rectPrimary == mBaseRectPrimary && rectSecondary == mBaseRectSecondary) {
+            if (width == mLastGalleryWidth && height == mLastGalleryHeight &&
+                    pIndex == mLastPrimaryIndex && sIndex == mLastSecondaryIndex &&
+                    isRTL == mLastIsRTL) {
+                return;
+            }
+            mLastGalleryWidth = width;
+            mLastGalleryHeight = height;
+            mLastPrimaryIndex = pIndex;
+            mLastSecondaryIndex = sIndex;
+            mLastIsRTL = isRTL;
+        }
 
         // Dimensions of primary
         int w1 = primaryView.getImageTexture().getWidth();
         int h1 = primaryView.getImageTexture().getHeight();
 
-        // Spread Detection - mark if spread and nullify secondary
-        if (updateSpread(primary)) {
+        // Spread Detection - check cached bitset instead of full calculation here
+        if (pIndex != -1 && mSpreads.get(pIndex)) {
             secondary = null;
         }
 
@@ -471,7 +497,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             int h2Raw = secondaryView.getImageTexture().getHeight();
 
             // Check if secondary is spread
-            if (updateSpread(secondary)) {
+            int sIdx = secondary.getIndex();
+            if (sIdx != -1 && mSpreads.get(sIdx)) {
                 secondaryView = null;
                 w2 = 0;
             } else {
@@ -1182,7 +1209,9 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
                         mPairMatrix.postTranslate(fixX, fixY);
                     }
 
-                    updateDoublePageLayout();
+                    if (dxF != 0 || dyF != 0 || fixX != 0 || fixY != 0) {
+                        updateDoublePageLayout();
+                    }
 
                     // Update remainX/Y
                     // If content is smaller than screen, we force centered (fixX undoes movement).
