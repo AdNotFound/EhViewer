@@ -178,7 +178,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     }
 
     private int getPairStart(int index) {
-        if (!mDoublePageMode)
+        if (!mDoublePageMode || index < 0)
             return index;
 
         // If the index itself is a spread, it's always its own start
@@ -1197,7 +1197,6 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
                 } else {
                     ImageView image = mCurrent.getImageView();
-                    image.scroll(remainX, remainY, null);
                     // Single page mode might still need remainX update?
                     // Actually ImageView.scroll(int, int, int[]) updates mScrollRemain.
                     // Let's use a local array instead of field to be safe if it's really needed.
@@ -1354,7 +1353,10 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         } else {
             index = mDoublePageMode ? mIndex + getPairSize(mIndex) : mIndex + 1;
         }
-        setCurrentIndex(index);
+
+        if (index >= 0 && index < mAdapter.size()) {
+            setCurrentIndex(index);
+        }
     }
 
     @Override
@@ -1370,7 +1372,10 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         } else {
             index = mDoublePageMode ? getPairStart(mIndex - 1) : mIndex - 1;
         }
-        setCurrentIndex(index);
+
+        if (index >= 0 && index < mAdapter.size()) {
+            setCurrentIndex(index);
+        }
     }
 
     @Override
@@ -1432,7 +1437,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
         boolean isConnectedJump;
         if (mDoublePageMode) {
-            isConnectedJump = (index == mIndex + getPairSize(mIndex) || index == getPairStart(mIndex - 1));
+            isConnectedJump = (index == mIndex + getPairSize(mIndex)
+                    || (mIndex > 0 && index == getPairStart(mIndex - 1)));
         } else {
             isConnectedJump = (index == mIndex - 1 || index == mIndex + 1);
         }
@@ -1643,7 +1649,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
                 if (mDoublePageMode) {
                     scrollInternal(-offsetX, -offsetY);
                 } else if (mCurrent != null) {
-                    mCurrent.getImageView().scroll(-offsetX, -offsetY, null);
+                    int[] remain = new int[2];
+                    mCurrent.getImageView().scroll(-offsetX, -offsetY, remain);
                 }
             }
             mLastX = x;
