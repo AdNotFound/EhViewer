@@ -87,10 +87,15 @@ open class LoadImageView @JvmOverloads constructor(
         crossfade: Boolean = true,
         hardware: Boolean = true,
     ) {
+        val oldUrl = mUrl
         mKey = key
         mUrl = url
         mCrossfade = crossfade
         mHardware = hardware
+        if (oldUrl != url) {
+            oldUrl?.let { removeFromUrlMap(it, this) }
+            addToUrlMap(url, this)
+        }
         load(url) {
             // https://coil-kt.github.io/coil/recipes/#shared-element-transitions
             allowHardware(hardware)
@@ -119,7 +124,7 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     private fun reload() {
-        mKey?.let { this.load(it, mUrl!!, mCrossfade, mHardware) }
+        mUrl?.let { reloadAll(it) }
     }
 
     override fun setImageDrawable(drawable: Drawable?) {
@@ -140,6 +145,16 @@ open class LoadImageView @JvmOverloads constructor(
             newDrawable = newDrawable.drawable
         }
         return newDrawable
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        mUrl?.let { addToUrlMap(it, this) }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        mUrl?.let { removeFromUrlMap(it, this) }
     }
 
     override fun onClick(v: View) {
@@ -163,5 +178,29 @@ open class LoadImageView @JvmOverloads constructor(
         const val RETRY_TYPE_NONE = 0
         const val RETRY_TYPE_CLICK = 1
         const val RETRY_TYPE_LONG_CLICK = 2
+
+        private val urlMap = HashMap<String, MutableSet<java.lang.ref.WeakReference<LoadImageView>>>()
+
+        private fun addToUrlMap(url: String, view: LoadImageView) {
+            val set = urlMap.getOrPut(url) { java.util.Collections.newSetFromMap(java.util.WeakHashMap()) }
+            set.add(java.lang.ref.WeakReference(view))
+        }
+
+        private fun removeFromUrlMap(url: String, view: LoadImageView) {
+            urlMap[url]?.let { set ->
+                set.removeAll { it.get() == null || it.get() == view }
+                if (set.isEmpty()) urlMap.remove(url)
+            }
+        }
+
+        private fun reloadAll(url: String) {
+            urlMap[url]?.forEach { ref ->
+                ref.get()?.let { view ->
+                    if (view.isClickable || view.isLongClickable) {
+                        view.mKey?.let { view.load(it, url, view.mCrossfade, view.mHardware) }
+                    }
+                }
+            }
+        }
     }
 }
