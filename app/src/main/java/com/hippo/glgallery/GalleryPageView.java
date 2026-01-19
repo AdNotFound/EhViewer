@@ -40,6 +40,7 @@ public class GalleryPageView extends GLFrameLayout {
     private final GLLinearLayout mInfo;
     private final GLImageMovableTextView mPage;
     private final GLTextureView mError;
+    private final GLTextureView mNetworkInfo;
     private final GLProgressView mProgress;
 
     private final int mMinHeight;
@@ -110,6 +111,13 @@ public class GalleryPageView extends GLFrameLayout {
                 LayoutParams.WRAP_CONTENT);
         lp.gravity = Gravity.CENTER_HORIZONTAL;
         mInfo.addComponent(mProgress, lp);
+
+        // Add network info
+        mNetworkInfo = new GLTextureView();
+        lp = new GLLinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
+                LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.CENTER_HORIZONTAL;
+        mInfo.addComponent(mNetworkInfo, lp);
 
         mMinHeight = minHeight;
     }
@@ -196,6 +204,26 @@ public class GalleryPageView extends GLFrameLayout {
         } else {
             mError.setVisibility(VISIBLE);
             galleryView.bindErrorView(mError, error);
+        }
+    }
+
+    private void unbindNetworkInfo() {
+        Texture texture = mNetworkInfo.getTexture();
+        if (texture != null) {
+            mNetworkInfo.setTexture(null);
+            if (texture instanceof BasicTexture) {
+                ((BasicTexture) texture).recycle();
+            }
+        }
+    }
+
+    public void setNetworkInfo(String info, GalleryView galleryView) {
+        unbindNetworkInfo();
+        if (info == null) {
+            mNetworkInfo.setVisibility(GONE);
+        } else {
+            mNetworkInfo.setVisibility(VISIBLE);
+            galleryView.bindNetworkInfoView(mNetworkInfo, info);
         }
     }
 

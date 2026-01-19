@@ -103,6 +103,8 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final Typeface mPageTextTypeface;
     private final int mErrorTextSize;
     private final int mErrorTextColor;
+    private final int mNetworkInfoTextSize;
+    private final int mNetworkInfoTextColor;
     private final String mEmptyString;
     private final Rect mLeftArea = new Rect();
     private final Rect mRightArea = new Rect();
@@ -167,6 +169,8 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         mPageTextTypeface = build.mPageTextTypeface;
         mErrorTextColor = build.mErrorTextColor;
         mErrorTextSize = build.mErrorTextSize;
+        mNetworkInfoTextColor = build.mNetworkInfoTextColor;
+        mNetworkInfoTextSize = build.mNetworkInfoTextSize;
 
         mEmptyString = build.mEmptyString;
         mDoublePageOffset = build.mDoublePageOffset;
@@ -944,6 +948,13 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         errorView.setTexture(texture);
     }
 
+    void bindNetworkInfoView(GLTextureView networkInfoView, String info) {
+        unbindErrorView(networkInfoView);
+
+        Texture texture = StringTexture.newInstance(info, mNetworkInfoTextSize, mNetworkInfoTextColor);
+        networkInfoView.setTexture(texture);
+    }
+
     void releaseErrorView(GLTextureView errorView) {
         unbindErrorView(errorView);
         mErrorViewCache = errorView;
@@ -999,6 +1010,8 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         private Typeface mPageTextTypeface = Typeface.DEFAULT;
         private int mErrorTextColor = Color.RED;
         private int mErrorTextSize = 24;
+        private int mNetworkInfoTextColor = Color.GRAY;
+        private int mNetworkInfoTextSize = 24;
         private String mEmptyString = "Empty";
 
         public Builder(@NonNull Context context, @NonNull Adapter adapter) {
@@ -1098,6 +1111,16 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
 
         public Builder setErrorTextSize(int errorTextSize) {
             mErrorTextSize = errorTextSize;
+            return this;
+        }
+
+        public Builder setNetworkInfoTextColor(int networkInfoTextColor) {
+            mNetworkInfoTextColor = networkInfoTextColor;
+            return this;
+        }
+
+        public Builder setNetworkInfoTextSize(int networkInfoTextSize) {
+            mNetworkInfoTextSize = networkInfoTextSize;
             return this;
         }
 

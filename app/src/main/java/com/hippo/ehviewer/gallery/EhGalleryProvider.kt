@@ -89,6 +89,8 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
     override val size: Int
         get() = mSpiderQueen.size
 
+    override fun getImageUrl(index: Int): String? = mSpiderQueen.getImageUrl(index)
+
     override fun onRequest(index: Int) {
         notifyPageWait(index)
         mSpiderQueen.request(index)
@@ -102,14 +104,14 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
     fun forceShow(index: Int) {
         mSpiderQueen.addBypassQrCheckPage(index)
         mSpiderQueen.removeBlockedAdPage(index)
-        launchIO {
+        mSpiderQueen.launchIO {
             mSpiderQueen.unmarkAsAd(index)
         }
         mSpiderQueen.request(index)
     }
 
     fun markAsAd(index: Int) {
-        launchIO {
+        mSpiderQueen.launchIO {
             mSpiderQueen.markAsAd(index)
             notifyPageFailed(index, GetText.getString(R.string.error_ad_detected))
         }
@@ -151,6 +153,10 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
         total: Int,
     ) {
         notifyPageFailed(index, error)
+    }
+
+    override fun onPageNetworkInfo(index: Int, info: String) {
+        notifyPageNetworkInfo(index, info)
     }
 
     override fun onFinish(finished: Int, downloaded: Int, total: Int) {}

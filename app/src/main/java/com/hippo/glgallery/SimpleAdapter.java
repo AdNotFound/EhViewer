@@ -43,6 +43,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
         view.setPage(index + 1);
         view.setProgress(GalleryPageView.PROGRESS_INDETERMINATE);
         view.setError(null, null);
+        view.setNetworkInfo(null, null);
     }
 
     @Override
@@ -50,6 +51,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
         mProvider.cancelRequest(index);
         view.setImage(null);
         view.setError(null, null);
+        view.setNetworkInfo(null, null);
     }
 
     @Override
@@ -115,6 +117,14 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
             page.setPage(index + 1);
             page.setProgress(GalleryPageView.PROGRESS_GONE);
             page.setError(error, mGalleryView);
+        }
+    }
+
+    @Override
+    public void onPageNetworkInfo(int index, String info) {
+        GalleryPageView page = findPageByIndex(index);
+        if (page != null) {
+            page.setNetworkInfo(info, mGalleryView);
         }
     }
 

@@ -909,6 +909,20 @@ class GalleryActivity :
         }
     }
 
+    private fun copyImageLink(page: Int) {
+        val url = mGalleryProvider?.getImageUrl(page)
+        if (url != null) {
+            val clipboardManager = getSystemService(ClipboardManager::class.java)
+            if (clipboardManager != null) {
+                val clipData = ClipData.newPlainText("ehviewer", url)
+                clipboardManager.setPrimaryClip(clipData)
+                Toast.makeText(this, getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(this, "URL not found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun saveImage(page: Int) {
         if (null == mGalleryProvider) {
             return
@@ -1075,6 +1089,9 @@ class GalleryActivity :
         if (ACTION_EH == mAction && !Settings.getDownloadOriginImage(false)) {
             items.add(getString(R.string.page_menu_download_original))
         }
+        if (Settings.developerMode) {
+            items.add(getString(R.string.page_menu_copy_link))
+        }
         pageDialogListener(builder, items.toTypedArray(), page)
         builder.show()
     }
@@ -1119,6 +1136,8 @@ class GalleryActivity :
                 getString(R.string.page_menu_save_to) -> saveImageTo(page)
 
                 getString(R.string.page_menu_download_original) -> saveImageTo(page, true)
+
+                getString(R.string.page_menu_copy_link) -> copyImageLink(page)
             }
         }
     }

@@ -78,6 +78,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     val mSpiderDen: SpiderDen = SpiderDen(galleryInfo)
     private val mPageStateLock = Any()
+    private val mImageUrls = LongSparseArray<String>()
     private val mDownloadedPages = AtomicInteger(0)
     private val mFinishedPages = AtomicInteger(0)
     private val mSpiderListeners: MutableList<OnSpiderListener> = ArrayList()
@@ -172,6 +173,15 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     receivedSize,
                     bytesRead,
                 )
+            }
+        }
+    }
+
+    fun notifyPageNetworkInfo(index: Int, info: String) {
+        if (!Settings.developerMode) return
+        synchronized(mSpiderListeners) {
+            mSpiderListeners.forEach {
+                it.onPageNetworkInfo(index, info)
             }
         }
     }
@@ -342,6 +352,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     val size
         get() = mPageStateArray.size
+
+    fun getImageUrl(index: Int): String? = synchronized(mImageUrls) {
+        return mImageUrls[index.toLong()]
+    }
 
     fun forceRequest(index: Int) {
         request(index, true)
@@ -567,6 +581,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         fun onFinish(finished: Int, downloaded: Int, total: Int)
         fun onGetImageSuccess(index: Int, image: Image?)
         fun onGetImageFailure(index: Int, error: String?)
+        fun onPageNetworkInfo(index: Int, info: String)
     }
 
     private val mWorkerScope = object {
@@ -651,8 +666,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             val pToken: String
             pTokenLock.withLock {
                 if (!force && index in mSpiderDen) {
+                    notifyPageNetworkInfo(index, "Image found in cache/disk")
                     return updatePageState(index, STATE_FINISHED)
                 }
+                notifyPageNetworkInfo(index, "Fetching page token...")
                 pToken = getPToken(index) ?: return updatePageState(index, STATE_FAILED, PTOKEN_FAILED_MESSAGE)
                 previousPToken = getPToken(index - 1)
 
@@ -682,6 +699,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     showKeyLock.withLock {
                         localShowKey = showKey
                         if (localShowKey == null || forceHtml) {
+                            notifyPageNetworkInfo(index, "Fetching page HTML...")
                             var pageUrl = EhUrl.getPageUrl(mSpiderInfo.gid, index, pToken)
                             // Skipping H@H costs 50 points, only use it as last resort
                             if (skipHathKey != null) {
@@ -704,6 +722,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     }
 
                     if (imageUrl == null) {
+                        notifyPageNetworkInfo(index, "Fetching page via API...")
                         runSuspendCatching {
                             EhEngine.getGalleryPageApi(
                                 mSpiderInfo.gid,
@@ -749,8 +768,12 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                         referer = null
                     }
                     checkNotNull(targetImageUrl)
+                    synchronized(mImageUrls) {
+                        mImageUrls[index.toLong()] = targetImageUrl
+                    }
 
                     runCatching {
+                        notifyPageNetworkInfo(index, "Start download attempt #$retries: $targetImageUrl")
                         Log.d(WORKER_DEBUG_TAG, "Start download image $index attempt #$retries")
                         coroutineScope {
                             val received = AtomicLong(0)

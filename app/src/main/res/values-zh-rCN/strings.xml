@@ -73,6 +73,7 @@
     <string name="page_menu_save">保存</string>
     <string name="page_menu_save_to">保存到…</string>
     <string name="page_menu_download_original">下载原图</string>
+    <string name="page_menu_copy_link">复制图片链接</string>
     <string name="gallery_menu_title">菜单</string>
     <string name="share_image">分享图片</string>
     <string name="start_download_original">开始下载原图，请稍候…</string>
@@ -556,6 +557,8 @@
     <string name="settings_advanced_domain_fronting_summary">绕过 SNI 封锁，启用时会禁用代理\n修改后重启应用生效</string>
     <string name="settings_advanced_bypass_vpn_title">绕过 VPN</string>
     <string name="settings_advanced_bypass_vpn_summary">启用域名前置时尝试绕过 VPN</string>
+    <string name="settings_advanced_developer_mode">开发者模式</string>
+    <string name="settings_advanced_developer_mode_summary">显示网络请求信息并启用额外的开发者功能</string>
     <string name="settings_advanced_backup_favorite">备份收藏列表</string>
     <string name="settings_advanced_backup_favorite_summary">备份云端收藏列表到本地</string>
     <string name="settings_advanced_backup_favorite_start">正在备份收藏列表 %s</string>

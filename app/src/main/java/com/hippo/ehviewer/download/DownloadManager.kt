@@ -885,6 +885,10 @@ object DownloadManager : OnSpiderListener {
         // Ignore
     }
 
+    override fun onPageNetworkInfo(index: Int, info: String) {
+        // Ignore
+    }
+
     interface DownloadInfoListener {
         /**
          * Add the special info to the special position

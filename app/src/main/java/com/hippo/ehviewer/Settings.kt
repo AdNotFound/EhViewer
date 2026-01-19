@@ -208,6 +208,8 @@ object Settings {
     private const val DEFAULT_APP_LINK_VERIFY_TIP = false
     private const val KEY_DOH_ENABLED = "dns_over_https"
     private const val DEFAULT_DOH_ENABLED = false
+    const val KEY_DEVELOPER_MODE = "developer_mode"
+    private const val DEFAULT_DEVELOPER_MODE = false
 
     /********************
      ****** Favorites
@@ -692,6 +694,12 @@ object Settings {
 
     val saveCrashLog: Boolean
         get() = getBoolean(KEY_SAVE_CRASH_LOG, DEFAULT_SAVE_CRASH_LOG)
+
+    val developerMode: Boolean
+        get() = getBoolean(KEY_DEVELOPER_MODE, DEFAULT_DEVELOPER_MODE)
+    fun putDeveloperMode(value: Boolean) {
+        putBoolean(KEY_DEVELOPER_MODE, value)
+    }
 
     val readCacheSize: Int
         get() = getIntFromStr(KEY_READ_CACHE_SIZE, DEFAULT_READ_CACHE_SIZE)

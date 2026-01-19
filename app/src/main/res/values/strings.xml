@@ -78,6 +78,7 @@
     <string name="page_menu_save">Save</string>
     <string name="page_menu_save_to">Save to…</string>
     <string name="page_menu_download_original">Download original</string>
+    <string name="page_menu_copy_link">Copy image link</string>
     <string name="gallery_menu_title">Menu</string>
     <string name="share_image">Share image</string>
     <string name="start_download_original">Downloading, please wait…</string>
@@ -584,6 +585,8 @@
     <string name="settings_advanced_domain_fronting_summary">Bypass SNI blocking</string>
     <string name="settings_advanced_bypass_vpn_title">Bypass VPN</string>
     <string name="settings_advanced_bypass_vpn_summary">Try to bypass VPN when domain fronting is enabled</string>
+    <string name="settings_advanced_developer_mode">Developer Mode</string>
+    <string name="settings_advanced_developer_mode_summary">Display network request information and enable additional developer features</string>
     <string name="settings_advanced_backup_favorite">Backup favorite list</string>
     <string name="settings_advanced_backup_favorite_summary">Backup remote favorite list to local</string>
     <string name="settings_advanced_backup_favorite_start">Backing up favorite list %s</string>

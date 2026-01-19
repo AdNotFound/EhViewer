@@ -179,6 +179,8 @@ class ArchiveGalleryProvider(context: Context, private val uri: Uri, passwdFlow:
 
     override suspend fun downloadOriginal(index: Int, dir: UniFile, filename: String): UniFile? = null
 
+    override fun getImageUrl(index: Int): String? = null
+
     override fun preloadPages(pages: List<Int>, pair: Pair<Int, Int>) {}
 }
 
