@@ -155,6 +155,17 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         mOffset = 0;
         mCanScrollBetweenPages = false;
         mStopAnimationFinger = false;
+        resetDoublePageLayoutCache();
+    }
+
+    // Reset double page layout cache to force recalculation on next fill
+    private void resetDoublePageLayoutCache() {
+        mBaseRectPrimary.setEmpty();
+        mBaseRectSecondary.setEmpty();
+        mDstRectPrimary.setEmpty();
+        mDstRectSecondary.setEmpty();
+        mLastPrimaryIndex = -1;
+        mLastSecondaryIndex = -1;
     }
 
     // Helper: get the slot number for an index
@@ -1386,12 +1397,34 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
     @Override
     public void onPageLeft() {
-        pageLeft();
+        GalleryView.Adapter adapter = mAdapter;
+        if (adapter == null || adapter.size() <= 0 || mCurrent == null) {
+            return;
+        }
+
+        int index;
+        if (mMode == MODE_LEFT_TO_RIGHT) {
+            index = mDoublePageMode ? getPairStart(mIndex - 1) : mIndex - 1;
+        } else {
+            index = mDoublePageMode ? mIndex + getPairSize(mIndex) : mIndex + 1;
+        }
+        setCurrentIndex(index);
     }
 
     @Override
     public void onPageRight() {
-        pageRight();
+        GalleryView.Adapter adapter = mAdapter;
+        if (adapter == null || adapter.size() <= 0 || mCurrent == null) {
+            return;
+        }
+
+        int index;
+        if (mMode == MODE_LEFT_TO_RIGHT) {
+            index = mDoublePageMode ? mIndex + getPairSize(mIndex) : mIndex + 1;
+        } else {
+            index = mDoublePageMode ? getPairStart(mIndex - 1) : mIndex - 1;
+        }
+        setCurrentIndex(index);
     }
 
     @Override
