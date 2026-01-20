@@ -39,6 +39,7 @@ public class GLTextureView extends GLView {
         } else {
             mSrc.setEmpty();
         }
+        requestLayout();
         invalidate();
     }
 

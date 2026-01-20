@@ -630,6 +630,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             if (force) currentJob?.cancel(CancellationException(FORCE_RETRY))
             if (currentJob?.isActive != true) {
                 mFetcherJobMap[index] = launch {
+                    notifyPageNetworkInfo(index, "Waiting for download thread...")
                     runCatching {
                         mSemaphore.withPermit {
                             doInJob(index, force, skipHath)
@@ -664,6 +665,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         private suspend fun doInJob(index: Int, force: Boolean, skipHath: Boolean) {
             val previousPToken: String?
             val pToken: String
+            notifyPageNetworkInfo(index, "Waiting for concurrency lock...")
             pTokenLock.withLock {
                 if (!force && index in mSpiderDen) {
                     notifyPageNetworkInfo(index, "Image found in cache/disk")

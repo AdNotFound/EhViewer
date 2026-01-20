@@ -944,14 +944,16 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     void bindErrorView(GLTextureView errorView, String error) {
         unbindErrorView(errorView);
 
-        Texture texture = StringTexture.newInstance(error, mErrorTextSize, mErrorTextColor);
+        int limit = getWidth() * 9 / 10;
+        Texture texture = StringTexture.newInstance(error, mErrorTextSize, mErrorTextColor, limit, false);
         errorView.setTexture(texture);
     }
 
     void bindNetworkInfoView(GLTextureView networkInfoView, String info) {
         unbindErrorView(networkInfoView);
 
-        Texture texture = StringTexture.newInstance(info, mNetworkInfoTextSize, mNetworkInfoTextColor);
+        int limit = getWidth() * 9 / 10;
+        Texture texture = StringTexture.newInstance(info, mNetworkInfoTextSize, mNetworkInfoTextColor, limit, false);
         networkInfoView.setTexture(texture);
     }
 
@@ -1002,7 +1004,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         private boolean mDoublePageMode = false;
         private boolean mDoublePageOffset = false;
         private int mPageMinHeight = 256;
-        private int mPageInfoInterval = 24;
+        private int mPageInfoInterval = 48;
         private int mProgressColor = Color.WHITE;
         private int mProgressSize = 56;
         private int mPageTextColor = Color.WHITE;
@@ -1011,7 +1013,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         private int mErrorTextColor = Color.RED;
         private int mErrorTextSize = 24;
         private int mNetworkInfoTextColor = Color.GRAY;
-        private int mNetworkInfoTextSize = 24;
+        private int mNetworkInfoTextSize = 32;
         private String mEmptyString = "Empty";
 
         public Builder(@NonNull Context context, @NonNull Adapter adapter) {
