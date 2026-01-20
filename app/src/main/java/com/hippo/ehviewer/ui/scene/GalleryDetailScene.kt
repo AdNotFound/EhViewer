@@ -441,6 +441,7 @@ class GalleryDetailScene :
                             if (mGalleryDetail == null) {
                                 return false
                             }
+                            SpiderQueen.reset(mGalleryDetail!!.gid)
                             (0..<mGalleryDetail!!.pages).forEach {
                                 val key = getImageKey(mGalleryDetail!!.gid, it)
                                 imageCache.remove(key)

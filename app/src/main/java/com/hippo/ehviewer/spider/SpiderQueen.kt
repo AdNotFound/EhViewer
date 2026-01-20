@@ -279,6 +279,17 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         downloadMode = intoDownloadMode
     }
 
+    private fun resetStates() {
+        synchronized(mPageStateLock) {
+            if (this::mPageStateArray.isInitialized) {
+                mPageStateArray.fill(STATE_NONE)
+            }
+            mDownloadedPages.set(0)
+            mFinishedPages.set(0)
+        }
+        mWorkerScope.clearRAList()
+    }
+
     private fun setMode(@Mode mode: Int) {
         when (mode) {
             MODE_READ -> mReadReference++
@@ -622,6 +633,15 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             }
         }
 
+        fun clearRAList() {
+            synchronized(mFetcherJobMap) {
+                mFetcherJobMap.forEach { (_, job) ->
+                    job.cancel()
+                }
+                mFetcherJobMap.clear()
+            }
+        }
+
         private fun doLaunchDownloadJob(index: Int, force: Boolean) {
             val state = mPageStateArray[index]
             if (!force && state == STATE_FINISHED) return
@@ -883,7 +903,14 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
             private suspend fun doInJob(index: Int) {
                 mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
-                val src = mSpiderDen.getImageSource(index) ?: return
+                val src = mSpiderDen.getImageSource(index)
+                if (src == null) {
+                    if (getPageState(index) == STATE_FINISHED) {
+                        updatePageState(index, STATE_NONE)
+                        request(index)
+                    }
+                    return
+                }
                 src.use {
                     val totalPages = mPageStateArray.size
                     val mayBeAd = index >= totalPages - 10
@@ -930,6 +957,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         private val URL_509_PATTERN = Regex("\\.org/.+/509s?\\.gif")
         private const val FORCE_RETRY = "Force retry"
         private const val WORKER_DEBUG_TAG = "SpiderQueenWorker"
+
+        fun reset(gid: Long) {
+            sQueenMap[gid]?.resetStates()
+        }
 
         private fun check509(url: String) {
             if (URL_509_PATTERN in url) throw QuotaExceededException()
