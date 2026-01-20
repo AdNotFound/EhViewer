@@ -902,39 +902,44 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             }
 
             private suspend fun doInJob(index: Int) {
-                mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
-                val src = mSpiderDen.getImageSource(index)
-                if (src == null) {
-                    if (getPageState(index) == STATE_FINISHED) {
-                        updatePageState(index, STATE_NONE)
-                        request(index)
-                    }
-                    return
-                }
-                src.use {
-                    val totalPages = mPageStateArray.size
-                    val mayBeAd = index >= totalPages - 10
-                    val hasAdsTag = galleryInfo.hasAds
-                    val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
-                    val image = try {
-                        val blockOnQr = analyzeFeatures && hasAdsTag
-                        mSemaphore.withPermit { Image.decode(it, analyzeFeatures = analyzeFeatures, blockOnQr = blockOnQr) }
-                    } catch (e: AdDetectedException) {
-                        mBlockedAdPages.add(index)
-                        notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                runCatching {
+                    mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
+                    val src = mSpiderDen.getImageSource(index)
+                    if (src == null) {
+                        if (getPageState(index) == STATE_FINISHED) {
+                            updatePageState(index, STATE_NONE)
+                            request(index)
+                        }
                         return
                     }
-                    runCatching {
-                        currentCoroutineContext().ensureActive()
-                    }.onFailure {
-                        image?.recycle()
-                        throw it
+                    src.use {
+                        val totalPages = mPageStateArray.size
+                        val mayBeAd = index >= totalPages - 10
+                        val hasAdsTag = galleryInfo.hasAds
+                        val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
+                        val image = try {
+                            val blockOnQr = analyzeFeatures && hasAdsTag
+                            mSemaphore.withPermit { Image.decode(it, analyzeFeatures = analyzeFeatures, blockOnQr = blockOnQr) }
+                        } catch (e: AdDetectedException) {
+                            mBlockedAdPages.add(index)
+                            notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                            return
+                        }
+                        try {
+                            currentCoroutineContext().ensureActive()
+                        } catch (e: CancellationException) {
+                            image?.recycle()
+                            throw e
+                        }
+                        if (image == null) {
+                            notifyGetImageFailure(index, DECODE_ERROR)
+                        } else {
+                            notifyGetImageSuccess(index, image)
+                        }
                     }
-                    if (image == null) {
-                        notifyGetImageFailure(index, DECODE_ERROR)
-                    } else {
-                        notifyGetImageSuccess(index, image)
-                    }
+                }.onFailure {
+                    if (it is CancellationException) throw it
+                    notifyGetImageFailure(index, ExceptionUtils.getReadableString(it))
                 }
             }
         }
