@@ -71,14 +71,16 @@ class Image private constructor(
             is DrawableImage -> {
                 (image.drawable as? Animatable)?.stop()
                 image.drawable.callback = null
-                src?.close()
-                mCanvas = null
-                mBitmap?.recycle()
-                mBitmap = null
             }
+
+            is BitmapImageWithExtraInfo -> image.image.bitmap.recycle()
 
             is BitmapImage -> image.bitmap.recycle()
         }
+        src?.close()
+        mBitmap?.recycle()
+        mBitmap = null
+        mCanvas = null
         isRecycled = true
     }
 
