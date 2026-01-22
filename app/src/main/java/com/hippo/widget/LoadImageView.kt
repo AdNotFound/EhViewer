@@ -183,6 +183,7 @@ open class LoadImageView @JvmOverloads constructor(
 
         private fun addToUrlMap(url: String, view: LoadImageView) {
             val set = urlMap.getOrPut(url) { java.util.Collections.newSetFromMap(java.util.WeakHashMap()) }
+            set.removeAll { it.get() == null }
             set.add(java.lang.ref.WeakReference(view))
         }
 
