@@ -17,7 +17,6 @@ package com.hippo.glgallery
 
 import androidx.annotation.CallSuper
 import androidx.annotation.IntDef
-import com.hippo.yorozuya.collect.SieveCache
 import com.hippo.ehviewer.Settings
 import com.hippo.glview.glrenderer.GLCanvas
 import com.hippo.glview.image.ImageWrapper
@@ -28,6 +27,7 @@ import com.hippo.util.isAtLeastO
 import com.hippo.yorozuya.ConcurrentPool
 import com.hippo.yorozuya.MathUtils
 import com.hippo.yorozuya.OSUtils
+import com.hippo.yorozuya.collect.SieveCache
 
 abstract class GalleryProvider {
     private val mNotifyTaskPool = ConcurrentPool<NotifyTask>(5)

@@ -228,7 +228,7 @@ class SpiderDen(private val mGalleryInfo: GalleryInfo) {
             }.onFailure {
                 it.printStackTrace()
             }.onSuccess {
-                return received == length
+                return length < 0 || received == length
             }
         }
 

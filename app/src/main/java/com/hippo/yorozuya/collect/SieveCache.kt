@@ -24,7 +24,7 @@ package com.hippo.yorozuya.collect
 open class SieveCache<K : Any, V : Any>(
     private val maxSize: Int,
     private val sizeOf: (K, V) -> Int = { _, _ -> 1 },
-    private val onEntryRemoved: (K, V, V?, Boolean) -> Unit = { _, _, _, _ -> }
+    private val onEntryRemoved: (K, V, V?, Boolean) -> Unit = { _, _, _, _ -> },
 ) {
     private val map = mutableMapOf<K, Node<K, V>>()
     private var size = 0
