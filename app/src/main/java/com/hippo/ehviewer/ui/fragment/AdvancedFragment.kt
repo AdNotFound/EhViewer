@@ -34,8 +34,8 @@ import com.hippo.ehviewer.BuildConfig
 import com.hippo.ehviewer.EhDB
 import com.hippo.ehviewer.GetText
 import com.hippo.ehviewer.R
-import com.hippo.ehviewer.client.EhClient
 import com.hippo.ehviewer.adblock.AdBlockManager
+import com.hippo.ehviewer.client.EhClient
 import com.hippo.ehviewer.client.EhRequest
 import com.hippo.ehviewer.client.data.FavListUrlBuilder
 import com.hippo.ehviewer.client.parser.FavoritesParser

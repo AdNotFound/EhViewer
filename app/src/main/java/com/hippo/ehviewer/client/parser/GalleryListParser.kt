@@ -299,11 +299,8 @@ object GalleryListParser {
                 val es = ptt.child(0)?.child(0)?.children()
                 if (es != null && es.size >= 2) {
                     result.pages = es[es.size - 2].text().trim { it <= ' ' }.toInt()
-                    var e = es[es.size - 1]
-                    if (e != null) {
-                        e = e.children().firstOrNull()!!
-                        val href = e.attr("href")
-                        val matcher = PATTERN_NEXT_PAGE.matcher(href)
+                    es[es.size - 1].children().firstOrNull()?.let { child ->
+                        val matcher = PATTERN_NEXT_PAGE.matcher(child.attr("href"))
                         if (matcher.find()) {
                             result.nextPage = NumberUtils.parseIntSafely(matcher.group(1), 0)
                         }

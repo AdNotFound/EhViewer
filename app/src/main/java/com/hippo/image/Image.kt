@@ -107,7 +107,9 @@ class Image private constructor(
     fun texImage(init: Boolean, offsetX: Int, offsetY: Int, width: Int, height: Int) {
         val bitmap = when (image) {
             is BitmapImage -> image.bitmap
+
             is BitmapImageWithExtraInfo -> image.image.bitmap
+
             else -> {
                 updateBitmap()
                 mBitmap!!

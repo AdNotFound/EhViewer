@@ -225,7 +225,7 @@ class SpiderDen(private val mGalleryInfo: GalleryInfo) {
                 sCache.edit(key) {
                     metadata.toFile().writeText(extension)
                     received = doSave(UniFile.fromFile(data.toFile())!!)
-                } != null
+                }
             }.getOrDefault(false)
             if (success) return length < 0 || received == length
         }

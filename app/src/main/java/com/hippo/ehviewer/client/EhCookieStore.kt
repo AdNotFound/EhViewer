@@ -21,6 +21,7 @@ import com.hippo.ehviewer.EhApplication
 import com.hippo.network.CookieDatabase
 import com.hippo.network.CookieSet
 import com.hippo.util.launchIO
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.Cookie
@@ -30,6 +31,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import java.util.Collections
 import java.util.regex.Pattern
 
+@OptIn(DelicateCoroutinesApi::class)
 object EhCookieStore : CookieJar {
     private val db: CookieDatabase = CookieDatabase(EhApplication.application, "okhttp3-cookie.db")
     private val map: MutableMap<String, CookieSet> = db.allCookies

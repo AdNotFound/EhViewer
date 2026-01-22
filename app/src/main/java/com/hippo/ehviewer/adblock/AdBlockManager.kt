@@ -3,12 +3,14 @@ package com.hippo.ehviewer.adblock
 import com.hippo.ehviewer.AppConfig
 import com.hippo.util.launchIO
 import com.hippo.util.withIOContext
+import kotlinx.coroutines.DelicateCoroutinesApi
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicBoolean
 
+@OptIn(DelicateCoroutinesApi::class)
 object AdBlockManager {
     private val blockedHashes = CopyOnWriteArraySet<Long>()
     private val file = File(AppConfig.getFilesDir("adblock"), "ad_blocked_hashes.txt")

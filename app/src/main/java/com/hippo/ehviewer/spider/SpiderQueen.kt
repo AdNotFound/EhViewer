@@ -24,6 +24,7 @@ import coil3.BitmapImage
 import com.hippo.ehviewer.GetText
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
+import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhRequestBuilder
 import com.hippo.ehviewer.client.EhUrl
@@ -34,7 +35,6 @@ import com.hippo.ehviewer.client.exception.QuotaExceededException
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
-import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.image.AdDetectedException
@@ -841,7 +841,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                         notifyPageDownload(index, contentLength, receivedSize, bytesRead)
                                     }
                                 }
-                                 check(success) { "Failed to download image $index" }
+                                check(success) { "Failed to download image $index" }
                             } finally {
                                 watchdog.cancel()
                             }
