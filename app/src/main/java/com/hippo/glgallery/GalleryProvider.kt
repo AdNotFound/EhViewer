@@ -15,6 +15,7 @@
  */
 package com.hippo.glgallery
 
+import android.content.ComponentCallbacks2
 import androidx.annotation.CallSuper
 import androidx.annotation.IntDef
 import com.hippo.ehviewer.Settings
