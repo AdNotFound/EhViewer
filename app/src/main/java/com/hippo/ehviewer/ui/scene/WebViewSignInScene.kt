@@ -20,12 +20,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.lifecycle.lifecycleScope
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils
+import com.hippo.ehviewer.util.EhWebViewClientHelper
+import com.hippo.ehviewer.util.SniBypassInterface
 import com.hippo.ehviewer.util.setDefaultSettings
 import com.hippo.ehviewer.widget.DialogWebChromeClient
 import com.hippo.util.launchIO
@@ -59,6 +63,7 @@ class WebViewSignInScene : SolidScene() {
             webChromeClient = DialogWebChromeClient(context)
             loadUrl(EhUrl.URL_SIGN_IN)
             mWebView = this
+            addJavascriptInterface(SniBypassInterface(this), "SniBridge")
         }
     }
 
@@ -98,7 +103,13 @@ class WebViewSignInScene : SolidScene() {
             )
         }
 
+        override fun shouldInterceptRequest(
+            view: WebView,
+            request: WebResourceRequest,
+        ): WebResourceResponse? = EhWebViewClientHelper.shouldInterceptRequest(view, request)
+
         override fun onPageFinished(view: WebView, url: String) {
+            EhWebViewClientHelper.injectJavascript(view)
             val httpUrl = url.toHttpUrlOrNull() ?: return
             val cookieString = CookieManager.getInstance().getCookie(EhUrl.HOST_E)
             val cookies = parseCookies(httpUrl, cookieString)

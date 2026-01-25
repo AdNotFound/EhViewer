@@ -27,6 +27,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.view.MenuProvider
@@ -37,6 +38,8 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.ui.scene.BaseScene
+import com.hippo.ehviewer.util.EhWebViewClientHelper
+import com.hippo.ehviewer.util.SniBypassInterface
 import com.hippo.ehviewer.util.setDefaultSettings
 import com.hippo.ehviewer.widget.DialogWebChromeClient
 import com.hippo.util.launchIO
@@ -62,6 +65,7 @@ class UConfigFragment : BaseFragment() {
             setDefaultSettings()
             webViewClient = UConfigWebViewClient()
             webChromeClient = DialogWebChromeClient(requireContext())
+            addJavascriptInterface(SniBypassInterface(this), "SniBridge")
         }
         progress = view.findViewById(R.id.progress)
         return view
@@ -157,12 +161,18 @@ class UConfigFragment : BaseFragment() {
             return true
         }
 
+        override fun shouldInterceptRequest(
+            view: WebView,
+            request: WebResourceRequest,
+        ): WebResourceResponse? = EhWebViewClientHelper.shouldInterceptRequest(view, request)
+
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
             progress!!.visibility = View.VISIBLE
             loaded = false
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            EhWebViewClientHelper.injectJavascript(view)
             progress!!.visibility = View.GONE
             loaded = true
         }
