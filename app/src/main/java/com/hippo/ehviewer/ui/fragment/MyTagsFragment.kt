@@ -24,12 +24,15 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhUrl
+import com.hippo.ehviewer.util.EhWebViewClientHelper
+import com.hippo.ehviewer.util.SniBypassInterface
 import com.hippo.ehviewer.util.setDefaultSettings
 import com.hippo.ehviewer.widget.DialogWebChromeClient
 import okhttp3.HttpUrl.Companion.toHttpUrl
@@ -52,6 +55,7 @@ class MyTagsFragment : BaseFragment() {
             setDefaultSettings()
             webViewClient = MyTagsWebViewClient()
             webChromeClient = DialogWebChromeClient(requireContext())
+            addJavascriptInterface(SniBypassInterface(this), "SniBridge")
         }
         progress = view.findViewById(R.id.progress)
         return view
@@ -86,11 +90,17 @@ class MyTagsFragment : BaseFragment() {
             return !request.url.toString().startsWith(this@MyTagsFragment.url)
         }
 
+        override fun shouldInterceptRequest(
+            view: WebView,
+            request: WebResourceRequest,
+        ): WebResourceResponse? = EhWebViewClientHelper.shouldInterceptRequest(view, request)
+
         override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
             progress!!.visibility = View.VISIBLE
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            EhWebViewClientHelper.injectJavascript(view)
             progress!!.visibility = View.GONE
         }
     }
