@@ -12,3 +12,12 @@
 -repackageclasses
 -allowaccessmodification
 -overloadaggressively
+
+-keepattributes JavascriptInterface,Annotation
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+
+-keep class com.hippo.ehviewer.util.SniBypassInterface {
+    public <methods>;
+}
