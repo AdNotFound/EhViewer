@@ -73,8 +73,6 @@ class Image private constructor(
                 image.drawable.callback = null
             }
 
-            is BitmapImageWithExtraInfo -> image.image.bitmap.recycle()
-
             is BitmapImage -> image.bitmap.recycle()
         }
         src?.close()
@@ -183,12 +181,8 @@ class Image private constructor(
                         decodeCoil(src.source)
                     }
                 }
-                when (image) {
-                    is DrawableImage -> image.drawable.apply {
-                        setBounds(0, 0, intrinsicWidth, intrinsicHeight)
-                    }
-
-                    is BitmapImage -> src.close()
+                if (image is DrawableImage) {
+                    image.drawable.setBounds(0, 0, image.drawable.intrinsicWidth, image.drawable.intrinsicHeight)
                 }
                 Image(image, src)
             }.onFailure {
