@@ -127,6 +127,16 @@
         android:title="@string/settings_read_double_page_offset"
         app:iconSpaceReserved="false" />
 
+    <SeekBarPreference
+        android:defaultValue="0"
+        android:dependency="double_page_mode"
+        android:key="double_page_gap"
+        android:max="100"
+        android:title="@string/settings_read_double_page_gap"
+        app:iconSpaceReserved="false"
+        app:min="0"
+        app:showSeekBarValue="true" />
+
     <SwitchPreferenceCompat
         android:defaultValue="false"
         android:key="volume_page"
