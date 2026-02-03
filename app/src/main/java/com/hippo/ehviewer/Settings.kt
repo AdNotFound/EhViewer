@@ -137,6 +137,8 @@ object Settings {
     private const val DEFAULT_DOUBLE_PAGE_OFFSET = false
     private const val KEY_STRIP_EXTRANEOUS_ADS = "strip_extraneous_ads"
     private const val DEFAULT_STRIP_EXTRANEOUS_ADS = false
+    const val KEY_DOUBLE_PAGE_GAP = "double_page_gap"
+    private const val DEFAULT_DOUBLE_PAGE_GAP = 0
     const val KEY_READ_IMAGE_LIMIT = "read_image_limit"
     private const val DEFAULT_READ_IMAGE_LIMIT = 1 // 1x equivalent (index 1 in [3/4, 1, 4/3, 1.5, 2, 3])
 
@@ -612,6 +614,12 @@ object Settings {
         get() = getBoolean(KEY_DOUBLE_PAGE_OFFSET, DEFAULT_DOUBLE_PAGE_OFFSET)
     fun putDoublePageOffset(value: Boolean) {
         putBoolean(KEY_DOUBLE_PAGE_OFFSET, value)
+    }
+
+    val doublePageGap: Int
+        get() = dip2px(getInt(KEY_DOUBLE_PAGE_GAP, DEFAULT_DOUBLE_PAGE_GAP))
+    fun putDoublePageGap(value: Int) {
+        putInt(KEY_DOUBLE_PAGE_GAP, value)
     }
 
     val stripExtraneousAds: Boolean

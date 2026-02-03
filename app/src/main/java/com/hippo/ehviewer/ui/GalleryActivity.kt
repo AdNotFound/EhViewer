@@ -499,6 +499,7 @@ class GalleryActivity :
             .setStartPage(mCurrentIndex)
             .setDoublePageMode(isDoublePageMode)
             .setDoublePageOffset(Settings.doublePageOffset)
+            .setDoublePageGap(Settings.doublePageGap)
             .setBackgroundColor(theme.resolveColor(android.R.attr.colorBackground))
             .setPagerInterval(if (Settings.showPageInterval) resources.getDimensionPixelOffset(R.dimen.gallery_pager_interval) else 0)
             .setScrollInterval(if (Settings.showPageInterval) resources.getDimensionPixelOffset(R.dimen.gallery_scroll_interval) else 0)
@@ -529,6 +530,7 @@ class GalleryActivity :
         if (mGalleryView == null) return
         mGalleryView!!.setDoublePageMode(isDoublePageMode)
         mGalleryView!!.setDoublePageOffset(Settings.doublePageOffset)
+        mGalleryView!!.setDoublePageGap(Settings.doublePageGap)
     }
 
     private fun pageTurn(isPrevious: Boolean) {
@@ -1172,6 +1174,8 @@ class GalleryActivity :
         private val mScreenLightness: SeekBar = view.findViewById(R.id.screen_lightness)
         private val mDoublePageModeLandscape: Switch = view.findViewById(R.id.double_page_mode_landscape)
         private val mDoublePageOffset: Switch = view.findViewById(R.id.double_page_offset)
+        private val mDoublePageGapLayout: ViewGroup = view.findViewById(R.id.double_page_gap_layout)
+        private val mDoublePageGap: SeekBar = view.findViewById(R.id.double_page_gap)
 
         init {
             mScreenRotation.setSelection(Settings.screenRotation)
@@ -1179,11 +1183,14 @@ class GalleryActivity :
             mDoublePageMode.isChecked = Settings.doublePageMode
             mDoublePageModeLandscape.isChecked = Settings.doublePageModeLandscape
             mDoublePageOffset.isChecked = Settings.doublePageOffset
+            mDoublePageGap.progress = Settings.getInt(Settings.KEY_DOUBLE_PAGE_GAP, 0)
             mDoublePageModeLandscape.visibility = if (Settings.doublePageMode) View.VISIBLE else View.GONE
             mDoublePageOffset.visibility = if (Settings.doublePageMode) View.VISIBLE else View.GONE
+            mDoublePageGapLayout.visibility = if (Settings.doublePageMode) View.VISIBLE else View.GONE
             mDoublePageMode.setOnCheckedChangeListener { _: CompoundButton?, isChecked: Boolean ->
                 mDoublePageModeLandscape.visibility = if (isChecked) View.VISIBLE else View.GONE
                 mDoublePageOffset.visibility = if (isChecked) View.VISIBLE else View.GONE
+                mDoublePageGapLayout.visibility = if (isChecked) View.VISIBLE else View.GONE
             }
             mScaleMode.setSelection(Settings.pageScaling)
             mStartPosition.setSelection(Settings.startPosition)
@@ -1221,6 +1228,7 @@ class GalleryActivity :
             val doublePageMode = mDoublePageMode.isChecked
             val doublePageModeLandscape = mDoublePageModeLandscape.isChecked
             val doublePageOffset = mDoublePageOffset.isChecked
+            val doublePageGap = mDoublePageGap.progress
             val scaleMode = GalleryView.sanitizeScaleMode(mScaleMode.selectedItemPosition)
             val startPosition =
                 GalleryView.sanitizeStartPosition(mStartPosition.selectedItemPosition)
@@ -1244,6 +1252,7 @@ class GalleryActivity :
             Settings.putDoublePageMode(doublePageMode)
             Settings.putDoublePageModeLandscape(doublePageModeLandscape)
             Settings.putDoublePageOffset(doublePageOffset)
+            Settings.putDoublePageGap(doublePageGap)
             Settings.putPageScaling(scaleMode)
             Settings.putStartPosition(startPosition)
             Settings.putReadTheme(readTheme)

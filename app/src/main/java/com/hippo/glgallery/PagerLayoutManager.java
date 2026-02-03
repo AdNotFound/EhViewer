@@ -71,6 +71,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     private GalleryPageView mNextSecondary;
     private boolean mDoublePageMode = false;
     private boolean mDoublePageOffset = false;
+    private int mDoublePageGap = 0;
     @Mode
     private int mMode = MODE_RIGHT_TO_LEFT;
     private int mScaleMode;
@@ -137,6 +138,16 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             GalleryView.Adapter adapter = onDetach();
             onAttach(adapter);
             setCurrentIndex(index);
+            mGalleryView.requestFill();
+        }
+    }
+
+    public void setDoublePageGap(int gap) {
+        if (mDoublePageGap == gap) {
+            return;
+        }
+        mDoublePageGap = gap;
+        if (mAdapter != null) {
             mGalleryView.requestFill();
         }
     }
@@ -473,24 +484,35 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         // Scale to fit screen
         float sH = (float) height / totalHeight;
         float sW = (float) width / totalWidth;
-        float baseScale = Math.min(sH, sW);
+        float baseScaleFixed = Math.min(sH, sW);
 
-        float displayW1 = w1 * baseScale;
-        float displayW2 = w2 * baseScale;
-        float displayH = totalHeight * baseScale;
+        // Re-calculate total width with gap included in the scale calculation
+        if (w2 > 0) {
+            float displayGapNative = mDoublePageGap / baseScaleFixed;
+            totalWidth += displayGapNative;
+            sW = (float) width / totalWidth;
+            baseScaleFixed = Math.min(sH, sW);
+        }
+
+        float displayW1 = w1 * baseScaleFixed;
+        float displayW2 = w2 * baseScaleFixed;
+        float displayGap = (w2 > 0) ? mDoublePageGap : 0;
+        float displayH = totalHeight * baseScaleFixed;
 
         // Base Layout (Centered)
-        float startX = (width - (displayW1 + displayW2)) / 2f;
+        float startX = (width - (displayW1 + displayW2 + displayGap)) / 2f;
         float startY = (height - displayH) / 2f;
 
         if (isRTL) {
-            // [Secondary] [Primary]
+            // [Secondary] <gap> [Primary]
             rectSecondary.set(startX, startY, startX + displayW2, startY + displayH);
-            rectPrimary.set(startX + displayW2, startY, startX + displayW2 + displayW1, startY + displayH);
+            rectPrimary.set(startX + displayW2 + displayGap, startY, startX + displayW2 + displayGap + displayW1,
+                    startY + displayH);
         } else {
-            // [Primary] [Secondary]
+            // [Primary] <gap> [Secondary]
             rectPrimary.set(startX, startY, startX + displayW1, startY + displayH);
-            rectSecondary.set(startX + displayW1, startY, startX + displayW1 + displayW2, startY + displayH);
+            rectSecondary.set(startX + displayW1 + displayGap, startY, startX + displayW1 + displayGap + displayW2,
+                    startY + displayH);
         }
     }
 

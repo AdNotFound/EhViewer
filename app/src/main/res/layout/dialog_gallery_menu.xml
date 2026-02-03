@@ -222,6 +222,30 @@
             android:textColor="?android:attr/textColorPrimary"
             android:visibility="gone" />
 
+        <LinearLayout
+            android:id="@+id/double_page_gap_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="4"
+                android:text="@string/settings_read_double_page_gap"
+                android:textColor="?android:attr/textColorPrimary" />
+
+            <SeekBar
+                android:id="@+id/double_page_gap"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="5"
+                android:max="100" />
+
+        </LinearLayout>
+
         <Switch
             android:id="@+id/volume_page"
             android:layout_width="match_parent"
