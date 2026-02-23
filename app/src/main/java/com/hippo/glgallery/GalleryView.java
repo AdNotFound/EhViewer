@@ -444,6 +444,17 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     }
 
     @Override
+    protected void onContextCreated() {
+        super.onContextCreated();
+        if (mAdapter != null) {
+            mAdapter.onContextCreated();
+        }
+        if (mLayoutManager != null) {
+            mLayoutManager.onContextCreated();
+        }
+    }
+
+    @Override
     public boolean onScale(float focusX, float focusY, float scale) {
         postMethod(METHOD_ON_SCALE, focusX, focusY, scale);
         return true;
@@ -1157,6 +1168,9 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         public abstract void onUnbind(GalleryPageView view, int index);
 
         public abstract int size();
+
+        public void onContextCreated() {
+        }
     }
 
     public static abstract class LayoutManager {
@@ -1208,6 +1222,9 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         public abstract int getIndexUnder(float x, float y);
 
         abstract int getInternalCurrentIndex();
+
+        public void onContextCreated() {
+        }
 
         protected void placeCenter(GLView view) {
             int spec = GLView.MeasureSpec.makeMeasureSpec(GLView.LayoutParams.WRAP_CONTENT,

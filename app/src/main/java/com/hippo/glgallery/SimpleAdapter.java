@@ -58,6 +58,22 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
     }
 
     @Override
+    public void onContextCreated() {
+        if (mGalleryView == null)
+            return;
+        for (int i = 0, n = mGalleryView.getComponentCount(); i < n; i++) {
+            com.hippo.glview.view.GLView child = mGalleryView.getComponent(i);
+            if (child instanceof GalleryPageView) {
+                GalleryPageView page = (GalleryPageView) child;
+                ImageTexture texture = page.getImageView().getImageTexture();
+                if (texture != null) {
+                    mUploader.addTexture(texture);
+                }
+            }
+        }
+    }
+
+    @Override
     public void onDataChanged() {
         mGalleryView.onDataChanged();
     }

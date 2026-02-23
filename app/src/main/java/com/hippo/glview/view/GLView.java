@@ -356,6 +356,12 @@ public class GLView implements TouchOwner {
         onResume();
     }
 
+    protected void onContextCreated() {
+        for (int i = 0, n = getComponentCount(); i < n; ++i) {
+            getComponent(i).onContextCreated();
+        }
+    }
+
     public boolean isAttachedToRoot() {
         return mRoot != null;
     }

@@ -512,6 +512,9 @@ public class GLRootView extends GLSurfaceView
                 mGL = gl;
                 mCanvas = mEGLContextClientVersion == 2 ? new GLES20Canvas() : new GLES11Canvas(gl);
                 BasicTexture.invalidateAllTextures();
+                if (mContentView != null) {
+                    mContentView.onContextCreated();
+                }
             } finally {
                 mRenderLock.unlock();
             }

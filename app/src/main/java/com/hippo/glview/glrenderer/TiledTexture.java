@@ -60,7 +60,7 @@ public class TiledTexture implements Texture {
         sPaint.setColor(Color.TRANSPARENT);
     }
 
-    private final Tile[] mTiles;  // Can be modified in different threads.
+    private final Tile[] mTiles; // Can be modified in different threads.
     // Should be protected by "synchronized."
     private final int mWidth;
     private final int mHeight;
@@ -101,7 +101,8 @@ public class TiledTexture implements Texture {
     private static Tile obtainTile() {
         synchronized (sFreeTileLock) {
             Tile result = sFreeTileHead;
-            if (result == null) return new Tile();
+            if (result == null)
+                return new Tile();
             sFreeTileHead = result.nextFreeTile;
             result.nextFreeTile = null;
             return result;
@@ -111,19 +112,19 @@ public class TiledTexture implements Texture {
     // We want to draw the "source" on the "target".
     // This method is to find the "output" rectangle which is
     // the corresponding area of the "src".
-    //                                   (x,y)  target
-    // (x0,y0)  source                     +---------------+
-    //    +----------+                     |               |
-    //    | src      |                     | output        |
-    //    | +--+     |    linear map       | +----+        |
-    //    | +--+     |    ---------->      | |    |        |
-    //    |          | by (scaleX, scaleY) | +----+        |
-    //    +----------+                     |               |
-    //      Texture                        +---------------+
-    //                                          Canvas
+    // (x,y) target
+    // (x0,y0) source +---------------+
+    // +----------+ | |
+    // | src | | output |
+    // | +--+ | linear map | +----+ |
+    // | +--+ | ----------> | | | |
+    // | | by (scaleX, scaleY) | +----+ |
+    // +----------+ | |
+    // Texture +---------------+
+    // Canvas
     private static void mapRect(RectF output,
-                                RectF src, float x0, float y0, float x, float y, float scaleX,
-                                float scaleY) {
+            RectF src, float x0, float y0, float x, float y, float scaleX,
+            float scaleY) {
         output.set(x + (src.left - x0) * scaleX,
                 y + (src.top - y0) * scaleY,
                 x + (src.right - x0) * scaleX,
@@ -131,7 +132,8 @@ public class TiledTexture implements Texture {
     }
 
     private boolean uploadNextTile(GLCanvas canvas) {
-        if (mUploadIndex == mTiles.length) return true;
+        if (mUploadIndex == mTiles.length)
+            return true;
 
         synchronized (mTiles) {
             Tile next = mTiles[mUploadIndex++];
@@ -146,14 +148,26 @@ public class TiledTexture implements Texture {
                 // time. When scrolling, we need to draw several tiles on the screen
                 // at the same time. It may cause a UI jank even these textures has
                 // been uploaded.
-                if (!hasBeenLoad) next.draw(canvas, 0, 0);
+                if (!hasBeenLoad)
+                    next.draw(canvas, 0, 0);
             }
         }
         return mUploadIndex == mTiles.length;
     }
 
     public boolean isReady() {
-        return mUploadIndex == mTiles.length;
+        synchronized (mTiles) {
+            if (mUploadIndex == mTiles.length) {
+                for (Tile tile : mTiles) {
+                    if (!tile.isLoaded()) {
+                        mUploadIndex = 0;
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
     }
 
     // Can be called in UI thread.
@@ -168,7 +182,7 @@ public class TiledTexture implements Texture {
     // Draws a mixed color of this texture and a specified color onto the
     // a rectangle. The used color is: from * (1 - ratio) + to * ratio.
     public void drawMixed(GLCanvas canvas, int color, float ratio,
-                          int x, int y, int width, int height) {
+            int x, int y, int width, int height) {
         RectF src = mSrcRect;
         float scaleX = (float) width / mWidth;
         float scaleY = (float) height / mHeight;
@@ -184,7 +198,7 @@ public class TiledTexture implements Texture {
     }
 
     public void drawMixed(GLCanvas canvas, int color, float ratio,
-                          RectF source, RectF target) {
+            RectF source, RectF target) {
         RectF src = mSrcRect;
         float x0 = source.left;
         float y0 = source.top;
@@ -197,7 +211,8 @@ public class TiledTexture implements Texture {
             for (Tile t : mTiles) {
                 src.set(0, 0, t.contentWidth, t.contentHeight);
                 src.offset(t.offsetX, t.offsetY);
-                if (!src.intersect(source)) continue;
+                if (!src.intersect(source))
+                    continue;
                 mapRect(mDestRect, src, x0, y0, x, y, scaleX, scaleY);
                 src.offset(BORDER_SIZE - t.offsetX, BORDER_SIZE - t.offsetY);
                 canvas.drawMixed(t, color, ratio, mSrcRect, mDestRect);
@@ -238,7 +253,8 @@ public class TiledTexture implements Texture {
             for (Tile t : mTiles) {
                 src.set(0, 0, t.contentWidth, t.contentHeight);
                 src.offset(t.offsetX, t.offsetY);
-                if (!src.intersect(source)) continue;
+                if (!src.intersect(source))
+                    continue;
                 mapRect(dest, src, x0, y0, x, y, scaleX, scaleY);
                 src.offset(BORDER_SIZE - t.offsetX, BORDER_SIZE - t.offsetY);
                 canvas.drawTexture(t, src, dest);
@@ -267,8 +283,7 @@ public class TiledTexture implements Texture {
     }
 
     public static class Uploader implements GLRoot.OnGLIdleListener {
-        private final ArrayDeque<TiledTexture> mTextures =
-                new ArrayDeque<>(INIT_CAPACITY);
+        private final ArrayDeque<TiledTexture> mTextures = new ArrayDeque<>(INIT_CAPACITY);
 
         private final GLRoot mGlRoot;
         private boolean mIsQueued = false;
@@ -282,10 +297,12 @@ public class TiledTexture implements Texture {
         }
 
         public synchronized void addTexture(TiledTexture t) {
-            if (t.isReady()) return;
+            if (t.isReady())
+                return;
             mTextures.addLast(t);
 
-            if (mIsQueued) return;
+            if (mIsQueued)
+                return;
             mIsQueued = true;
             mGlRoot.addOnGLIdleListener(this);
         }
@@ -324,8 +341,8 @@ public class TiledTexture implements Texture {
         public void setSize(int width, int height) {
             contentWidth = width;
             contentHeight = height;
-            mWidth = width + 2 * BORDER_SIZE;
-            mHeight = height + 2 * BORDER_SIZE;
+            this.mWidth = width + 2 * BORDER_SIZE;
+            this.mHeight = height + 2 * BORDER_SIZE;
             mTextureWidth = TILE_SIZE;
             mTextureHeight = TILE_SIZE;
         }
@@ -345,10 +362,14 @@ public class TiledTexture implements Texture {
                 sCanvas.drawBitmap(localBitmapRef, x, y, sBitmapPaint);
 
                 // draw borders if need
-                if (x > 0) sCanvas.drawLine(x - 1, 0, x - 1, TILE_SIZE, sPaint);
-                if (y > 0) sCanvas.drawLine(0, y - 1, TILE_SIZE, y - 1, sPaint);
-                if (r < CONTENT_SIZE) sCanvas.drawLine(r, 0, r, TILE_SIZE, sPaint);
-                if (b < CONTENT_SIZE) sCanvas.drawLine(0, b, TILE_SIZE, b, sPaint);
+                if (x > 0)
+                    sCanvas.drawLine(x - 1, 0, x - 1, TILE_SIZE, sPaint);
+                if (y > 0)
+                    sCanvas.drawLine(0, y - 1, TILE_SIZE, y - 1, sPaint);
+                if (r < CONTENT_SIZE)
+                    sCanvas.drawLine(r, 0, r, TILE_SIZE, sPaint);
+                if (b < CONTENT_SIZE)
+                    sCanvas.drawLine(0, b, TILE_SIZE, b, sPaint);
             }
 
             return sUploadBitmap;

@@ -397,7 +397,18 @@ public class ImageTexture implements Texture, Animatable {
     }
 
     public boolean isReady() {
-        return mUploadIndex == mTiles.length;
+        synchronized (mTiles) {
+            if (mUploadIndex == mTiles.length) {
+                for (Tile tile : mTiles) {
+                    if (!tile.isLoaded()) {
+                        mUploadIndex = 0;
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
     }
 
     public void recycle() {
@@ -527,8 +538,8 @@ public class ImageTexture implements Texture, Animatable {
             contentWidth = width;
             contentHeight = height;
 
-            mWidth = width + 2 * borderSize;
-            mHeight = height + 2 * borderSize;
+            this.mWidth = width + 2 * borderSize;
+            this.mHeight = height + 2 * borderSize;
             mTextureWidth = tileSize;
             mTextureHeight = tileSize;
         }
