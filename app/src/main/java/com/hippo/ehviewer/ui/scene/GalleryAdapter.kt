@@ -189,7 +189,7 @@ internal abstract class GalleryAdapter(
         val gi = getDataAt(position) ?: return
         when (mType) {
             TYPE_LIST -> {
-                holder.thumb.load(getThumbKey(gi.gid), gi.thumbUrl!!, hardware = false)
+                holder.thumb.load(getThumbKey(gi.gid), gi.thumbUrl ?: return, hardware = false)
                 holder.title.text = EhUtils.getSuitableTitle(gi)
                 holder.uploader!!.alpha = if (gi.disowned) .5f else 1f
                 if (TextUtils.isEmpty(gi.uploader)) {
@@ -230,7 +230,7 @@ internal abstract class GalleryAdapter(
 
             TYPE_GRID -> {
                 (holder.thumb as TileThumb).setThumbSize(gi.thumbWidth, gi.thumbHeight)
-                holder.thumb.load(getThumbKey(gi.gid), gi.thumbUrl!!, hardware = false)
+                holder.thumb.load(getThumbKey(gi.gid), gi.thumbUrl ?: return, hardware = false)
                 if (Settings.thumbShowTitle) {
                     holder.title.text = EhUtils.getSuitableTitle(gi)
                     holder.title.visibility = View.VISIBLE
