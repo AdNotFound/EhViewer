@@ -188,7 +188,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         }
     }
 
-    private int getPairStart(int index) {
+    @Override
+    public int getPairStart(int index) {
         if (!mDoublePageMode || index < 0)
             return index;
 
