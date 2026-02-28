@@ -678,11 +678,12 @@ class GalleryActivity :
     }
 
     private fun getPageRange(index: Int): String {
-        val count = mGalleryView?.getPagePairSize(index) ?: 1
+        val alignedIndex = mGalleryView?.getPagePairStart(index) ?: index
+        val count = mGalleryView?.getPagePairSize(alignedIndex) ?: 1
         return if (count > 1) {
-            "${index + 1}-${index + 2}"
+            "${alignedIndex + 1}-${alignedIndex + 2}"
         } else {
-            (index + 1).toString()
+            (alignedIndex + 1).toString()
         }
     }
 
@@ -710,16 +711,17 @@ class GalleryActivity :
 
     @SuppressLint("SetTextI18n")
     override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+        val alignedProgress = mGalleryView?.getPagePairStart(progress) ?: progress
         val start = if (mLayoutMode == GalleryView.LAYOUT_RIGHT_TO_LEFT) {
             mRightText
         } else {
             mLeftText
         }
         if (fromUser && null != start) {
-            start.text = getPageRange(progress)
+            start.text = getPageRange(alignedProgress)
         }
         if (fromUser && null != mGalleryView) {
-            mGalleryView!!.setCurrentPage(progress)
+            mGalleryView!!.setCurrentPage(alignedProgress)
         }
     }
 

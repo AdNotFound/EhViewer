@@ -124,6 +124,13 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         return 1;
     }
 
+    public int getPagePairStart(int index) {
+        if (mLayoutManager != null) {
+            return mLayoutManager.getPairStart(index);
+        }
+        return index;
+    }
+
     private ImageMovableTextTexture mPageTextTexture;
     private PagerLayoutManager mPagerLayoutManager;
     private ScrollLayoutManager mScrollLayoutManager;
@@ -1220,6 +1227,10 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         public abstract void setCurrentIndex(int index);
 
         public abstract int getIndexUnder(float x, float y);
+
+        public int getPairStart(int index) {
+            return index;
+        }
 
         abstract int getInternalCurrentIndex();
 
