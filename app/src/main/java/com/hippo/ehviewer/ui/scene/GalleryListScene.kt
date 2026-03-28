@@ -74,6 +74,7 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.WindowInsetsAnimationHelper
 import com.hippo.ehviewer.client.EhClient
+import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhRequest
 import com.hippo.ehviewer.client.EhUtils
 import com.hippo.ehviewer.client.data.GalleryInfo
@@ -121,7 +122,9 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.todayIn
+import kotlinx.coroutines.Job
 import rikka.core.res.resolveColor
+import kotlin.random.Random
 import kotlin.time.Clock
 
 class GalleryListScene :
@@ -218,6 +221,7 @@ class GalleryListScene :
     private var mShowActionFab = true
     private var mDrawerViewTransition: ViewTransition? = null
     private var mItemTouchHelper: ItemTouchHelper? = null
+    private var mRandomGalleryJob: Job? = null
 
     @State
     private var mState = STATE_NORMAL
@@ -485,6 +489,8 @@ class GalleryListScene :
 
     override fun onDestroyView() {
         super.onDestroyView()
+        mRandomGalleryJob?.cancel()
+        mRandomGalleryJob = null
         if (null != mSearchBarMover) {
             mSearchBarMover!!.cancelAnimation()
             mSearchBarMover = null
@@ -702,11 +708,15 @@ class GalleryListScene :
             return
         }
         val gi = mHelper!!.getDataAtEx(position) ?: return
+        startGalleryDetailScene(gi, view.findViewById(R.id.thumb))
+    }
+
+    private fun startGalleryDetailScene(gi: GalleryInfo, thumb: View? = null) {
         val args = Bundle()
         args.putString(GalleryDetailScene.KEY_ACTION, GalleryDetailScene.ACTION_GALLERY_INFO)
         args.putParcelable(GalleryDetailScene.KEY_GALLERY_INFO, gi)
         val announcer = Announcer(GalleryDetailScene::class.java).setArgs(args)
-        view.findViewById<View>(R.id.thumb)?.let {
+        thumb?.let {
             announcer.setTranHelper(EnterGalleryDetailTransaction(it))
         }
         startScene(announcer)
@@ -811,6 +821,51 @@ class GalleryListScene :
         }
     }
 
+    private fun openRandomGallery() {
+        if (mRandomGalleryJob?.isActive == true) {
+            return
+        }
+        mRandomGalleryJob = lifecycleScope.launchIO {
+            val upperBound = resolveRandomGidUpperBound()
+            var found: GalleryInfo? = null
+            var error: Exception? = null
+            for (i in 0 until RANDOM_GALLERY_MAX_TRY) {
+                val randomGid = Random.nextLong(1L, upperBound + 1L)
+                val urlBuilder = ListUrlBuilder()
+                urlBuilder.setIndex((randomGid + 1L).toString(), true)
+                val result = runCatching {
+                    EhEngine.getGalleryList(urlBuilder.build())
+                }.onFailure {
+                    error = it as? Exception
+                }.getOrNull() ?: break
+                found = result.galleryInfoList.firstOrNull()
+                if (found != null) {
+                    break
+                }
+            }
+            withUIContext {
+                context ?: return@withUIContext
+                if (found != null) {
+                    startGalleryDetailScene(found!!)
+                } else if (error != null) {
+                    showTip(error?.message ?: getString(R.string.error_unknown), LENGTH_LONG)
+                } else {
+                    showTip(R.string.error_cannot_find_gallery, LENGTH_LONG)
+                }
+            }
+        }
+    }
+
+    private suspend fun resolveRandomGidUpperBound(): Long {
+        val fromCurrent = mHelper?.getDataAtEx(0)?.gid ?: 0L
+        val fallback = if (fromCurrent > RANDOM_GALLERY_MIN_GID_UPPER_BOUND) fromCurrent else RANDOM_GALLERY_MIN_GID_UPPER_BOUND
+        val urlBuilder = ListUrlBuilder()
+        return runCatching {
+            val latest = EhEngine.getGalleryList(urlBuilder.build()).galleryInfoList.firstOrNull()?.gid ?: fallback
+            if (latest > RANDOM_GALLERY_MIN_GID_UPPER_BOUND) latest else RANDOM_GALLERY_MIN_GID_UPPER_BOUND
+        }.getOrDefault(fallback)
+    }
+
     override fun onClickSecondaryFab(view: FabLayout, fab: FloatingActionButton, position: Int) {
         if (null == mHelper) {
             return
@@ -827,8 +882,11 @@ class GalleryListScene :
             // Last page
             2 -> showGidDialog()
 
+            // Random gallery
+            3 -> openRandomGallery()
+
             // Refresh
-            3 -> mHelper!!.refresh()
+            4 -> mHelper!!.refresh()
         }
         view.isExpanded = false
     }
@@ -1682,6 +1740,8 @@ class GalleryListScene :
         private const val STATE_SEARCH = 2
         private const val STATE_SEARCH_SHOW_LIST = 3
         private const val ANIMATE_TIME = 300L
+        private const val RANDOM_GALLERY_MAX_TRY = 20
+        private const val RANDOM_GALLERY_MIN_GID_UPPER_BOUND = 1_000_000L
 
         private fun getSuitableTitleForUrlBuilder(
             resources: Resources,
