@@ -236,6 +236,7 @@ class GalleryDetailScene :
     @State
     private var mState = STATE_INIT
     private var mModifyingFavorites = false
+    private var mBasicInfoOnly = false
 
     @StringRes
     private fun getRatingText(rating: Float): Int = when ((rating * 2).roundToInt()) {
@@ -377,6 +378,7 @@ class GalleryDetailScene :
         mToken = savedInstanceState.getString(KEY_TOKEN)
         mGalleryDetail = savedInstanceState.getParcelableCompat(KEY_GALLERY_DETAIL)
         mRequestId = savedInstanceState.getInt(KEY_REQUEST_ID)
+        mBasicInfoOnly = savedInstanceState.getBoolean(KEY_BASIC_INFO_ONLY, false)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -395,6 +397,7 @@ class GalleryDetailScene :
             outState.putParcelable(KEY_GALLERY_DETAIL, mGalleryDetail)
         }
         outState.putInt(KEY_REQUEST_ID, mRequestId)
+        outState.putBoolean(KEY_BASIC_INFO_ONLY, mBasicInfoOnly)
     }
 
     private fun ensurePopMenu() {
@@ -792,6 +795,7 @@ class GalleryDetailScene :
 
     private fun bindViewSecond() {
         val gd = mGalleryDetail ?: return
+        val basicInfoOnly = mBasicInfoOnly
         if (mPage != 0) {
             Snackbar.make(
                 requireActivity().findViewById(R.id.snackbar),
@@ -810,6 +814,10 @@ class GalleryDetailScene :
         if (mThumb == null || mTitle == null || mUploader == null || mCategory == null || mLanguage == null || mPages == null || mSize == null || mPosted == null || mFavoredTimes == null || mRatingText == null || mRating == null || mTorrent == null || mNewerVersion == null) {
             return
         }
+        updateActionGroupVisibility()
+        mActions?.visibility = if (basicInfoOnly) View.GONE else View.VISIBLE
+        mComments?.visibility = if (basicInfoOnly || !Settings.showComments) View.GONE else View.VISIBLE
+        mPreviews?.visibility = if (basicInfoOnly) View.GONE else View.VISIBLE
         val resources = resources
         mThumb!!.load(getThumbKey(gd.gid), gd.thumbUrl!!, false, hardware = false)
         mTitle!!.text = EhUtils.getSuitableTitle(gd)
@@ -835,8 +843,10 @@ class GalleryDetailScene :
         updateFavoriteDrawable()
         mTorrent!!.text = resources.getString(R.string.torrent_count, gd.torrentCount)
         bindTags(gd.tags)
-        bindComments(gd.comments!!.comments)
-        bindPreviews(gd)
+        if (!basicInfoOnly) {
+            bindComments(gd.comments!!.comments)
+            bindPreviews(gd)
+        }
     }
 
     private fun bindTags(tagGroups: Array<GalleryTagGroup>?) {
@@ -1603,6 +1613,12 @@ class GalleryDetailScene :
         }
     }
 
+    private fun updateActionGroupVisibility() {
+        mActionGroup?.visibility = View.VISIBLE
+        mDownload?.visibility = View.VISIBLE
+        mRead?.visibility = View.VISIBLE
+    }
+
     private fun updateDownloadState() {
         val context = context
         val gid = gid
@@ -1615,6 +1631,7 @@ class GalleryDetailScene :
         }
         mDownloadState = downloadState
         updateDownloadText()
+        updateActionGroupVisibility()
     }
 
     override fun onAdd(info: DownloadInfo, list: List<DownloadInfo>, position: Int) {
@@ -1647,6 +1664,7 @@ class GalleryDetailScene :
 
     private fun onGetGalleryDetailSuccess(result: GalleryDetail) {
         mGalleryDetail = result
+        mBasicInfoOnly = false
         updateDownloadState()
         adjustViewVisibility(STATE_NORMAL, true)
         bindViewSecond()
@@ -1654,12 +1672,35 @@ class GalleryDetailScene :
 
     private fun onGetGalleryDetailFailure(e: Exception) {
         e.printStackTrace()
+        val error = ExceptionUtils.getReadableString(e)
+        if (tryShowBasicInfoForUnavailableGallery(error)) {
+            return
+        }
         if (null != mTip) {
-            val error = ExceptionUtils.getReadableString(e)
             mTip!!.text = error
             adjustViewVisibility(STATE_FAILED, true)
         }
     }
+
+    private fun tryShowBasicInfoForUnavailableGallery(error: String): Boolean {
+        if (!isCopyrightUnavailable(error)) {
+            return false
+        }
+        val galleryInfo = mGalleryInfo ?: return false
+        val fallbackDetail = GalleryDetail(galleryInfo).apply {
+            comments = GalleryCommentList(arrayOf<GalleryComment>(), false)
+        }
+        mGalleryDetail = fallbackDetail
+        mBasicInfoOnly = true
+        updateDownloadState()
+        adjustViewVisibility(STATE_NORMAL, true)
+        bindViewSecond()
+        showTip(error, LENGTH_LONG)
+        return true
+    }
+
+    private fun isCopyrightUnavailable(error: String?): Boolean =
+        error?.contains("unavailable due to a copyright", ignoreCase = true) == true
 
     private fun onRateGallerySuccess(result: RateGalleryParser.Result) {
         if (mGalleryDetail != null) {
@@ -2195,6 +2236,7 @@ class GalleryDetailScene :
         private const val TAG_STATUS_DN = "↓"
         private const val KEY_GALLERY_DETAIL = "gallery_detail"
         private const val KEY_REQUEST_ID = "request_id"
+        private const val KEY_BASIC_INFO_ONLY = "basic_info_only"
         private const val TRANSITION_ANIMATION_DISABLED = true
         private fun getArtist(tagGroups: Array<GalleryTagGroup>?): String? {
             if (null == tagGroups) {
