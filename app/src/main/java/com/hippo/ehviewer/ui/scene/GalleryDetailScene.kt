@@ -391,7 +391,7 @@ class GalleryDetailScene :
         }
         outState.putLong(KEY_GID, mGid)
         if (mToken != null) {
-            outState.putString(KEY_TOKEN, mAction)
+            outState.putString(KEY_TOKEN, mToken)
         }
         if (mGalleryDetail != null) {
             outState.putParcelable(KEY_GALLERY_DETAIL, mGalleryDetail)
