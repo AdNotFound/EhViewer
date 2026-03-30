@@ -645,12 +645,10 @@ class GalleryDetailScene :
             return true
         }
         val application = requireContext().applicationContext as EhApplication
-        return if (application.containGlobalStuff(mRequestId)) {
-            // request exist
-            true
-        } else {
-            request()
+        if (application.containGlobalStuff(mRequestId)) {
+            application.removeGlobalStuff(mRequestId)
         }
+        return request()
     }
 
     private fun request(): Boolean {
