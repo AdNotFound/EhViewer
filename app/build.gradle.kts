@@ -187,6 +187,8 @@ dependencies {
     implementation(libs.jsoup)
 
     coreLibraryDesugaring(libs.desugar)
+
+    testImplementation(libs.junit4)
 }
 
 kotlin {
