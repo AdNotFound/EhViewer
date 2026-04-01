@@ -449,9 +449,10 @@ class GalleryActivity :
             mReaderSidebarAdapter = ReaderSidebarAdapter()
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
             mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
+            mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
             mReaderSidebarToggle?.setOnClickListener { toggleReaderSidebar() }
             updateReaderSidebarVisibility()
-            updateReaderSidebarData()
+            updateReaderSidebarData(forceCenter = true)
         }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -555,7 +556,7 @@ class GalleryActivity :
         updateDoublePageMode()
         updateSlider()
         updateProgress()
-        updateReaderSidebarData()
+        updateReaderSidebarData(forceCenter = true)
         loadReaderSidebarPreviews()
     }
 
@@ -564,7 +565,7 @@ class GalleryActivity :
         mGalleryView!!.setDoublePageMode(isDoublePageMode)
         mGalleryView!!.setDoublePageOffset(Settings.doublePageOffset)
         mGalleryView!!.setDoublePageGap(Settings.doublePageGap)
-        updateReaderSidebarSelection()
+        updateReaderSidebarData(forceCenter = true)
     }
 
     private fun pageTurn(isPrevious: Boolean) {
@@ -749,23 +750,45 @@ class GalleryActivity :
         mSeekBar!!.progress = mCurrentIndex
     }
 
-    private fun updateReaderSidebarData() {
-        mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap)
-        updateReaderSidebarSelection()
+    private fun buildReaderSidebarPageStarts(): List<Int> {
+        if (mSize <= 0) {
+            return emptyList()
+        }
+        val result = ArrayList<Int>()
+        var index = 0
+        while (index < mSize) {
+            result.add(index)
+            val pairSize = (mGalleryView?.getPagePairSize(index) ?: 1).coerceAtLeast(1)
+            index += pairSize
+        }
+        return result
     }
 
-    private fun updateReaderSidebarSelection() {
+    private fun updateReaderSidebarData(forceCenter: Boolean = false) {
+        mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, buildReaderSidebarPageStarts())
+        updateReaderSidebarSelection(forceCenter)
+    }
+
+    private fun updateReaderSidebarSelection(forceCenter: Boolean = true) {
         val adapter = mReaderSidebarAdapter ?: return
         val galleryView = mGalleryView
         val alignedIndex = galleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
         adapter.updateCurrentIndex(alignedIndex)
+        if (!mReaderSidebarVisible || !forceCenter) {
+            return
+        }
+        val targetPosition = adapter.getCurrentAdapterPosition()
+        if (targetPosition < 0) {
+            return
+        }
         val recyclerView = mReaderSidebarRecyclerView ?: return
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
-        val first = layoutManager.findFirstVisibleItemPosition()
-        val last = layoutManager.findLastVisibleItemPosition()
-        if (alignedIndex < 0) return
-        if (first == RecyclerView.NO_POSITION || last == RecyclerView.NO_POSITION || alignedIndex < first || alignedIndex > last) {
-            layoutManager.scrollToPositionWithOffset(alignedIndex, 0)
+        recyclerView.post {
+            val childHeight = layoutManager.findViewByPosition(targetPosition)?.height
+                ?: recyclerView.getChildAt(0)?.height
+                ?: 0
+            val offset = ((recyclerView.height - childHeight) / 2).coerceAtLeast(0)
+            layoutManager.scrollToPositionWithOffset(targetPosition, offset)
         }
     }
 
@@ -806,6 +829,7 @@ class GalleryActivity :
             return
         }
         mReaderSidebarVisible = !mReaderSidebarVisible
+        Settings.putLayoutReaderThumbnailSidebarVisible(mReaderSidebarVisible)
         updateReaderSidebarVisibility()
     }
 
@@ -835,6 +859,9 @@ class GalleryActivity :
             mGLRootView?.requestLayout()
             mGLRootView?.requestLayoutContentPane()
             mGalleryView?.requestLayout()
+            if (mReaderSidebarVisible) {
+                updateReaderSidebarSelection(forceCenter = true)
+            }
         }
     }
 
@@ -1498,21 +1525,21 @@ class GalleryActivity :
                 NOTIFY_KEY_LAYOUT_MODE -> {
                     mLayoutMode = mValue
                     updateSlider()
-                    updateReaderSidebarSelection()
+                    updateReaderSidebarData(forceCenter = true)
                 }
 
                 NOTIFY_KEY_SIZE -> {
                     mSize = mValue
                     updateSlider()
                     updateProgress()
-                    updateReaderSidebarData()
+                    updateReaderSidebarData(forceCenter = true)
                 }
 
                 NOTIFY_KEY_CURRENT_INDEX -> {
                     mCurrentIndex = mValue
                     updateSlider()
                     updateProgress()
-                    updateReaderSidebarSelection()
+                    updateReaderSidebarSelection(forceCenter = true)
                 }
 
                 NOTIFY_KEY_TAP_MENU_AREA -> onTapMenuArea()
@@ -1537,6 +1564,8 @@ class GalleryActivity :
         private var pageCount = 0
         private var currentIndex = -1
         private var previews: Map<Int, GalleryPreview> = emptyMap()
+        private var pageStarts: List<Int> = emptyList()
+        private var pageStartToPosition: Map<Int, Int> = emptyMap()
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ReaderSidebarHolder = ReaderSidebarHolder(
             inflater.inflate(R.layout.item_gallery_sidebar_preview, parent, false),
@@ -1544,7 +1573,8 @@ class GalleryActivity :
 
         @SuppressLint("SetTextI18n")
         override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int) {
-            val preview = previews[position]
+            val pageStart = pageStarts[position]
+            val preview = previews[pageStart]
             if (preview != null) {
                 holder.image.setBackgroundResource(0)
                 preview.load(holder.image)
@@ -1553,35 +1583,45 @@ class GalleryActivity :
                 holder.image.setImageDrawable(null)
                 holder.image.setBackgroundResource(R.drawable.bg_reader_sidebar_placeholder)
             }
-            holder.text.text = (position + 1).toString()
+            val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
+            val pageEnd = minOf(pageCount, pageStart + pairSize)
+            holder.text.text = if (pageEnd - pageStart > 1) {
+                "${pageStart + 1}-${pageEnd}"
+            } else {
+                (pageStart + 1).toString()
+            }
             val activated = position == currentIndex
             holder.itemView.alpha = if (activated) 1f else 0.72f
             holder.text.setTypeface(null, if (activated) Typeface.BOLD else Typeface.NORMAL)
             holder.itemView.setOnClickListener {
-                val target = mGalleryView?.getPagePairStart(position) ?: position
-                mGalleryView?.setCurrentPage(target)
+                mGalleryView?.setCurrentPage(pageStart)
             }
         }
 
-        override fun getItemCount(): Int = pageCount
+        override fun getItemCount(): Int = pageStarts.size
 
-        fun updateData(pageCount: Int, previews: Map<Int, GalleryPreview>) {
+        fun updateData(pageCount: Int, previews: Map<Int, GalleryPreview>, pageStarts: List<Int>) {
             this.pageCount = pageCount
             this.previews = previews
+            this.pageStarts = pageStarts
+            this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
             notifyDataSetChanged()
         }
 
         fun updateCurrentIndex(index: Int) {
-            if (currentIndex == index) return
+            val newIndex = pageStartToPosition[index] ?: -1
+            if (currentIndex == newIndex) return
             val oldIndex = currentIndex
-            currentIndex = index
-            if (oldIndex in 0 until pageCount) {
+            currentIndex = newIndex
+            if (oldIndex in pageStarts.indices) {
                 notifyItemChanged(oldIndex)
             }
-            if (currentIndex in 0 until pageCount) {
+            if (currentIndex in pageStarts.indices) {
                 notifyItemChanged(currentIndex)
             }
         }
+
+        fun getCurrentAdapterPosition(): Int = currentIndex
     }
 
     private inner class GalleryAdapter(glRootView: GLRootView, provider: GalleryProvider) : SimpleAdapter(glRootView, provider) {
