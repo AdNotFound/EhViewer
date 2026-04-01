@@ -19,6 +19,7 @@ coil = "3.4.0"
 drawer = "1.0.3"
 google-android-material = "1.13.0"
 jsoup = "1.22.1"
+re2j = "1.8"
 junit4 = "4.13.2"
 kotlin = "2.2.21"
 kotlinx-coroutines = "1.10.2"
@@ -57,6 +58,7 @@ coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp" }
 
 drawer = { module = "com.drakeet.drawer:drawer", version.ref = "drawer" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }

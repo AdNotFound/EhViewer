@@ -175,6 +175,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.cbor)
     implementation(libs.ktor.utils)
     implementation(libs.jsoup)
+    implementation(libs.re2j)
 
     coreLibraryDesugaring(libs.desugar)
 
