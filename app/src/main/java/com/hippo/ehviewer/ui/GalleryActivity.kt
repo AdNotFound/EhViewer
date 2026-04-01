@@ -207,8 +207,13 @@ class GalleryActivity :
     private var mSeekBar: ReversibleSeekBar? = null
     private var mAutoTransfer: ImageView? = null
     private var mReaderSidebarRecyclerView: RecyclerView? = null
+    private var mReaderSidebarContainer: View? = null
+    private var mReaderSidebarDivider: View? = null
+    private var mReaderSidebarToggle: ImageView? = null
+    private var mReaderContentContainer: View? = null
     private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
     private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
+    private var mReaderSidebarVisible = true
     private var mReaderSidebarPreviewJob: Job? = null
     private var mSeekBarPanelAnimator: ObjectAnimator? = null
     private var mLayoutMode = 0
@@ -435,11 +440,17 @@ class GalleryActivity :
         }
         mSeekBar!!.setOnSeekBarChangeListener(this)
         mAutoTransfer!!.setOnClickListener { autoTransfer() }
+        mReaderContentContainer = findViewById(R.id.reader_content_container)
+        mReaderSidebarDivider = findViewById(R.id.reader_sidebar_divider)
+        mReaderSidebarContainer = findViewById(R.id.reader_sidebar_container)
+        mReaderSidebarToggle = findViewById(R.id.reader_sidebar_toggle)
         mReaderSidebarRecyclerView = findViewById(R.id.reader_sidebar_list)
         if (mReaderSidebarRecyclerView != null) {
             mReaderSidebarAdapter = ReaderSidebarAdapter()
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
             mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
+            mReaderSidebarToggle?.setOnClickListener { toggleReaderSidebar() }
+            updateReaderSidebarVisibility()
             updateReaderSidebarData()
         }
 
@@ -788,6 +799,38 @@ class GalleryActivity :
             val preview = previewSet.getGalleryPreview(galleryInfo.gid, i)
             mReaderSidebarPreviewMap[preview.position] = preview
         }
+    }
+
+    private fun toggleReaderSidebar() {
+        if (mReaderSidebarRecyclerView == null) {
+            return
+        }
+        mReaderSidebarVisible = !mReaderSidebarVisible
+        updateReaderSidebarVisibility()
+    }
+
+    private fun updateReaderSidebarVisibility() {
+        val contentContainer = mReaderContentContainer ?: return
+        val sidebarContainer = mReaderSidebarContainer ?: return
+        val toggleView = mReaderSidebarToggle ?: return
+        val contentLayoutParams = contentContainer.layoutParams as? FrameLayout.LayoutParams ?: return
+        val dividerWidth = mReaderSidebarDivider?.layoutParams?.width ?: 0
+        val sidebarWidth = mReaderSidebarContainer?.layoutParams?.width ?: 0
+        val endMargin = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
+        if (contentLayoutParams.marginEnd != endMargin) {
+            contentLayoutParams.marginEnd = endMargin
+            contentContainer.layoutParams = contentLayoutParams
+        }
+        mReaderSidebarDivider?.isVisible = mReaderSidebarVisible
+        sidebarContainer.isVisible = mReaderSidebarVisible
+        val toggleLayoutParams = toggleView.layoutParams as? FrameLayout.LayoutParams ?: return
+        if (toggleLayoutParams.marginEnd != endMargin) {
+            toggleLayoutParams.marginEnd = endMargin
+            toggleView.layoutParams = toggleLayoutParams
+        }
+        toggleView.scaleX = if (mReaderSidebarVisible) 1f else -1f
+        toggleView.alpha = if (mReaderSidebarVisible) 0.92f else 0.8f
+        toggleView.bringToFront()
     }
 
     @SuppressLint("SetTextI18n")
