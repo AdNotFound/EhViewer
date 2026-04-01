@@ -147,10 +147,14 @@ object Settings {
     private const val DEFAULT_LAYOUT_ENABLED = false
     private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV = "layout_main_persistent_nav"
     private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV = false
+    private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = "layout_main_persistent_nav_width"
+    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = 1
     private const val KEY_LAYOUT_SETTINGS_TWO_PANE = "layout_settings_two_pane"
     private const val DEFAULT_LAYOUT_SETTINGS_TWO_PANE = false
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR = "layout_reader_thumbnail_sidebar"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR = false
+    private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = "layout_reader_thumbnail_sidebar_width"
+    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = 1
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = "layout_reader_thumbnail_sidebar_visible"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = true
 
@@ -335,11 +339,17 @@ object Settings {
         if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV)) {
             putLayoutMainPersistentNav(enableLargeScreenLayout)
         }
+        if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)) {
+            putLayoutMainPersistentNavWidth(DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
+        }
         if (!sSettingsPre.contains(KEY_LAYOUT_SETTINGS_TWO_PANE)) {
             putLayoutSettingsTwoPane(enableLargeScreenLayout)
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR)) {
             putLayoutReaderThumbnailSidebar(enableLargeScreenLayout)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH)) {
+            putLayoutReaderThumbnailSidebarWidth(DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH)
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE)) {
             putLayoutReaderThumbnailSidebarVisible(true)
@@ -666,6 +676,12 @@ object Settings {
         putBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV, value)
     }
 
+    val layoutMainPersistentNavWidth: Int
+        get() = getIntFromStr(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
+    fun putLayoutMainPersistentNavWidth(value: Int) {
+        putIntToStr(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH, value)
+    }
+
     val layoutSettingsTwoPane: Boolean
         get() = getBoolean(KEY_LAYOUT_SETTINGS_TWO_PANE, DEFAULT_LAYOUT_SETTINGS_TWO_PANE)
     fun putLayoutSettingsTwoPane(value: Boolean) {
@@ -676,6 +692,12 @@ object Settings {
         get() = getBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR)
     fun putLayoutReaderThumbnailSidebar(value: Boolean) {
         putBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR, value)
+    }
+
+    val layoutReaderThumbnailSidebarWidth: Int
+        get() = getIntFromStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH)
+    fun putLayoutReaderThumbnailSidebarWidth(value: Int) {
+        putIntToStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, value)
     }
 
     val layoutReaderThumbnailSidebarVisible: Boolean

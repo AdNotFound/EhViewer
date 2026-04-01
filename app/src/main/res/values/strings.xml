@@ -466,11 +466,16 @@
     <string name="settings_layout_enabled">Large-screen layout optimizations</string>
     <string name="settings_layout_enabled_summary">Applies a layout better suited for wider screens. Turn it off to keep the default layout.</string>
     <string name="settings_layout_main_persistent_nav">Persistent main sidebar</string>
+    <string name="settings_layout_main_persistent_nav_width">Main sidebar width</string>
     <string name="settings_layout_main_persistent_nav_summary">Keeps the main navigation visible instead of hiding it in a drawer.</string>
     <string name="settings_layout_settings_two_pane">Two-pane settings</string>
     <string name="settings_layout_settings_two_pane_summary">Shows the settings list and detail view side by side on wider screens.</string>
     <string name="settings_layout_reader_thumbnail_sidebar">Reader thumbnail sidebar</string>
+    <string name="settings_layout_reader_thumbnail_sidebar_width">Thumbnail sidebar width</string>
     <string name="settings_layout_reader_thumbnail_sidebar_summary">Shows page thumbnails beside the reader for quicker jumping.</string>
+    <string name="settings_layout_sidebar_width_compact">Compact</string>
+    <string name="settings_layout_sidebar_width_standard">Standard</string>
+    <string name="settings_layout_sidebar_width_wide">Wide</string>
     <string name="settings_read_screen_rotation">Screen orientation</string>
     <string name="settings_read_screen_rotation_default">Default</string>
     <string name="settings_read_screen_rotation_portrait">Portrait</string>

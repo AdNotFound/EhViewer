@@ -440,11 +440,16 @@
     <string name="settings_layout_enabled">大屏布局优化</string>
     <string name="settings_layout_enabled_summary">为宽屏设备提供更合适的界面布局，关闭后使用默认布局。</string>
     <string name="settings_layout_main_persistent_nav">主界面侧栏常驻</string>
+    <string name="settings_layout_main_persistent_nav_width">主界面侧栏宽度</string>
     <string name="settings_layout_main_persistent_nav_summary">在主界面固定显示导航侧栏，不再收纳到抽屉中。</string>
     <string name="settings_layout_settings_two_pane">设置页双栏显示</string>
     <string name="settings_layout_settings_two_pane_summary">在较宽屏幕上同时显示设置列表和详情内容。</string>
     <string name="settings_layout_reader_thumbnail_sidebar">阅读器缩略图侧栏</string>
+    <string name="settings_layout_reader_thumbnail_sidebar_width">缩略图侧栏宽度</string>
     <string name="settings_layout_reader_thumbnail_sidebar_summary">在阅读器侧边显示页面缩略图，方便快速跳转。</string>
+    <string name="settings_layout_sidebar_width_compact">紧凑</string>
+    <string name="settings_layout_sidebar_width_standard">标准</string>
+    <string name="settings_layout_sidebar_width_wide">宽</string>
     <string name="settings_read_screen_rotation">屏幕方向</string>
     <string name="settings_read_screen_rotation_default">系统默认</string>
     <string name="settings_read_screen_rotation_portrait">竖屏</string>

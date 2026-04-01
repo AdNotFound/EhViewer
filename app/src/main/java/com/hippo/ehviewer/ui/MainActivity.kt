@@ -35,6 +35,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
+import android.util.TypedValue
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -265,7 +266,7 @@ class MainActivity :
         mMainNavContainer = findViewById(R.id.main_nav_container)
         mUsePersistentNavigationLayout = mMainNavContainer != null
         if (mUsePersistentNavigationLayout) {
-            mPersistentNavigationWidth = mMainNavContainer?.layoutParams?.width ?: 0
+            mPersistentNavigationWidth = getPersistentNavigationWidth()
             mPersistentNavigationVisible = mMainNavContainer?.isVisible != false
             updatePersistentNavigationLayout()
         }
@@ -560,6 +561,17 @@ class MainActivity :
         mStageLayout?.removeAboveSnackView(view)
     }
 
+    private fun getPersistentNavigationWidth(): Int {
+        val navWidthDp = when (Settings.layoutMainPersistentNavWidth) {
+            0 -> 280
+            2 -> 360
+            else -> 320
+        }
+        val navWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, navWidthDp.toFloat(), resources.displayMetrics).toInt()
+        val dividerWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, resources.displayMetrics).toInt()
+        return navWidthPx + dividerWidthPx
+    }
+
     private fun setPersistentNavigationVisible(visible: Boolean) {
         if (!mUsePersistentNavigationLayout) {
             return
@@ -574,6 +586,10 @@ class MainActivity :
     private fun updatePersistentNavigationLayout() {
         if (!mUsePersistentNavigationLayout) {
             return
+        }
+        mPersistentNavigationWidth = getPersistentNavigationWidth()
+        mMainNavContainer?.layoutParams = mMainNavContainer?.layoutParams?.apply {
+            width = mPersistentNavigationWidth
         }
         mMainNavContainer?.isVisible = mPersistentNavigationVisible
         val drawerLayout = mDrawerLayout ?: return
