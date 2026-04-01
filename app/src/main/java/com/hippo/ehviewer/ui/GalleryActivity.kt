@@ -171,6 +171,9 @@ class GalleryActivity :
     private val mHideSliderRunnable = Runnable {
         mSeekBarPanel?.let { hideSlider(it) }
     }
+    private val mHideReaderSidebarToggleRunnable = Runnable {
+        mReaderSidebarToggle?.animate()?.alpha(0f)?.setDuration(READER_SIDEBAR_TOGGLE_FADE_DURATION)?.start()
+    }
     private val mHideSliderListener: SimpleAnimatorListener = object : SimpleAnimatorListener() {
         override fun onAnimationEnd(animation: Animator) {
             mSeekBarPanelAnimator = null
@@ -452,7 +455,7 @@ class GalleryActivity :
             mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
             mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
             mReaderSidebarToggle?.setOnClickListener { toggleReaderSidebar() }
-            updateReaderSidebarVisibility()
+            updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
             updateReaderSidebarData(forceCenter = true)
         }
 
@@ -840,10 +843,10 @@ class GalleryActivity :
         }
         mReaderSidebarVisible = !mReaderSidebarVisible
         Settings.putLayoutReaderThumbnailSidebarVisible(mReaderSidebarVisible)
-        updateReaderSidebarVisibility()
+        updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
     }
 
-    private fun updateReaderSidebarVisibility() {
+    private fun updateReaderSidebarVisibility(showHiddenIndicator: Boolean = false) {
         val contentContainer = mReaderContentContainer ?: return
         val sidebarContainer = mReaderSidebarContainer ?: return
         val toggleView = mReaderSidebarToggle ?: return
@@ -868,8 +871,17 @@ class GalleryActivity :
             toggleLayoutParams.marginEnd = endMargin
             toggleView.layoutParams = toggleLayoutParams
         }
-        toggleView.scaleX = if (mReaderSidebarVisible) 1f else -1f
-        toggleView.alpha = if (mReaderSidebarVisible) 0.92f else 0.8f
+        toggleView.animate().cancel()
+        toggleView.removeCallbacks(mHideReaderSidebarToggleRunnable)
+        toggleView.scaleX = if (mReaderSidebarVisible) -1f else 1f
+        if (mReaderSidebarVisible) {
+            toggleView.alpha = 0.92f
+        } else {
+            toggleView.alpha = if (showHiddenIndicator) 0.92f else 0f
+            if (showHiddenIndicator) {
+                toggleView.postDelayed(mHideReaderSidebarToggleRunnable, READER_SIDEBAR_TOGGLE_HINT_DELAY)
+            }
+        }
         toggleView.bringToFront()
         contentContainer.post {
             mGLRootView?.requestLayout()
@@ -1679,6 +1691,8 @@ class GalleryActivity :
         const val KEY_CURRENT_INDEX = "current_index"
         private const val SLIDER_ANIMATION_DURING: Long = 150
         private const val HIDE_SLIDER_DELAY: Long = 3000
+        private const val READER_SIDEBAR_TOGGLE_HINT_DELAY: Long = 1500
+        private const val READER_SIDEBAR_TOGGLE_FADE_DURATION: Long = 180
         private const val NOTIFY_KEY_LAYOUT_MODE = 0
         private const val NOTIFY_KEY_SIZE = 1
         private const val NOTIFY_KEY_CURRENT_INDEX = 2
