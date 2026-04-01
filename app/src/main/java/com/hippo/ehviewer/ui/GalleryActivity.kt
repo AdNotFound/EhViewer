@@ -1528,7 +1528,22 @@ class GalleryActivity :
 
     private class ReaderSidebarHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val image: LoadImageView = itemView.findViewById(R.id.image)
+        val imageSecondary: LoadImageView = itemView.findViewById(R.id.image_secondary)
+        val imageGap: View = itemView.findViewById(R.id.image_gap)
         val text: TextView = itemView.findViewById(R.id.text)
+    }
+
+    private fun bindSidebarPreview(view: LoadImageView, preview: GalleryPreview?) {
+        if (preview != null) {
+            view.visibility = View.VISIBLE
+            view.setBackgroundResource(0)
+            preview.load(view)
+        } else {
+            view.visibility = View.VISIBLE
+            view.resetClip()
+            view.setImageDrawable(null)
+            view.setBackgroundResource(R.drawable.bg_reader_sidebar_placeholder)
+        }
     }
 
     private inner class ReaderSidebarAdapter : RecyclerView.Adapter<ReaderSidebarHolder>() {
@@ -1546,17 +1561,19 @@ class GalleryActivity :
         @SuppressLint("SetTextI18n")
         override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int) {
             val pageStart = pageStarts[position]
-            val preview = previews[pageStart]
-            if (preview != null) {
-                holder.image.setBackgroundResource(0)
-                preview.load(holder.image)
-            } else {
-                holder.image.resetClip()
-                holder.image.setImageDrawable(null)
-                holder.image.setBackgroundResource(R.drawable.bg_reader_sidebar_placeholder)
-            }
             val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
             val pageEnd = minOf(pageCount, pageStart + pairSize)
+            bindSidebarPreview(holder.image, previews[pageStart])
+            if (pageEnd - pageStart > 1) {
+                holder.imageSecondary.visibility = View.VISIBLE
+                holder.imageGap.visibility = View.VISIBLE
+                bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1])
+            } else {
+                holder.imageSecondary.resetClip()
+                holder.imageSecondary.setImageDrawable(null)
+                holder.imageSecondary.visibility = View.GONE
+                holder.imageGap.visibility = View.GONE
+            }
             holder.text.text = if (pageEnd - pageStart > 1) {
                 "${pageStart + 1}-${pageEnd}"
             } else {
