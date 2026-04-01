@@ -17,6 +17,7 @@ package com.hippo.ehviewer
 
 import android.content.Context
 import android.net.Uri
+import android.os.Looper
 import androidx.paging.PagingSource
 import androidx.room.Room.databaseBuilder
 import com.hippo.ehviewer.EhApplication.Companion.ehDatabase
@@ -34,27 +35,40 @@ import com.hippo.ehviewer.dao.QuickSearch
 import com.hippo.ehviewer.download.DownloadManager
 import com.hippo.unifile.UniFile
 import com.hippo.util.sendTo
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 
 object EhDB {
     private val db = ehDatabase
+    private val dbLock = ReentrantLock()
+
+    private inline fun <T> accessDb(crossinline block: () -> T): T =
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            runBlocking(Dispatchers.IO) {
+                dbLock.withLock { block() }
+            }
+        } else {
+            dbLock.withLock { block() }
+        }
 
     // Fix state
-    @get:Synchronized
     val allDownloadInfo: List<DownloadInfo>
-        get() = db.downloadsDao().list().onEach {
-            if (it.state == DownloadInfo.STATE_WAIT || it.state == DownloadInfo.STATE_DOWNLOAD) {
-                it.state = DownloadInfo.STATE_NONE
+        get() = accessDb {
+            db.downloadsDao().list().onEach {
+                if (it.state == DownloadInfo.STATE_WAIT || it.state == DownloadInfo.STATE_DOWNLOAD) {
+                    it.state = DownloadInfo.STATE_NONE
+                }
             }
         }
 
-    @Synchronized
-    fun updateDownloadInfo(downloadInfos: List<DownloadInfo>) {
+    fun updateDownloadInfo(downloadInfos: List<DownloadInfo>) = accessDb {
         val dao = db.downloadsDao()
         dao.update(downloadInfos)
     }
 
-    @Synchronized
-    fun putDownloadInfo(downloadInfo: DownloadInfo) {
+    fun putDownloadInfo(downloadInfo: DownloadInfo) = accessDb {
         db.downloadsDao().run {
             if (load(downloadInfo.gid) != null) {
                 update(downloadInfo)
@@ -64,24 +78,20 @@ object EhDB {
         }
     }
 
-    @Synchronized
-    fun removeDownloadInfo(downloadInfo: DownloadInfo) {
+    fun removeDownloadInfo(downloadInfo: DownloadInfo) = accessDb {
         db.downloadsDao().delete(downloadInfo)
     }
 
-    @get:Synchronized
     val allDownloadDirname: List<DownloadDirname>
-        get() = db.downloadDirnameDao().list()
+        get() = accessDb { db.downloadDirnameDao().list() }
 
-    @Synchronized
-    fun getDownloadDirname(gid: Long): String? {
+    fun getDownloadDirname(gid: Long): String? = accessDb {
         val dao = db.downloadDirnameDao()
         val raw = dao.load(gid)
-        return raw?.dirname
+        raw?.dirname
     }
 
-    @Synchronized
-    fun putDownloadDirname(gid: Long, dirname: String?) {
+    fun putDownloadDirname(gid: Long, dirname: String?) = accessDb {
         val dao = db.downloadDirnameDao()
         var raw = dao.load(gid)
         if (raw != null) {
@@ -93,108 +103,94 @@ object EhDB {
         }
     }
 
-    @Synchronized
-    fun removeDownloadDirname(gid: Long) {
+    fun removeDownloadDirname(gid: Long) = accessDb {
         val dao = db.downloadDirnameDao()
         dao.deleteByKey(gid)
     }
 
-    @get:Synchronized
     val allDownloadLabelList: List<DownloadLabel>
-        get() = db.downloadLabelDao().list()
+        get() = accessDb { db.downloadLabelDao().list() }
 
-    @Synchronized
-    fun addDownloadLabel(label: String): DownloadLabel {
+    fun addDownloadLabel(label: String): DownloadLabel = accessDb {
         val dao = db.downloadLabelDao()
         val raw = DownloadLabel()
         raw.label = label
         raw.time = System.currentTimeMillis()
         raw.id = dao.insert(raw)
-        return raw
+        raw
     }
 
-    @Synchronized
-    fun addDownloadLabel(raw: DownloadLabel): DownloadLabel {
+    fun addDownloadLabel(raw: DownloadLabel): DownloadLabel = accessDb {
         // Reset id
         raw.id = null
         val dao = db.downloadLabelDao()
         raw.id = dao.insert(raw)
-        return raw
+        raw
     }
 
-    @Synchronized
-    fun updateDownloadLabel(raw: DownloadLabel?) {
+    fun updateDownloadLabel(raw: DownloadLabel?) = accessDb {
         val dao = db.downloadLabelDao()
         dao.update(raw!!)
     }
 
-    @Synchronized
-    fun moveDownloadLabel(fromPosition: Int, toPosition: Int) {
-        if (fromPosition == toPosition) {
-            return
+    fun moveDownloadLabel(fromPosition: Int, toPosition: Int) = accessDb {
+        if (fromPosition != toPosition) {
+            val reverse = fromPosition > toPosition
+            val offset = if (reverse) toPosition else fromPosition
+            val limit = if (reverse) fromPosition - toPosition + 1 else toPosition - fromPosition + 1
+            val dao = db.downloadLabelDao()
+            val list = dao.list(offset, limit)
+            val step = if (reverse) 1 else -1
+            val start = if (reverse) limit - 1 else 0
+            val end = if (reverse) 0 else limit - 1
+            val toTime = list[end].time
+            var i = end
+            while (if (reverse) i < start else i > 0) {
+                val aTime = list[i].time
+                val bTime = list[i + step].time
+                list[i].time = if (aTime == bTime) bTime + step else bTime
+                i += step
+            }
+            list[start].time = toTime
+            dao.update(list)
         }
-        val reverse = fromPosition > toPosition
-        val offset = if (reverse) toPosition else fromPosition
-        val limit = if (reverse) fromPosition - toPosition + 1 else toPosition - fromPosition + 1
-        val dao = db.downloadLabelDao()
-        val list = dao.list(offset, limit)
-        val step = if (reverse) 1 else -1
-        val start = if (reverse) limit - 1 else 0
-        val end = if (reverse) 0 else limit - 1
-        val toTime = list[end].time
-        var i = end
-        while (if (reverse) i < start else i > 0) {
-            val aTime = list[i].time
-            val bTime = list[i + step].time
-            list[i].time = if (aTime == bTime) bTime + step else bTime
-            i += step
-        }
-        list[start].time = toTime
-        dao.update(list)
     }
 
-    @Synchronized
-    fun removeDownloadLabel(raw: DownloadLabel?) {
+    fun removeDownloadLabel(raw: DownloadLabel?) = accessDb {
         val dao = db.downloadLabelDao()
         dao.delete(raw!!)
     }
 
-    @get:Synchronized
     val allLocalFavorites: List<GalleryInfo>
-        get() {
+        get() = accessDb {
             val dao = db.localFavoritesDao()
             val list = dao.list()
-            return ArrayList<GalleryInfo>(list)
+            ArrayList<GalleryInfo>(list)
         }
 
-    @Synchronized
-    fun searchLocalFavorites(query: String): List<GalleryInfo> {
+    fun searchLocalFavorites(query: String): List<GalleryInfo> = accessDb {
         val dao = db.localFavoritesDao()
         val list = dao.list("%$query%")
-        return ArrayList<GalleryInfo>(list)
+        ArrayList<GalleryInfo>(list)
     }
 
-    @Synchronized
-    fun removeLocalFavorites(gid: Long) {
+    fun removeLocalFavorites(gid: Long) = accessDb {
         db.localFavoritesDao().deleteByKey(gid)
     }
 
-    @Synchronized
-    fun removeLocalFavorites(gidArray: LongArray) {
+    fun removeLocalFavorites(gidArray: LongArray) = accessDb {
         val dao = db.localFavoritesDao()
         for (gid in gidArray) {
             dao.deleteByKey(gid)
         }
     }
 
-    @Synchronized
-    fun containLocalFavorites(gid: Long): Boolean {
+    fun containLocalFavorites(gid: Long): Boolean = accessDb {
         val dao = db.localFavoritesDao()
-        return dao.contains(gid)
+        dao.contains(gid)
     }
 
-    @Synchronized
-    fun putLocalFavorites(galleryInfo: GalleryInfo) {
+    fun putLocalFavorites(galleryInfo: GalleryInfo) = accessDb {
         val dao = db.localFavoritesDao()
         if (null == dao.load(galleryInfo.gid)) {
             val info: LocalFavoriteInfo
@@ -208,74 +204,67 @@ object EhDB {
         }
     }
 
-    @Synchronized
-    fun putLocalFavorites(galleryInfoList: List<GalleryInfo>) {
+    fun putLocalFavorites(galleryInfoList: List<GalleryInfo>) = accessDb {
         for (gi in galleryInfoList) {
             putLocalFavorites(gi)
         }
     }
 
-    @get:Synchronized
     val allQuickSearch: List<QuickSearch>
-        get() {
+        get() = accessDb {
             val dao = db.quickSearchDao()
-            return dao.list()
+            dao.list()
         }
 
-    @Synchronized
-    fun insertQuickSearch(quickSearch: QuickSearch) {
+    fun insertQuickSearch(quickSearch: QuickSearch) = accessDb {
         val dao = db.quickSearchDao()
         quickSearch.id = null
         quickSearch.time = System.currentTimeMillis()
         quickSearch.id = dao.insert(quickSearch)
     }
 
-    @Synchronized
-    fun importQuickSearch(quickSearchList: List<QuickSearch?>) {
+    fun importQuickSearch(quickSearchList: List<QuickSearch?>) = accessDb {
         val dao = db.quickSearchDao()
         for (quickSearch in quickSearchList) {
             dao.insert(quickSearch!!)
         }
     }
 
-    @Synchronized
     fun deleteQuickSearch(quickSearch: QuickSearch?) {
         quickSearch ?: return
-        val dao = db.quickSearchDao()
-        dao.delete(quickSearch)
+        accessDb {
+            val dao = db.quickSearchDao()
+            dao.delete(quickSearch)
+        }
     }
 
-    @Synchronized
-    fun moveQuickSearch(fromPosition: Int, toPosition: Int) {
-        if (fromPosition == toPosition) {
-            return
+    fun moveQuickSearch(fromPosition: Int, toPosition: Int) = accessDb {
+        if (fromPosition != toPosition) {
+            val reverse = fromPosition > toPosition
+            val offset = if (reverse) toPosition else fromPosition
+            val limit = if (reverse) fromPosition - toPosition + 1 else toPosition - fromPosition + 1
+            val dao = db.quickSearchDao()
+            val list = dao.list(offset, limit)
+            val step = if (reverse) 1 else -1
+            val start = if (reverse) limit - 1 else 0
+            val end = if (reverse) 0 else limit - 1
+            val toTime = list[end].time
+            var i = end
+            while (if (reverse) i < start else i > 0) {
+                val aTime = list[i].time
+                val bTime = list[i + step].time
+                list[i].time = if (aTime == bTime) bTime + step else bTime
+                i += step
+            }
+            list[start].time = toTime
+            dao.update(list)
         }
-        val reverse = fromPosition > toPosition
-        val offset = if (reverse) toPosition else fromPosition
-        val limit = if (reverse) fromPosition - toPosition + 1 else toPosition - fromPosition + 1
-        val dao = db.quickSearchDao()
-        val list = dao.list(offset, limit)
-        val step = if (reverse) 1 else -1
-        val start = if (reverse) limit - 1 else 0
-        val end = if (reverse) 0 else limit - 1
-        val toTime = list[end].time
-        var i = end
-        while (if (reverse) i < start else i > 0) {
-            val aTime = list[i].time
-            val bTime = list[i + step].time
-            list[i].time = if (aTime == bTime) bTime + step else bTime
-            i += step
-        }
-        list[start].time = toTime
-        dao.update(list)
     }
 
-    @get:Synchronized
     val historyLazyList: PagingSource<Int, HistoryInfo>
-        get() = db.historyDao().listLazy()
+        get() = accessDb { db.historyDao().listLazy() }
 
-    @Synchronized
-    fun putHistoryInfo(galleryInfo: GalleryInfo) {
+    fun putHistoryInfo(galleryInfo: GalleryInfo) = accessDb {
         val dao = db.historyDao()
         val info = galleryInfo as? HistoryInfo ?: HistoryInfo(galleryInfo)
         info.time = System.currentTimeMillis()
@@ -286,8 +275,7 @@ object EhDB {
         }
     }
 
-    @Synchronized
-    fun updateHistoryFavSlot(gid: Long, slot: Int) {
+    fun updateHistoryFavSlot(gid: Long, slot: Int) = accessDb {
         val dao = db.historyDao()
         val info = dao.load(gid)
         if (null != info) {
@@ -296,8 +284,7 @@ object EhDB {
         }
     }
 
-    @Synchronized
-    fun putHistoryInfo(historyInfoList: List<HistoryInfo>) {
+    fun putHistoryInfo(historyInfoList: List<HistoryInfo>) = accessDb {
         val dao = db.historyDao()
         for (info in historyInfoList) {
             if (null == dao.load(info.gid)) {
@@ -306,30 +293,26 @@ object EhDB {
         }
     }
 
-    @Synchronized
-    fun deleteHistoryInfo(info: HistoryInfo?) {
+    fun deleteHistoryInfo(info: HistoryInfo?) = accessDb {
         val dao = db.historyDao()
         dao.delete(info!!)
     }
 
-    @Synchronized
-    fun clearHistoryInfo() {
+    fun clearHistoryInfo() = accessDb {
         val dao = db.historyDao()
         dao.deleteAll()
     }
 
-    @get:Synchronized
     val allFilter: List<Filter>
-        get() = db.filterDao().list()
+        get() = accessDb { db.filterDao().list() }
 
-    @Synchronized
-    fun addFilter(filter: Filter): Boolean {
+    fun addFilter(filter: Filter): Boolean = accessDb {
         val existFilter: Filter? = try {
             db.filterDao().load(filter.text!!, filter.mode)
         } catch (_: Exception) {
             null
         }
-        return if (existFilter == null) {
+        if (existFilter == null) {
             filter.id = null
             filter.id = db.filterDao().insert(filter)
             true
@@ -338,13 +321,11 @@ object EhDB {
         }
     }
 
-    @Synchronized
-    fun deleteFilter(filter: Filter) {
+    fun deleteFilter(filter: Filter) = accessDb {
         db.filterDao().delete(filter)
     }
 
-    @Synchronized
-    fun triggerFilter(filter: Filter) {
+    fun triggerFilter(filter: Filter) = accessDb {
         filter.enable = filter.enable?.not() == true
         db.filterDao().update(filter)
     }
@@ -354,8 +335,7 @@ object EhDB {
         for (item in list) to.insert(item)
     }
 
-    @Synchronized
-    fun exportDB(context: Context, uri: Uri): Boolean {
+    fun exportDB(context: Context, uri: Uri): Boolean = accessDb {
         val ehExportName = "eh.export.db"
         runCatching {
             // Delete old export db
@@ -379,21 +359,20 @@ object EhDB {
             // Copy export db to data dir
             val dbFile = context.getDatabasePath(ehExportName)
             UniFile.fromFile(dbFile)!! sendTo UniFile.fromUri(context, uri)!!
-            return true
+            true
         }.onFailure {
             it.printStackTrace()
-        }
-        return false
+        }.getOrDefault(false)
     }
 
     /**
      * @return error string, null for no error
      */
-    @Synchronized
-    fun importDB(context: Context, uri: Uri): String? {
+    fun importDB(context: Context, uri: Uri): String? = accessDb {
         val tmpDBName = "tmp.db"
         val errorList = mutableListOf<String>()
         var oldDB: EhDatabase? = null
+        var result: String? = null
         runCatching {
             oldDB = databaseBuilder(context, EhDatabase::class.java, tmpDBName)
                 .createFromInputStream { context.contentResolver.openInputStream(uri) }.build()
@@ -694,19 +673,21 @@ object EhDB {
                 context.deleteDatabase(tmpDBName)
                 
                 // If fallback completed but accumulated some individual errors, report them
-                if (errorList.isNotEmpty()) {
-                    return "Fallback Import partially succeeded with errors:\n" + errorList.joinToString("\n")
+                result = if (errorList.isNotEmpty()) {
+                    "Fallback Import partially succeeded with errors:\n" + errorList.joinToString("\n")
+                } else {
+                    null
                 }
-                return null
             } catch (fallbackException: Exception) {
                 fallbackException.printStackTrace()
-                return context.getString(R.string.settings_advanced_import_data_cant_read) + "\n" + originalException.message + "\nFallback failed: " + fallbackException.message
+                result = context.getString(R.string.settings_advanced_import_data_cant_read) + "\n" + originalException.message + "\nFallback failed: " + fallbackException.message
             }
         }
-        
-        if (errorList.isNotEmpty()) {
-            return errorList.joinToString("\n")
+
+        result ?: if (errorList.isNotEmpty()) {
+            errorList.joinToString("\n")
+        } else {
+            null
         }
-        return null
     }
 }
