@@ -38,6 +38,7 @@ import android.os.ParcelFileDescriptor
 import android.os.ParcelFileDescriptor.MODE_READ_ONLY
 import android.provider.MediaStore
 import android.text.TextUtils
+import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -824,6 +825,15 @@ class GalleryActivity :
         }
     }
 
+    private fun getReaderSidebarWidth(): Int {
+        val widthDp = when (Settings.layoutReaderThumbnailSidebarWidth) {
+            0 -> 96
+            2 -> 160
+            else -> 128
+        }
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()
+    }
+
     private fun toggleReaderSidebar() {
         if (mReaderSidebarRecyclerView == null) {
             return
@@ -839,7 +849,13 @@ class GalleryActivity :
         val toggleView = mReaderSidebarToggle ?: return
         val contentLayoutParams = contentContainer.layoutParams as? FrameLayout.LayoutParams ?: return
         val dividerWidth = mReaderSidebarDivider?.layoutParams?.width ?: 0
-        val sidebarWidth = mReaderSidebarContainer?.layoutParams?.width ?: 0
+        val sidebarWidth = getReaderSidebarWidth()
+        mReaderSidebarContainer?.layoutParams = mReaderSidebarContainer?.layoutParams?.apply {
+            width = sidebarWidth
+        }
+        mReaderSidebarDivider?.layoutParams = (mReaderSidebarDivider?.layoutParams as? FrameLayout.LayoutParams)?.apply {
+            marginEnd = sidebarWidth
+        }
         val endMargin = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
         if (contentLayoutParams.marginEnd != endMargin) {
             contentLayoutParams.marginEnd = endMargin
