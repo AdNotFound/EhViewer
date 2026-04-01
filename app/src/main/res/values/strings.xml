@@ -752,4 +752,5 @@
         <item quantity="one">year</item>
         <item quantity="other">years</item>
     </plurals>
+    <string name="reader_sidebar_toggle">Toggle reader thumbnail sidebar</string>
 </resources>

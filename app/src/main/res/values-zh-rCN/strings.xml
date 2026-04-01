@@ -681,4 +681,5 @@
     <plurals name="year">
         <item quantity="other">年</item>
     </plurals>
+    <string name="reader_sidebar_toggle">切换阅读器缩略图侧栏</string>
 </resources>

@@ -6,6 +6,7 @@
     android:layout_height="match_parent">
 
     <FrameLayout
+        android:id="@+id/reader_content_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginEnd="129dp">
@@ -114,11 +115,26 @@
     </FrameLayout>
 
     <View
+        android:id="@+id/reader_sidebar_divider"
         android:layout_width="1dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
         android:layout_marginEnd="128dp"
         android:background="?attr/colorControlHighlight" />
+
+
+
+    <ImageView
+        android:id="@+id/reader_sidebar_toggle"
+        android:layout_width="28dp"
+        android:layout_height="56dp"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="129dp"
+        android:background="?attr/gallerySliderBackgroundColor"
+        android:contentDescription="@string/reader_sidebar_toggle"
+        android:padding="4dp"
+        app:srcCompat="@drawable/v_arrow_left_dark_x24"
+        app:tint="?android:attr/textColorSecondary" />
 
     <LinearLayout
         android:id="@+id/reader_sidebar_container"
