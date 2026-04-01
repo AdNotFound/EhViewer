@@ -25,6 +25,8 @@ import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 
 import java.util.BitSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import com.hippo.glview.anim.Animation;
 import com.hippo.glview.view.GLView;
@@ -49,6 +51,12 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     private final PageFling mPageFling;
     private final SmoothScaler mSmoothScaler;
     private final BitSet mSpreads = new BitSet();
+    private final LinkedHashMap<Integer, PairState> mPairStates = new LinkedHashMap<Integer, PairState>(12, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Integer, PairState> eldest) {
+            return size() > 12;
+        }
+    };
     private final Rect mTempRect = new Rect();
     private final android.graphics.Matrix mPairMatrix = new android.graphics.Matrix();
     private final android.graphics.RectF mBaseRectPrimary = new android.graphics.RectF();
@@ -83,6 +91,18 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     private int mInterval;
     private int mIndex;
 
+    private static final class PairState {
+        final float scale;
+        final float tx;
+        final float ty;
+
+        PairState(float scale, float tx, float ty) {
+            this.scale = scale;
+            this.tx = tx;
+            this.ty = ty;
+        }
+    }
+
     public PagerLayoutManager(Context context, @NonNull GalleryView galleryView,
             int scaleMode, int startPoint, float scaleValue, int interval) {
         super(galleryView);
@@ -102,6 +122,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         }
         mDoublePageMode = enabled;
+        clearPairStates();
         if (mAdapter != null) {
             cancelAllAnimations();
             removeProgress();
@@ -117,6 +138,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         }
         mDoublePageOffset = enabled;
+        clearPairStates();
         if (mAdapter != null) {
             cancelAllAnimations();
             removeProgress();
@@ -147,6 +169,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         }
         mDoublePageGap = gap;
+        clearPairStates();
         if (mAdapter != null) {
             mGalleryView.requestFill();
         }
@@ -163,80 +186,57 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         mPairMatrix.reset();
     }
 
-    // Helper: get the slot number for an index
-    // With offset ON: slot 0 = index 0, slot 1 = indices 1-2, slot 2 = indices
-    // 3-4...
-    // With offset OFF: slot 0 = indices 0-1, slot 1 = indices 2-3...
-    private int getSlotForIndex(int index) {
-        if (mDoublePageOffset) {
-            if (index == 0)
-                return 0;
-            return (index + 1) / 2;
+    private void clearPairStates() {
+        mPairStates.clear();
+    }
+
+    private void cacheCurrentPairState() {
+        if (!mDoublePageMode || mCurrent == null || mBaseRectPrimary.isEmpty()) {
+            return;
+        }
+        int pairStart = getPairStart(mIndex);
+        mPairMatrix.getValues(mMatrixValues);
+        float scale = mMatrixValues[android.graphics.Matrix.MSCALE_X];
+        float tx = mMatrixValues[android.graphics.Matrix.MTRANS_X];
+        float ty = mMatrixValues[android.graphics.Matrix.MTRANS_Y];
+        if (Math.abs(scale - 1.0f) < 0.01f && Math.abs(tx) < 0.5f && Math.abs(ty) < 0.5f) {
+            mPairStates.remove(pairStart);
         } else {
-            return index / 2;
+            mPairStates.put(pairStart, new PairState(scale, tx, ty));
         }
     }
 
-    // Helper: get the start index of a slot
-    private int getSlotStart(int slot) {
-        if (mDoublePageOffset) {
-            if (slot == 0)
-                return 0;
-            return slot * 2 - 1; // slot 1→1, slot 2→3, slot 3→5...
-        } else {
-            return slot * 2; // slot 0→0, slot 1→2, slot 2→4...
+    private void restorePairState(int index) {
+        mPairMatrix.reset();
+        if (!mDoublePageMode) {
+            return;
         }
+        PairState state = mPairStates.get(getPairStart(index));
+        if (state == null) {
+            return;
+        }
+        mMatrixValues[android.graphics.Matrix.MSCALE_X] = state.scale;
+        mMatrixValues[android.graphics.Matrix.MSCALE_Y] = state.scale;
+        mMatrixValues[android.graphics.Matrix.MSKEW_X] = 0.0f;
+        mMatrixValues[android.graphics.Matrix.MSKEW_Y] = 0.0f;
+        mMatrixValues[android.graphics.Matrix.MTRANS_X] = state.tx;
+        mMatrixValues[android.graphics.Matrix.MTRANS_Y] = state.ty;
+        mMatrixValues[android.graphics.Matrix.MPERSP_0] = 0.0f;
+        mMatrixValues[android.graphics.Matrix.MPERSP_1] = 0.0f;
+        mMatrixValues[android.graphics.Matrix.MPERSP_2] = 1.0f;
+        mPairMatrix.setValues(mMatrixValues);
     }
 
     @Override
     public int getPairStart(int index) {
-        if (!mDoublePageMode || index < 0)
-            return index;
-
-        // If the index itself is a spread, it's always its own start
-        if (mSpreads.get(index))
-            return index;
-
-        int slot = getSlotForIndex(index);
-        int slotStart = getSlotStart(slot);
-
-        // If the slot-start is a spread, the second page of the slot becomes its own
-        // solo start
-        if (slotStart != index && mSpreads.get(slotStart)) {
-            return index;
-        }
-        return slotStart;
+        return DoublePageHelper.getPairStart(index, mDoublePageMode, mDoublePageOffset, mSpreads);
     }
 
     public int getPairSize(int index) {
-        if (!mDoublePageMode)
-            return 1;
-        if (mSpreads.get(index))
-            return 1;
-        if (mDoublePageOffset && index == 0)
-            return 1;
-        if (index >= mAdapter.size() - 1)
-            return 1;
-        if (mSpreads.get(index + 1))
-            return 1;
-
-        // Check if this is a slot-start position
-        int slot = getSlotForIndex(index);
-        int slotStart = getSlotStart(slot);
-
-        if (index == slotStart) {
-            // This is a slot-start, can pair
-            return 2;
-        } else {
-            // This is the second page of a slot
-            // If the slot-start was a spread, this becomes solo
-            if (mSpreads.get(slotStart)) {
-                return 1;
-            }
-            // Otherwise, we shouldn't be called for non-start indices
-            // (getPairStart should have returned slotStart)
+        if (mAdapter == null) {
             return 1;
         }
+        return DoublePageHelper.getPairSize(index, mAdapter.size(), mDoublePageMode, mDoublePageOffset, mSpreads);
     }
 
     private boolean cancelAllAnimations() {
@@ -255,6 +255,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         }
 
         mMode = mode;
+        clearPairStates();
         if (mAdapter != null) {
             // It is attached, refill
             // Cancel all animations
@@ -284,6 +285,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         }
         mScaleMode = scaleMode;
+        clearPairStates();
         updatePagesScaleOffset();
     }
 
@@ -292,6 +294,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         }
         mStartPosition = startPosition;
+        clearPairStates();
         updatePagesScaleOffset();
     }
 
@@ -301,6 +304,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         AssertUtils.assertNotNull("The adapter is null", adapter);
         mAdapter = adapter;
         mSpreads.clear();
+        clearPairStates();
         // Reset parameters
         resetParameters();
     }
@@ -389,7 +393,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (view != null && view.isLoaded()) {
             int w = view.getImageTexture().getWidth();
             int h = view.getImageTexture().getHeight();
-            if (w > h) {
+            if (DoublePageHelper.isSpread(w, h)) {
                 int index = page.getIndex();
                 if (index != -1 && !mSpreads.get(index)) {
                     mSpreads.set(index);
@@ -413,10 +417,9 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
 
         if (updateSpread(page)) {
-            // New spread detected, need to re-fill to adjust pairing
+            clearPairStates();
             mGalleryView.requestFill();
         } else {
-            // Just normal image load, request fill to render texture
             mGalleryView.requestFill();
         }
     }
@@ -553,6 +556,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         // Apply to Views
         updatePagePairLayouts(mCurrent, mCurrentSecondary);
         primaryView.setCustomPlace(mDstRectPrimary);
+        cacheCurrentPairState();
     }
 
     private void updatePagePairLayouts(GalleryPageView primary, GalleryPageView secondary) {
@@ -577,8 +581,9 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             if (secondary != null) {
                 // Hide secondary if it's a spread being incorrectly paired (before re-fill)
                 // or if it has no width in the calculated layout.
-                boolean isSpread = secondary.getImageView().isLoaded() && (secondary.getImageView().getImageTexture()
-                        .getWidth() > secondary.getImageView().getImageTexture().getHeight());
+                boolean isSpread = secondary.getImageView().isLoaded() && DoublePageHelper.isSpread(
+                        secondary.getImageView().getImageTexture().getWidth(),
+                        secondary.getImageView().getImageTexture().getHeight());
                 if (isSpread) {
                     secondary.setVisibility(GLView.GONE);
                 } else {
@@ -667,6 +672,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (mDoublePageMode) {
             index = getPairStart(index);
             mIndex = index;
+            restorePairState(index);
 
             // Previous
             if (index > 0) {
@@ -935,6 +941,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         }
 
         if (mDoublePageMode) {
+            cacheCurrentPairState();
             mPairMatrix.reset();
             int jump = getPairSize(getPairStart(mIndex - 1));
             mIndex -= jump;
@@ -972,6 +979,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
                     }
                 }
             }
+            restorePairState(mIndex);
         } else {
             mIndex--;
 
@@ -998,6 +1006,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         }
 
         if (mDoublePageMode) {
+            cacheCurrentPairState();
             mPairMatrix.reset();
             int jump = getPairSize(mIndex);
             mIndex += jump;
@@ -1036,6 +1045,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
                     adapter.bind(mNextSecondary, nextIndex + 1);
                 }
             }
+            restorePairState(mIndex);
         } else {
             mIndex++;
 
@@ -1310,7 +1320,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     @Override
     public boolean canScale() {
         if (mDoublePageMode)
-            return mCurrent != null && mOffset == 0;
+            return mCurrent != null && mOffset == 0 && mCurrent.getImageView().isLoaded();
         return mCurrent != null && mOffset == 0 && mCurrent.getImageView().isLoaded();
     }
 
@@ -1319,8 +1329,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (mDoublePageMode) {
             mPairMatrix.postScale(scale, scale, focusX, focusY);
             updateDoublePageLayout();
-            // Need to update mScaleValue for consistency?
-            // mScaleValue = ... from box?
+            mPairMatrix.getValues(mMatrixValues);
+            mScaleValue = mMatrixValues[android.graphics.Matrix.MSCALE_X];
             return;
         }
 
@@ -1358,6 +1368,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         removeErrorView();
         removeAllPages();
         mSpreads.clear();
+        clearPairStates();
         // Reset parameters
         resetParameters();
         mGalleryView.requestFill();
@@ -1450,7 +1461,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         }
 
         if (mDoublePageMode) {
-            mPairMatrix.reset();
+            cacheCurrentPairState();
             // Align to start of pair
             index = getPairStart(index);
         }
@@ -1480,6 +1491,9 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             removeProgress();
             removeErrorView();
             removeAllPages();
+            if (mDoublePageMode) {
+                restorePairState(index);
+            }
         }
         galleryView.requestFill();
     }
@@ -1514,36 +1528,33 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
     public void onDoubleTapConfirmed(float x, float y) {
         if (mDoublePageMode) {
-            // Zoom logic for Double Page
-            // Use mPairMatrix scale
+            if (mCurrent == null || !mCurrent.getImageView().isLoaded()) {
+                return;
+            }
             float[] values = mMatrixValues;
             mPairMatrix.getValues(values);
             float currentScale = values[android.graphics.Matrix.MSCALE_X];
-
-            // Define jump stops?
-            // Standard: 1.0 -> Fit Width/Height -> Max
-            // Simplified: 1.0 -> 2.0 -> 1.0
-            float endScale;
-            float endTx = 0, endTy = 0;
             float startTx = values[android.graphics.Matrix.MTRANS_X];
             float startTy = values[android.graphics.Matrix.MTRANS_Y];
 
-            if (currentScale < 1.5f) { // Zoom In
-                endScale = 2.0f;
-                // When zooming in, we keep translation (focus logic handles it)
-                endTx = startTx;
-                endTy = startTy;
-            } else { // Zoom Out
-                endScale = 1.0f;
-                // When zooming out to 1.0, we want to reset translation to 0
-                endTx = 0;
-                endTy = 0;
+            android.graphics.RectF union = mTempRectF;
+            calculateDoublePageRects(mCurrent, mCurrentSecondary,
+                    mMode == MODE_RIGHT_TO_LEFT, mBaseRectPrimary, mBaseRectSecondary);
+            union.set(mBaseRectPrimary);
+            if (mBaseRectSecondary.width() > 0) {
+                union.union(mBaseRectSecondary);
             }
 
-            mSmoothScaler.startSmoothScaler(x, y, currentScale, endScale, startTx, endTx, startTy, endTy, 300, null); // Target
-                                                                                                                      // null
-                                                                                                                      // for
-                                                                                                                      // DoublePage
+            float endScale = DoublePageHelper.getNextDoubleTapScale(
+                    currentScale,
+                    union.width(),
+                    union.height(),
+                    mGalleryView.getWidth(),
+                    mGalleryView.getHeight());
+            float endTx = endScale == 1.0f ? 0.0f : startTx;
+            float endTy = endScale == 1.0f ? 0.0f : startTy;
+
+            mSmoothScaler.startSmoothScaler(x, y, currentScale, endScale, startTx, endTx, startTy, endTy, 300, null);
             return;
         }
 
@@ -1745,6 +1756,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
                 updateDoublePageLayout();
                 mLastScale = scale;
+                mScaleValue = scale;
                 return;
             }
 
