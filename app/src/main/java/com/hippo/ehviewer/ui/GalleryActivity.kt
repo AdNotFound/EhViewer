@@ -831,6 +831,11 @@ class GalleryActivity :
         toggleView.scaleX = if (mReaderSidebarVisible) 1f else -1f
         toggleView.alpha = if (mReaderSidebarVisible) 0.92f else 0.8f
         toggleView.bringToFront()
+        contentContainer.post {
+            mGLRootView?.requestLayout()
+            mGLRootView?.requestLayoutContentPane()
+            mGalleryView?.requestLayout()
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -1541,12 +1546,12 @@ class GalleryActivity :
         override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int) {
             val preview = previews[position]
             if (preview != null) {
-                holder.image.visibility = View.VISIBLE
+                holder.image.setBackgroundResource(0)
                 preview.load(holder.image)
             } else {
                 holder.image.resetClip()
                 holder.image.setImageDrawable(null)
-                holder.image.visibility = View.GONE
+                holder.image.setBackgroundResource(R.drawable.bg_reader_sidebar_placeholder)
             }
             holder.text.text = (position + 1).toString()
             val activated = position == currentIndex
