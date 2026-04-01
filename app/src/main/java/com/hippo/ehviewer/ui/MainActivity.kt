@@ -35,6 +35,7 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.MenuItem
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -136,6 +137,9 @@ class MainActivity :
     private var mDisplayName: TextView? = null
     private var mNavCheckedItem = 0
     private var mUsePersistentNavigationLayout = false
+    private var mMainNavContainer: View? = null
+    private var mPersistentNavigationVisible = true
+    private var mPersistentNavigationWidth = 0
 
     override var containerViewId: Int = R.id.fragment_container
 
@@ -258,7 +262,13 @@ class MainActivity :
         mDrawerLayout = ViewUtils.`$$`(this, R.id.draw_view) as DrawerLayout
         mNavView = ViewUtils.`$$`(this, R.id.nav_view) as NavigationView
         mRightDrawer = ViewUtils.`$$`(this, R.id.right_drawer) as DrawerView
-        mUsePersistentNavigationLayout = findViewById<View?>(R.id.main_nav_container) != null
+        mMainNavContainer = findViewById(R.id.main_nav_container)
+        mUsePersistentNavigationLayout = mMainNavContainer != null
+        if (mUsePersistentNavigationLayout) {
+            mPersistentNavigationWidth = mMainNavContainer?.layoutParams?.width ?: 0
+            mPersistentNavigationVisible = mMainNavContainer?.isVisible != false
+            updatePersistentNavigationLayout()
+        }
         if (mDrawerLayout != null) {
             mDrawerLayout!!.setStatusBarBackgroundColor(0)
         }
@@ -550,6 +560,31 @@ class MainActivity :
         mStageLayout?.removeAboveSnackView(view)
     }
 
+    private fun setPersistentNavigationVisible(visible: Boolean) {
+        if (!mUsePersistentNavigationLayout) {
+            return
+        }
+        if (mPersistentNavigationVisible == visible) {
+            return
+        }
+        mPersistentNavigationVisible = visible
+        updatePersistentNavigationLayout()
+    }
+
+    private fun updatePersistentNavigationLayout() {
+        if (!mUsePersistentNavigationLayout) {
+            return
+        }
+        mMainNavContainer?.isVisible = mPersistentNavigationVisible
+        val drawerLayout = mDrawerLayout ?: return
+        val layoutParams = drawerLayout.layoutParams as? FrameLayout.LayoutParams ?: return
+        val marginStart = if (mPersistentNavigationVisible) mPersistentNavigationWidth else 0
+        if (layoutParams.marginStart != marginStart) {
+            layoutParams.marginStart = marginStart
+            drawerLayout.layoutParams = layoutParams
+        }
+    }
+
     fun setDrawerLockMode(lockMode: Int, edgeGravity: Int) {
         if (mUsePersistentNavigationLayout && edgeGravity == GravityCompat.START) {
             return
@@ -559,6 +594,7 @@ class MainActivity :
 
     fun openDrawer(drawerGravity: Int) {
         if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
+            setPersistentNavigationVisible(true)
             return
         }
         mDrawerLayout?.openDrawer(drawerGravity)
@@ -566,6 +602,7 @@ class MainActivity :
 
     fun closeDrawer(drawerGravity: Int) {
         if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
+            setPersistentNavigationVisible(false)
             return
         }
         mDrawerLayout?.closeDrawer(drawerGravity)
@@ -573,6 +610,7 @@ class MainActivity :
 
     fun toggleDrawer(drawerGravity: Int) {
         if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
+            setPersistentNavigationVisible(!mPersistentNavigationVisible)
             return
         }
         mDrawerLayout?.run {
