@@ -65,6 +65,7 @@ public class GLView implements TouchOwner {
     private static final int FLAG_INVISIBLE = 0b00000011;
     private static final int FLAG_SET_MEASURED_SIZE = 0b00000100;
     private static final int FLAG_LAYOUT_REQUESTED = 0b00001000;
+    private static final int FLAG_DISABLED = 0b00010000;
 
     static {
         mDrawBoundsPaint = new GLPaint();
@@ -525,7 +526,20 @@ public class GLView implements TouchOwner {
 
     @Override
     public boolean isEnabled() {
-        return true; // TODO
+        return (mViewFlags & FLAG_DISABLED) == 0;
+    }
+
+    public void setEnabled(boolean enabled) {
+        if (enabled == isEnabled()) {
+            return;
+        }
+        if (enabled) {
+            mViewFlags &= ~FLAG_DISABLED;
+        } else {
+            mViewFlags |= FLAG_DISABLED;
+            setPressed(false);
+        }
+        invalidate();
     }
 
     @Override
