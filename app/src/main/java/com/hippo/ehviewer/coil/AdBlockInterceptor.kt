@@ -59,8 +59,9 @@ object AdBlockInterceptor : Interceptor {
                     return result
                 }
                 val bitmap = image.image.bitmap
-                val hasQr = if (needQrScan) hasQrCode(bitmap) else false
                 val hash = if (needHashCheck) getDHash(bitmap) else 0L
+                val blockedByHash = hash != 0L && AdBlockManager.isBlocked(hash)
+                val hasQr = if (needQrScan && !blockedByHash) hasQrCode(bitmap) else false
                 val new = image.copy(hasQrCode = hasQr, dHash = hash)
                 return result.copy(image = new)
             }

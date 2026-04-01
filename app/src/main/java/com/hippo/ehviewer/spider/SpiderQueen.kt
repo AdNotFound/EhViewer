@@ -94,11 +94,16 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         mBypassQrCheckPages.add(index)
     }
 
+    fun removeBypassQrCheckPage(index: Int) {
+        mBypassQrCheckPages.remove(index)
+    }
+
     suspend fun markAsAd(index: Int) {
         if (!galleryInfo.hasAds) return
+        removeBypassQrCheckPage(index)
         mSpiderDen.getImageSource(index)?.use { src ->
             val image = try {
-                Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+                Image.decode(src, analyzeFeatures = true, blockOnQr = false)
             } catch (e: AdDetectedException) {
                 mBlockedAdPages.add(index)
                 return
@@ -112,8 +117,8 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 }
                 if (hash != 0L) {
                     AdBlockManager.addHash(hash)
-                    mBlockedAdPages.add(index)
                 }
+                mBlockedAdPages.add(index)
                 it.recycle()
             }
         }
@@ -129,16 +134,17 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         if (!galleryInfo.hasAds) return
         mSpiderDen.getImageSource(index)?.use { src ->
             val image = try {
-                Image.decode(src, analyzeFeatures = true, blockOnQr = true)
+                Image.decode(src, analyzeFeatures = true, blockOnQr = false)
             } catch (e: AdDetectedException) {
+                mBlockedAdPages.remove(index)
                 return
             }
             image?.let {
                 val hash = (it.image as? BitmapImageWithExtraInfo)?.dHash ?: 0L
                 if (hash != 0L) {
                     AdBlockManager.unblock(hash)
-                    mBlockedAdPages.remove(index)
                 }
+                mBlockedAdPages.remove(index)
                 it.recycle()
             }
         }

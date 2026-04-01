@@ -18,66 +18,118 @@ package com.hippo.ehviewer.adblock
 
 import com.hippo.ehviewer.AppConfig
 import com.hippo.util.launchIO
-import com.hippo.util.withIOContext
-import kotlinx.coroutines.DelicateCoroutinesApi
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
-import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
-@OptIn(DelicateCoroutinesApi::class)
 object AdBlockManager {
-    private val blockedHashes = CopyOnWriteArraySet<Long>()
+    private const val CHUNK_BITS = 16
+    private const val CHUNK_COUNT = 4
+    private const val CHUNK_MASK = 0xFFFFL
+    private const val MATCH_CACHE_SIZE = 512
+
+    private val blockedHashes = HashSet<Long>()
+    private val chunkIndexes = Array(CHUNK_COUNT) { hashMapOf<Int, MutableSet<Long>>() }
+    private val matchCache = object : LinkedHashMap<Long, Boolean>(MATCH_CACHE_SIZE, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, Boolean>?): Boolean = size > MATCH_CACHE_SIZE
+    }
     private val file = File(AppConfig.getFilesDir("adblock"), "ad_blocked_hashes.txt")
     private val isSaving = AtomicBoolean(false)
+    private val mutationVersion = AtomicLong(0)
+    private val dataLock = Any()
+    private val loadLock = Any()
 
-    fun isEmpty() = blockedHashes.isEmpty()
+    @Volatile
+    private var isLoaded = false
+    private var matchCacheVersion = 0L
 
-    fun clear() {
-        blockedHashes.clear()
-        save()
-    }
-
-    init {
-        launchIO {
-            load()
+    fun isEmpty(): Boolean {
+        ensureLoaded()
+        return synchronized(dataLock) {
+            blockedHashes.isEmpty()
         }
     }
 
-    private suspend fun load() = withIOContext {
-        if (!file.exists()) return@withIOContext
-        runCatching {
-            FileInputStream(file).use { input ->
-                input.bufferedReader().useLines { lines ->
-                    lines.forEach { line ->
-                        line.toLongOrNull()?.let { blockedHashes.add(it) }
-                    }
-                }
+    fun clear() {
+        ensureLoaded()
+        val changed = synchronized(dataLock) {
+            if (blockedHashes.isEmpty() && !file.exists()) {
+                false
+            } else {
+                blockedHashes.clear()
+                clearIndexesLocked()
+                mutationVersion.incrementAndGet()
+                invalidateMatchCacheLocked()
+                true
             }
-        }.onFailure { it.printStackTrace() }
+        }
+        if (!changed) {
+            return
+        }
+        save()
+    }
+
+    private fun ensureLoaded() {
+        if (isLoaded) {
+            return
+        }
+        synchronized(loadLock) {
+            if (isLoaded) {
+                return
+            }
+            if (file.exists()) {
+                runCatching {
+                    val loadedHashes = ArrayList<Long>()
+                    FileInputStream(file).use { input ->
+                        input.bufferedReader().useLines { lines ->
+                            lines.forEach { line ->
+                                line.toLongOrNull()?.let(loadedHashes::add)
+                            }
+                        }
+                    }
+                    synchronized(dataLock) {
+                        loadedHashes.forEach { addHashLocked(it) }
+                    }
+                }.onFailure { it.printStackTrace() }
+            }
+            isLoaded = true
+        }
     }
 
     private fun save() {
-        if (isSaving.compareAndSet(false, true)) {
-            launchIO {
-                try {
-                    while (true) {
-                        val currentHashes = blockedHashes.toList()
-                        withIOContext {
-                            FileOutputStream(file).use { output ->
-                                output.bufferedWriter().use { writer ->
-                                    currentHashes.forEach { hash ->
-                                        writer.write(hash.toString())
-                                        writer.newLine()
-                                    }
-                                }
+        if (!isSaving.compareAndSet(false, true)) {
+            return
+        }
+        launchIO {
+            var writtenVersion = -1L
+            try {
+                while (true) {
+                    val version = mutationVersion.get()
+                    val currentHashes = synchronized(dataLock) {
+                        blockedHashes.toList()
+                    }
+                    file.parentFile?.mkdirs()
+                    FileOutputStream(file).use { output ->
+                        output.bufferedWriter().use { writer ->
+                            currentHashes.forEach { hash ->
+                                writer.write(hash.toString())
+                                writer.newLine()
                             }
                         }
-                        if (blockedHashes.size == currentHashes.size) break
                     }
-                } finally {
-                    isSaving.set(false)
+                    writtenVersion = version
+                    if (mutationVersion.get() == version) {
+                        break
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                isSaving.set(false)
+                if (writtenVersion != mutationVersion.get()) {
+                    save()
                 }
             }
         }
@@ -85,34 +137,139 @@ object AdBlockManager {
 
     fun addHash(hash: Long) {
         if (hash == 0L) return
-        if (blockedHashes.add(hash)) {
+        ensureLoaded()
+        val changed = synchronized(dataLock) {
+            if (addHashLocked(hash)) {
+                mutationVersion.incrementAndGet()
+                invalidateMatchCacheLocked()
+                true
+            } else {
+                false
+            }
+        }
+        if (changed) {
             save()
         }
     }
 
     fun removeHash(hash: Long) {
-        if (blockedHashes.remove(hash)) {
+        ensureLoaded()
+        val changed = synchronized(dataLock) {
+            if (removeHashLocked(hash)) {
+                mutationVersion.incrementAndGet()
+                invalidateMatchCacheLocked()
+                true
+            } else {
+                false
+            }
+        }
+        if (changed) {
             save()
         }
     }
 
     fun unblock(hash: Long) {
         if (hash == 0L) return
-        val toRemove = blockedHashes.filter { hammingDistance(it, hash) <= 2 }
-        if (toRemove.isNotEmpty()) {
-            blockedHashes.removeAll(toRemove.toSet())
+        ensureLoaded()
+        val changed = synchronized(dataLock) {
+            val toRemove = collectCandidateHashesLocked(hash)
+                .filter { hammingDistance(it, hash) <= 2 }
+            if (toRemove.isNotEmpty()) {
+                toRemove.forEach { removeHashLocked(it) }
+                mutationVersion.incrementAndGet()
+                invalidateMatchCacheLocked()
+                true
+            } else {
+                false
+            }
+        }
+        if (changed) {
             save()
         }
     }
 
     fun isBlocked(hash: Long): Boolean {
         if (hash == 0L) return false
-        // Exact match first
-        if (blockedHashes.contains(hash)) return true
-
-        // Fuzzy match via Hamming distance (2-bit tolerance)
-        return blockedHashes.any { hammingDistance(it, hash) <= 2 }
+        ensureLoaded()
+        val cachedResult = synchronized(dataLock) {
+            refreshMatchCacheLocked()
+            matchCache[hash]
+        }
+        if (cachedResult != null) {
+            return cachedResult
+        }
+        val candidates = synchronized(dataLock) {
+            if (blockedHashes.contains(hash)) {
+                cacheMatchResultLocked(hash, true)
+                return true
+            }
+            collectCandidateHashesLocked(hash)
+        }
+        val isBlocked = candidates.any { hammingDistance(it, hash) <= 2 }
+        synchronized(dataLock) {
+            cacheMatchResultLocked(hash, isBlocked)
+        }
+        return isBlocked
     }
+
+    private fun addHashLocked(hash: Long): Boolean {
+        if (!blockedHashes.add(hash)) {
+            return false
+        }
+        repeat(CHUNK_COUNT) { index ->
+            chunkIndexes[index]
+                .getOrPut(chunkOf(hash, index)) { HashSet() }
+                .add(hash)
+        }
+        return true
+    }
+
+    private fun removeHashLocked(hash: Long): Boolean {
+        if (!blockedHashes.remove(hash)) {
+            return false
+        }
+        repeat(CHUNK_COUNT) { index ->
+            val key = chunkOf(hash, index)
+            val bucket = chunkIndexes[index][key] ?: return@repeat
+            bucket.remove(hash)
+            if (bucket.isEmpty()) {
+                chunkIndexes[index].remove(key)
+            }
+        }
+        return true
+    }
+
+    private fun clearIndexesLocked() {
+        chunkIndexes.forEach { it.clear() }
+    }
+
+    private fun refreshMatchCacheLocked() {
+        val version = mutationVersion.get()
+        if (matchCacheVersion != version) {
+            matchCache.clear()
+            matchCacheVersion = version
+        }
+    }
+
+    private fun invalidateMatchCacheLocked() {
+        matchCache.clear()
+        matchCacheVersion = mutationVersion.get()
+    }
+
+    private fun cacheMatchResultLocked(hash: Long, blocked: Boolean) {
+        refreshMatchCacheLocked()
+        matchCache[hash] = blocked
+    }
+
+    private fun collectCandidateHashesLocked(hash: Long): Set<Long> {
+        val candidates = HashSet<Long>()
+        repeat(CHUNK_COUNT) { index ->
+            chunkIndexes[index][chunkOf(hash, index)]?.let(candidates::addAll)
+        }
+        return candidates
+    }
+
+    private fun chunkOf(hash: Long, index: Int): Int = ((hash ushr (index * CHUNK_BITS)) and CHUNK_MASK).toInt()
 
     private fun hammingDistance(h1: Long, h2: Long): Int = java.lang.Long.bitCount(h1 xor h2)
 }

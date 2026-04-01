@@ -104,9 +104,6 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
     fun forceShow(index: Int) {
         mSpiderQueen.addBypassQrCheckPage(index)
         mSpiderQueen.removeBlockedAdPage(index)
-        mSpiderQueen.launchIO {
-            mSpiderQueen.unmarkAsAd(index)
-        }
         mSpiderQueen.request(index)
     }
 
