@@ -469,6 +469,7 @@
     <string name="settings_layout_enabled">Enable large-screen layout optimizations</string>
     <string name="settings_layout_main_persistent_nav">Keep the main navigation pane visible</string>
     <string name="settings_layout_settings_two_pane">Use a two-pane settings layout</string>
+    <string name="settings_layout_reader_thumbnail_sidebar">Show a reader thumbnail sidebar</string>
     <string name="settings_read_screen_rotation">Screen orientation</string>
     <string name="settings_read_screen_rotation_default">Default</string>
     <string name="settings_read_screen_rotation_portrait">Portrait</string>

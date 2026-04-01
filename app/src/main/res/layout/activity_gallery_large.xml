@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1">
+
+        <com.hippo.glview.view.GLRootView
+            android:id="@+id/gl_root_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/gl_loading"
+            style="@style/ProgressView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            app:indicatorColor="?attr/colorPrimary" />
+
+        <com.hippo.ehviewer.widget.GalleryHeader
+            android:id="@+id/gallery_header"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top">
+
+            <com.hippo.widget.TextClock
+                android:id="@+id/clock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="right"
+                android:layout_marginTop="@dimen/gallery_widget_margin_v"
+                android:layout_marginRight="@dimen/gallery_widget_margin_h"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="@dimen/gallery_widget_margin_v"
+                android:textColor="?android:attr/textColorSecondary" />
+
+            <com.hippo.widget.BatteryView
+                android:id="@+id/battery"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="left"
+                android:layout_marginLeft="@dimen/gallery_widget_margin_h"
+                android:layout_marginTop="@dimen/gallery_widget_margin_v"
+                android:drawablePadding="4dp"
+                app:color="?android:attr/textColorSecondary"
+                app:warningColor="@color/red_500" />
+
+        </com.hippo.ehviewer.widget.GalleryHeader>
+
+        <com.hippo.ehviewer.widget.SeekBarPanel
+            android:id="@+id/seek_bar_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="?attr/gallerySliderBackgroundColor"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:visibility="invisible">
+
+            <TextView
+                android:id="@+id/left"
+                android:layout_width="32dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:gravity="center_horizontal" />
+
+            <FrameLayout
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1">
+
+                <com.hippo.ehviewer.widget.ReversibleSeekBar
+                    android:id="@+id/seek_bar"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_vertical" />
+
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/right"
+                android:layout_width="32dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:gravity="center_horizontal" />
+
+            <ImageView
+                android:id="@+id/auto_transfer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:padding="8dp"
+                app:srcCompat="@drawable/v_play_x24"
+                app:tint="?attr/colorPrimary" />
+
+        </com.hippo.ehviewer.widget.SeekBarPanel>
+
+        <com.hippo.widget.ColorView
+            android:id="@+id/mask"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </FrameLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:background="?attr/colorControlHighlight" />
+
+    <LinearLayout
+        android:id="@+id/reader_sidebar_container"
+        android:layout_width="128dp"
+        android:layout_height="match_parent"
+        android:background="?android:attr/colorBackground"
+        android:orientation="vertical"
+        android:paddingHorizontal="8dp"
+        android:paddingVertical="12dp">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/reader_sidebar_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="12dp"
+            android:scrollbars="vertical" />
+    </LinearLayout>
+</LinearLayout>

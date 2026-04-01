@@ -69,13 +69,17 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.hippo.app.EditTextDialogBuilder
 import com.hippo.ehviewer.AppConfig
 import com.hippo.ehviewer.BuildConfig
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
+import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.data.GalleryInfo
+import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.hasAds
 import com.hippo.ehviewer.gallery.ArchiveGalleryProvider
 import com.hippo.ehviewer.gallery.EhGalleryProvider
@@ -97,6 +101,7 @@ import com.hippo.util.launchIO
 import com.hippo.util.sendTo
 import com.hippo.util.withUIContext
 import com.hippo.widget.ColorView
+import com.hippo.widget.LoadImageView
 import com.hippo.yorozuya.AnimationUtils
 import com.hippo.yorozuya.ConcurrentPool
 import com.hippo.yorozuya.FileUtils
@@ -201,6 +206,10 @@ class GalleryActivity :
     private var mRightText: TextView? = null
     private var mSeekBar: ReversibleSeekBar? = null
     private var mAutoTransfer: ImageView? = null
+    private var mReaderSidebarRecyclerView: RecyclerView? = null
+    private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
+    private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
+    private var mReaderSidebarPreviewJob: Job? = null
     private var mSeekBarPanelAnimator: ObjectAnimator? = null
     private var mLayoutMode = 0
     private var mSize = 0
@@ -217,6 +226,9 @@ class GalleryActivity :
         } else {
             Settings.doublePageMode
         }
+
+    private val useReaderThumbnailSidebarLayout: Boolean
+        get() = Settings.layoutEnabled && Settings.layoutReaderThumbnailSidebar
 
     private val galleryDetailUrl: String?
         get() {
@@ -382,7 +394,7 @@ class GalleryActivity :
     }
 
     private fun initializeGallery() {
-        setContentView(R.layout.activity_gallery)
+        setContentView(if (useReaderThumbnailSidebarLayout) R.layout.activity_gallery_large else R.layout.activity_gallery)
         mGLRootView = ViewUtils.`$$`(this, R.id.gl_root_view) as GLRootView
         mMaskView = ViewUtils.`$$`(this, R.id.mask) as ColorView
         mClock = ViewUtils.`$$`(this, R.id.clock)
@@ -423,6 +435,13 @@ class GalleryActivity :
         }
         mSeekBar!!.setOnSeekBarChangeListener(this)
         mAutoTransfer!!.setOnClickListener { autoTransfer() }
+        mReaderSidebarRecyclerView = findViewById(R.id.reader_sidebar_list)
+        if (mReaderSidebarRecyclerView != null) {
+            mReaderSidebarAdapter = ReaderSidebarAdapter()
+            mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
+            mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
+            updateReaderSidebarData()
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -521,9 +540,12 @@ class GalleryActivity :
             mLayoutMode = mGalleryView!!.layoutMode
         }
         mSize = mGalleryProvider!!.size
+        mReaderSidebarPreviewMap.clear()
         updateDoublePageMode()
         updateSlider()
         updateProgress()
+        updateReaderSidebarData()
+        loadReaderSidebarPreviews()
     }
 
     private fun updateDoublePageMode() {
@@ -531,6 +553,7 @@ class GalleryActivity :
         mGalleryView!!.setDoublePageMode(isDoublePageMode)
         mGalleryView!!.setDoublePageOffset(Settings.doublePageOffset)
         mGalleryView!!.setDoublePageGap(Settings.doublePageGap)
+        updateReaderSidebarSelection()
     }
 
     private fun pageTurn(isPrevious: Boolean) {
@@ -588,6 +611,11 @@ class GalleryActivity :
         mBattery = null
         mSeekBarPanel = null
         mGLLoading = null
+        mReaderSidebarPreviewJob?.cancel()
+        mReaderSidebarPreviewJob = null
+        mReaderSidebarRecyclerView = null
+        mReaderSidebarAdapter = null
+        mReaderSidebarPreviewMap.clear()
         mLeftText = null
         mRightText = null
         mSeekBar = null
@@ -708,6 +736,58 @@ class GalleryActivity :
         end.text = mSize.toString()
         mSeekBar!!.max = mSize - 1
         mSeekBar!!.progress = mCurrentIndex
+    }
+
+    private fun updateReaderSidebarData() {
+        mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap)
+        updateReaderSidebarSelection()
+    }
+
+    private fun updateReaderSidebarSelection() {
+        val adapter = mReaderSidebarAdapter ?: return
+        val galleryView = mGalleryView
+        val alignedIndex = galleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
+        adapter.updateCurrentIndex(alignedIndex)
+        val recyclerView = mReaderSidebarRecyclerView ?: return
+        val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
+        val first = layoutManager.findFirstVisibleItemPosition()
+        val last = layoutManager.findLastVisibleItemPosition()
+        if (alignedIndex < 0) return
+        if (first == RecyclerView.NO_POSITION || last == RecyclerView.NO_POSITION || alignedIndex < first || alignedIndex > last) {
+            layoutManager.scrollToPositionWithOffset(alignedIndex, 0)
+        }
+    }
+
+    private fun loadReaderSidebarPreviews() {
+        if (mReaderSidebarRecyclerView == null || mAction != ACTION_EH) {
+            return
+        }
+        val galleryInfo = mGalleryInfo ?: return
+        val token = galleryInfo.token ?: return
+        mReaderSidebarPreviewJob?.cancel()
+        mReaderSidebarPreviewJob = lifecycleScope.launchIO {
+            runCatching {
+                val first = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, 0, false))
+                mergeReaderSidebarPreviewSet(first.first)
+                withUIContext { updateReaderSidebarData() }
+                for (page in 1 until first.second) {
+                    currentCoroutineContext().ensureActive()
+                    val result = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
+                    mergeReaderSidebarPreviewSet(result.first)
+                    withUIContext { updateReaderSidebarData() }
+                }
+            }.onFailure {
+                it.printStackTrace()
+            }
+        }
+    }
+
+    private fun mergeReaderSidebarPreviewSet(previewSet: com.hippo.ehviewer.client.data.PreviewSet) {
+        val galleryInfo = mGalleryInfo ?: return
+        for (i in 0 until previewSet.size()) {
+            val preview = previewSet.getGalleryPreview(galleryInfo.gid, i)
+            mReaderSidebarPreviewMap[preview.position] = preview
+        }
     }
 
     @SuppressLint("SetTextI18n")
@@ -1370,18 +1450,21 @@ class GalleryActivity :
                 NOTIFY_KEY_LAYOUT_MODE -> {
                     mLayoutMode = mValue
                     updateSlider()
+                    updateReaderSidebarSelection()
                 }
 
                 NOTIFY_KEY_SIZE -> {
                     mSize = mValue
                     updateSlider()
                     updateProgress()
+                    updateReaderSidebarData()
                 }
 
                 NOTIFY_KEY_CURRENT_INDEX -> {
                     mCurrentIndex = mValue
                     updateSlider()
                     updateProgress()
+                    updateReaderSidebarSelection()
                 }
 
                 NOTIFY_KEY_TAP_MENU_AREA -> onTapMenuArea()
@@ -1393,6 +1476,63 @@ class GalleryActivity :
                 NOTIFY_KEY_LONG_PRESS_PAGE -> onLongPressPage(mValue)
             }
             mNotifyTaskPool.push(this)
+        }
+    }
+
+    private class ReaderSidebarHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val image: LoadImageView = itemView.findViewById(R.id.image)
+        val text: TextView = itemView.findViewById(R.id.text)
+    }
+
+    private inner class ReaderSidebarAdapter : RecyclerView.Adapter<ReaderSidebarHolder>() {
+        private val inflater: LayoutInflater = layoutInflater
+        private var pageCount = 0
+        private var currentIndex = -1
+        private var previews: Map<Int, GalleryPreview> = emptyMap()
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ReaderSidebarHolder = ReaderSidebarHolder(
+            inflater.inflate(R.layout.item_gallery_sidebar_preview, parent, false),
+        )
+
+        @SuppressLint("SetTextI18n")
+        override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int) {
+            val preview = previews[position]
+            if (preview != null) {
+                holder.image.visibility = View.VISIBLE
+                preview.load(holder.image)
+            } else {
+                holder.image.resetClip()
+                holder.image.setImageDrawable(null)
+                holder.image.visibility = View.GONE
+            }
+            holder.text.text = (position + 1).toString()
+            val activated = position == currentIndex
+            holder.itemView.alpha = if (activated) 1f else 0.72f
+            holder.text.setTypeface(null, if (activated) Typeface.BOLD else Typeface.NORMAL)
+            holder.itemView.setOnClickListener {
+                val target = mGalleryView?.getPagePairStart(position) ?: position
+                mGalleryView?.setCurrentPage(target)
+            }
+        }
+
+        override fun getItemCount(): Int = pageCount
+
+        fun updateData(pageCount: Int, previews: Map<Int, GalleryPreview>) {
+            this.pageCount = pageCount
+            this.previews = previews
+            notifyDataSetChanged()
+        }
+
+        fun updateCurrentIndex(index: Int) {
+            if (currentIndex == index) return
+            val oldIndex = currentIndex
+            currentIndex = index
+            if (oldIndex in 0 until pageCount) {
+                notifyItemChanged(oldIndex)
+            }
+            if (currentIndex in 0 until pageCount) {
+                notifyItemChanged(currentIndex)
+            }
         }
     }
 

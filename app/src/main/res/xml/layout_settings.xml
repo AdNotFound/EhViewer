@@ -21,4 +21,11 @@
         android:key="layout_settings_two_pane"
         android:title="@string/settings_layout_settings_two_pane"
         app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:dependency="layout_enabled"
+        android:key="layout_reader_thumbnail_sidebar"
+        android:title="@string/settings_layout_reader_thumbnail_sidebar"
+        app:iconSpaceReserved="false" />
 </PreferenceScreen>
