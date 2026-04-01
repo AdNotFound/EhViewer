@@ -98,7 +98,13 @@ class MainActivity :
     private var mPendingUnrecognizedIntent: Intent? = null
     private val settingsLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            if (it.resultCode == RESULT_OK) refreshTopScene()
+            if (it.resultCode == RESULT_OK) {
+                if (it.data?.getBooleanExtra(SettingsActivity.EXTRA_RECREATE_MAIN_ACTIVITY, false) == true) {
+                    recreate()
+                } else {
+                    refreshTopScene()
+                }
+            }
         }
     private val mNetworkCallback =
         object : ConnectivityManager.NetworkCallback() {
@@ -129,6 +135,7 @@ class MainActivity :
     private var mAvatar: LoadImageView? = null
     private var mDisplayName: TextView? = null
     private var mNavCheckedItem = 0
+    private var mUsePersistentNavigationLayout = false
 
     override var containerViewId: Int = R.id.fragment_container
 
@@ -245,12 +252,13 @@ class MainActivity :
         if (Settings.dF && Settings.bypassVpn) {
             bypassVpn()
         }
-        setContentView(R.layout.activity_main)
+        setContentView(if (Settings.layoutEnabled && Settings.layoutMainPersistentNav) R.layout.activity_main_large else R.layout.activity_main)
         mSnackBar = ViewUtils.`$$`(this, R.id.snackbar) as CoordinatorLayout
         mStageLayout = ViewUtils.`$$`(this, R.id.fragment_container) as EhStageLayout
         mDrawerLayout = ViewUtils.`$$`(this, R.id.draw_view) as DrawerLayout
         mNavView = ViewUtils.`$$`(this, R.id.nav_view) as NavigationView
         mRightDrawer = ViewUtils.`$$`(this, R.id.right_drawer) as DrawerView
+        mUsePersistentNavigationLayout = findViewById<View?>(R.id.main_nav_container) != null
         if (mDrawerLayout != null) {
             mDrawerLayout!!.setStatusBarBackgroundColor(0)
         }
@@ -543,18 +551,30 @@ class MainActivity :
     }
 
     fun setDrawerLockMode(lockMode: Int, edgeGravity: Int) {
+        if (mUsePersistentNavigationLayout && edgeGravity == GravityCompat.START) {
+            return
+        }
         mDrawerLayout?.setDrawerLockMode(lockMode, edgeGravity)
     }
 
     fun openDrawer(drawerGravity: Int) {
+        if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
+            return
+        }
         mDrawerLayout?.openDrawer(drawerGravity)
     }
 
     fun closeDrawer(drawerGravity: Int) {
+        if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
+            return
+        }
         mDrawerLayout?.closeDrawer(drawerGravity)
     }
 
     fun toggleDrawer(drawerGravity: Int) {
+        if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
+            return
+        }
         mDrawerLayout?.run {
             if (isDrawerOpen(drawerGravity)) {
                 closeDrawer(drawerGravity)
@@ -580,7 +600,12 @@ class MainActivity :
     }
 
     private val isDrawerOpen
-        get() = mNavView?.isVisible == true || mRightDrawer?.isVisible == true
+        get() = if (mUsePersistentNavigationLayout) {
+            mDrawerLayout?.isDrawerOpen(GravityCompat.END) == true
+        } else {
+            mDrawerLayout?.isDrawerOpen(GravityCompat.START) == true ||
+                mDrawerLayout?.isDrawerOpen(GravityCompat.END) == true
+        }
 
     /**
      * If activity is running, show snack bar, otherwise show toast

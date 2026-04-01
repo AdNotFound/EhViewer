@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="layout_enabled"
+        android:title="@string/settings_layout_enabled"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:dependency="layout_enabled"
+        android:key="layout_main_persistent_nav"
+        android:title="@string/settings_layout_main_persistent_nav"
+        app:iconSpaceReserved="false" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:dependency="layout_enabled"
+        android:key="layout_settings_two_pane"
+        android:title="@string/settings_layout_settings_two_pane"
+        app:iconSpaceReserved="false" />
+</PreferenceScreen>

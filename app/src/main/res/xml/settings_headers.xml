@@ -27,6 +27,11 @@
         android:title="@string/settings_read" />
 
     <Preference
+        android:key="layout"
+        android:icon="@drawable/ic_baseline_menu_24"
+        android:title="@string/settings_layout" />
+
+    <Preference
         android:key="download"
         android:icon="@drawable/v_download_primary_x24"
         android:title="@string/settings_download" />
