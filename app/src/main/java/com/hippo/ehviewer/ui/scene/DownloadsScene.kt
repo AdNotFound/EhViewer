@@ -714,8 +714,14 @@ class DownloadsScene :
         updateView()
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     override fun onUpdateLabels() {
-        // TODO
+        lifecycleScope.launchUI {
+            initLabels()
+            mLabelAdapter?.notifyDataSetChanged()
+            updateForLabel()
+            updateView()
+        }
     }
 
     private fun bindForState(holder: DownloadHolder, info: DownloadInfo) {
