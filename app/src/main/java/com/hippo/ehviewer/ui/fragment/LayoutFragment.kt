@@ -13,6 +13,7 @@ class LayoutFragment : BasePreferenceFragment() {
         findPreference<Preference>("layout_enabled")?.onPreferenceChangeListener = this
         findPreference<Preference>("layout_main_persistent_nav")?.onPreferenceChangeListener = this
         findPreference<Preference>("layout_settings_two_pane")?.onPreferenceChangeListener = this
+        findPreference<Preference>("layout_reader_thumbnail_sidebar")?.onPreferenceChangeListener = this
     }
 
     override fun onPreferenceChange(preference: Preference, newValue: Any): Boolean {

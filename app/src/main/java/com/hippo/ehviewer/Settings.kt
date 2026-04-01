@@ -149,6 +149,8 @@ object Settings {
     private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV = false
     private const val KEY_LAYOUT_SETTINGS_TWO_PANE = "layout_settings_two_pane"
     private const val DEFAULT_LAYOUT_SETTINGS_TWO_PANE = false
+    private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR = "layout_reader_thumbnail_sidebar"
+    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR = false
 
     /********************
      ****** Download
@@ -333,6 +335,9 @@ object Settings {
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_SETTINGS_TWO_PANE)) {
             putLayoutSettingsTwoPane(enableLargeScreenLayout)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR)) {
+            putLayoutReaderThumbnailSidebar(enableLargeScreenLayout)
         }
     }
 
@@ -660,6 +665,12 @@ object Settings {
         get() = getBoolean(KEY_LAYOUT_SETTINGS_TWO_PANE, DEFAULT_LAYOUT_SETTINGS_TWO_PANE)
     fun putLayoutSettingsTwoPane(value: Boolean) {
         putBoolean(KEY_LAYOUT_SETTINGS_TWO_PANE, value)
+    }
+
+    val layoutReaderThumbnailSidebar: Boolean
+        get() = getBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR)
+    fun putLayoutReaderThumbnailSidebar(value: Boolean) {
+        putBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR, value)
     }
 
     val downloadLocation: UniFile?
