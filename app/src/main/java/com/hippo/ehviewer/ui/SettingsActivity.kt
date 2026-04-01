@@ -16,27 +16,46 @@
 package com.hippo.ehviewer.ui
 
 import android.os.Bundle
+import android.content.Intent
 import android.view.MenuItem
+import android.view.View
 import androidx.annotation.StringRes
 import androidx.fragment.app.FragmentTransaction
 import com.google.android.material.snackbar.Snackbar
 import com.hippo.ehviewer.R
+import com.hippo.ehviewer.Settings
+import com.hippo.ehviewer.ui.fragment.EhFragment
 import com.hippo.ehviewer.ui.fragment.SettingsFragment
 import com.hippo.ehviewer.ui.scene.BaseScene
 
 class SettingsActivity : EhActivity() {
+    val isTwoPaneLayout: Boolean
+        get() = findViewById<View?>(R.id.fragment_detail) != null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_preference)
+        setContentView(
+            if (Settings.layoutEnabled && Settings.layoutSettingsTwoPane) {
+                R.layout.activity_preference_large
+            } else {
+                R.layout.activity_preference
+            },
+        )
         setSupportActionBar(findViewById(R.id.toolbar))
         val bar = supportActionBar
         bar?.setDisplayHomeAsUpEnabled(true)
         if (savedInstanceState == null) {
-            supportFragmentManager
+            val transaction = supportFragmentManager
                 .beginTransaction()
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_MATCH_ACTIVITY_OPEN)
-                .replace(R.id.fragment, SettingsFragment())
-                .commitAllowingStateLoss()
+            if (isTwoPaneLayout) {
+                transaction
+                    .replace(R.id.fragment_list, SettingsFragment())
+                    .replace(R.id.fragment_detail, EhFragment())
+            } else {
+                transaction.replace(R.id.fragment, SettingsFragment())
+            }
+            transaction.commitAllowingStateLoss()
         }
     }
 
@@ -59,5 +78,11 @@ class SettingsActivity : EhActivity() {
             return true
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    companion object {
+        const val EXTRA_RECREATE_MAIN_ACTIVITY = "recreate_main_activity"
+
+        fun recreateMainActivityResult() = Intent().putExtra(EXTRA_RECREATE_MAIN_ACTIVITY, true)
     }
 }

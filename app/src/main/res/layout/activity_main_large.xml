@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clipChildren="false"
+    app:consumeSystemWindowsInsets="start|end"
+    app:edgeToEdge="true"
+    app:fitsSystemWindowsInsets="start|end">
+
+    <LinearLayout
+        android:id="@+id/main_nav_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <com.google.android.material.navigation.NavigationView
+            android:id="@+id/nav_view"
+            android:layout_width="320dp"
+            android:layout_height="match_parent"
+            android:background="?android:attr/colorBackground"
+            app:headerLayout="@layout/nav_header_main"
+            app:insetForeground="@null"
+            app:itemShapeAppearanceOverlay="@style/ShapeAppearanceOverlay.MaterialComponents.NavigationView"
+            app:itemShapeInsetBottom="0dp"
+            app:itemShapeInsetStart="0dp"
+            app:itemShapeInsetTop="0dp"
+            app:menu="@menu/nav_drawer_main" />
+
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:background="?attr/colorControlHighlight" />
+
+        <androidx.drawerlayout.widget.DrawerLayout
+            android:id="@+id/draw_view"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:fitsSystemWindows="true">
+
+            <com.hippo.widget.IgnoreFitsSystemWindowsFullyDraggableDrawerContentLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fitsSystemWindows="true">
+
+                <androidx.coordinatorlayout.widget.CoordinatorLayout
+                    android:id="@+id/snackbar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <com.hippo.ehviewer.widget.EhStageLayout
+                        android:id="@+id/fragment_container"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </androidx.coordinatorlayout.widget.CoordinatorLayout>
+            </com.hippo.widget.IgnoreFitsSystemWindowsFullyDraggableDrawerContentLayout>
+
+            <com.hippo.widget.DrawerView
+                android:id="@+id/right_drawer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:fitsSystemWindows="false"
+                android:maxWidth="@dimen/drawer_max_width" />
+        </androidx.drawerlayout.widget.DrawerLayout>
+    </LinearLayout>
+</FrameLayout>

@@ -140,6 +140,15 @@ object Settings {
     const val KEY_READ_IMAGE_LIMIT = "read_image_limit"
     private const val DEFAULT_READ_IMAGE_LIMIT = 1 // 1x equivalent (index 1 in [3/4, 1, 4/3, 1.5, 2, 3])
 
+    /********************
+     ****** Layout
+     ********************/
+    private const val KEY_LAYOUT_ENABLED = "layout_enabled"
+    private const val DEFAULT_LAYOUT_ENABLED = false
+    private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV = "layout_main_persistent_nav"
+    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV = false
+    private const val KEY_LAYOUT_SETTINGS_TWO_PANE = "layout_settings_two_pane"
+    private const val DEFAULT_LAYOUT_SETTINGS_TWO_PANE = false
 
     /********************
      ****** Download
@@ -314,6 +323,16 @@ object Settings {
             if (!sSettingsPre.contains(KEY_DOMAIN_FRONTING)) {
                 putDoF(true)
             }
+        }
+        val enableLargeScreenLayout = application.resources.configuration.smallestScreenWidthDp >= 600
+        if (!sSettingsPre.contains(KEY_LAYOUT_ENABLED)) {
+            putLayoutEnabled(enableLargeScreenLayout)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV)) {
+            putLayoutMainPersistentNav(enableLargeScreenLayout)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_SETTINGS_TWO_PANE)) {
+            putLayoutSettingsTwoPane(enableLargeScreenLayout)
         }
     }
 
@@ -623,6 +642,24 @@ object Settings {
         get() = getInt(KEY_READ_IMAGE_LIMIT, DEFAULT_READ_IMAGE_LIMIT)
     fun putReadImageLimit(value: Int) {
         putInt(KEY_READ_IMAGE_LIMIT, value)
+    }
+
+    val layoutEnabled: Boolean
+        get() = getBoolean(KEY_LAYOUT_ENABLED, DEFAULT_LAYOUT_ENABLED)
+    fun putLayoutEnabled(value: Boolean) {
+        putBoolean(KEY_LAYOUT_ENABLED, value)
+    }
+
+    val layoutMainPersistentNav: Boolean
+        get() = getBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV)
+    fun putLayoutMainPersistentNav(value: Boolean) {
+        putBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV, value)
+    }
+
+    val layoutSettingsTwoPane: Boolean
+        get() = getBoolean(KEY_LAYOUT_SETTINGS_TWO_PANE, DEFAULT_LAYOUT_SETTINGS_TWO_PANE)
+    fun putLayoutSettingsTwoPane(value: Boolean) {
+        putBoolean(KEY_LAYOUT_SETTINGS_TWO_PANE, value)
     }
 
     val downloadLocation: UniFile?

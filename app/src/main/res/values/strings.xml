@@ -462,6 +462,10 @@
     <string name="settings_eh_request_news">Request news page on start</string>
     <string name="settings_eh_hide_hv_events">Hide HV event Notifications</string>
     <string name="settings_read">Read</string>
+    <string name="settings_layout">Layout</string>
+    <string name="settings_layout_enabled">Enable large-screen layout optimizations</string>
+    <string name="settings_layout_main_persistent_nav">Keep the main navigation pane visible</string>
+    <string name="settings_layout_settings_two_pane">Use a two-pane settings layout</string>
     <string name="settings_read_screen_rotation">Screen orientation</string>
     <string name="settings_read_screen_rotation_default">Default</string>
     <string name="settings_read_screen_rotation_portrait">Portrait</string>

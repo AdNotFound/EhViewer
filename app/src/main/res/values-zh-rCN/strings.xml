@@ -436,6 +436,10 @@
     <string name="settings_eh_request_news">启动时请求新闻页面</string>
     <string name="settings_eh_hide_hv_events">隐藏 HV 事件通知</string>
     <string name="settings_read">阅读</string>
+    <string name="settings_layout">布局</string>
+    <string name="settings_layout_enabled">启用大屏布局优化</string>
+    <string name="settings_layout_main_persistent_nav">主界面常驻侧栏</string>
+    <string name="settings_layout_settings_two_pane">设置页双栏布局</string>
     <string name="settings_read_screen_rotation">屏幕方向</string>
     <string name="settings_read_screen_rotation_default">系统默认</string>
     <string name="settings_read_screen_rotation_portrait">竖屏</string>

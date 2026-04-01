@@ -19,6 +19,7 @@ package com.hippo.ehviewer.ui.fragment
 
 import android.os.Bundle
 import androidx.annotation.StringRes
+import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.FragmentTransaction
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -48,6 +49,7 @@ open class BasePreferenceFragment :
         val fragment = when (preference.key) {
             "eh" -> EhFragment()
             "read" -> ReadFragment()
+            "layout" -> LayoutFragment()
             "download" -> DownloadFragment()
             "privacy" -> PrivacyFragment()
             "advanced" -> AdvancedFragment()
@@ -57,16 +59,26 @@ open class BasePreferenceFragment :
             "filter" -> FilterFragment()
             "security" -> SetSecurityFragment()
             "hosts" -> HostsFragment()
-            else -> null
+            else -> return super.onPreferenceTreeClick(preference)
         }
-        fragment?.let {
-            requireActivity().supportFragmentManager
-                .beginTransaction()
-                .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
-                .replace(R.id.fragment, it)
+        val activity = requireActivity() as SettingsActivity
+        val fragmentManager = requireActivity().supportFragmentManager
+        val transaction = fragmentManager
+            .beginTransaction()
+            .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+        if (activity.isTwoPaneLayout) {
+            if (this is SettingsFragment) {
+                fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
+            } else {
+                transaction.addToBackStack(null)
+            }
+            transaction.replace(R.id.fragment_detail, fragment)
+        } else {
+            transaction
+                .replace(R.id.fragment, fragment)
                 .addToBackStack(null)
-                .commitAllowingStateLoss()
         }
+        transaction.commitAllowingStateLoss()
         return true
     }
 
