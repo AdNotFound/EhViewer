@@ -95,6 +95,7 @@ import com.hippo.yorozuya.ViewUtils
 class MainActivity :
     StageActivity(),
     NavigationView.OnNavigationItemSelectedListener {
+    private var mPendingUnrecognizedIntent: Intent? = null
     private val settingsLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
             if (it.resultCode == RESULT_OK) refreshTopScene()
@@ -202,7 +203,7 @@ class MainActivity :
     override fun onUnrecognizedIntent(intent: Intent?) {
         val clazz = topSceneClass
         if (clazz != null && SolidScene::class.java.isAssignableFrom(clazz)) {
-            // TODO the intent lost
+            mPendingUnrecognizedIntent = intent?.let(::Intent)
             return
         }
         if (!handleIntent(intent)) {
@@ -403,12 +404,23 @@ class MainActivity :
     override fun onResume() {
         super.onResume()
         setNavCheckedItem(mNavCheckedItem)
+        processPendingUnrecognizedIntent()
         checkClipboardUrl()
     }
 
     override fun onTransactScene() {
         super.onTransactScene()
+        processPendingUnrecognizedIntent()
         checkClipboardUrl()
+    }
+
+    private fun processPendingUnrecognizedIntent() {
+        if (isSolid) {
+            return
+        }
+        val intent = mPendingUnrecognizedIntent ?: return
+        mPendingUnrecognizedIntent = null
+        onUnrecognizedIntent(intent)
     }
 
     private fun checkClipboardUrl() {
