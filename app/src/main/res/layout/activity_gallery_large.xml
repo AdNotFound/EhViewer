@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="horizontal">
+    android:layout_height="match_parent">
 
     <FrameLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_weight="1">
+        android:layout_marginEnd="129dp">
 
         <com.hippo.glview.view.GLRootView
             android:id="@+id/gl_root_view"
@@ -117,12 +116,15 @@
     <View
         android:layout_width="1dp"
         android:layout_height="match_parent"
+        android:layout_gravity="end"
+        android:layout_marginEnd="128dp"
         android:background="?attr/colorControlHighlight" />
 
     <LinearLayout
         android:id="@+id/reader_sidebar_container"
         android:layout_width="128dp"
         android:layout_height="match_parent"
+        android:layout_gravity="end"
         android:background="?android:attr/colorBackground"
         android:orientation="vertical"
         android:paddingHorizontal="8dp"
@@ -136,4 +138,4 @@
             android:paddingBottom="12dp"
             android:scrollbars="vertical" />
     </LinearLayout>
-</LinearLayout>
+</FrameLayout>
