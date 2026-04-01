@@ -76,16 +76,6 @@ android {
         }
     }
 
-    androidResources {
-        localeFilters += listOf(
-            "zh",
-            "zh-rCN",
-            "zh-rHK",
-            "zh-rTW",
-            "ja",
-        )
-    }
-
     externalNativeBuild {
         cmake {
             path = File("src/main/cpp/CMakeLists.txt")
