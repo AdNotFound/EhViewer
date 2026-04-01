@@ -28,6 +28,7 @@ import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryTagGroup
 import com.hippo.ehviewer.client.data.PreviewSet
 import com.hippo.ehviewer.client.exception.EhException
+import com.hippo.ehviewer.client.exception.AddFavoritesRangeException
 import com.hippo.ehviewer.client.exception.InsufficientFundsException
 import com.hippo.ehviewer.client.exception.NotLoggedInException
 import com.hippo.ehviewer.client.exception.ParseException
@@ -52,6 +53,7 @@ import com.hippo.ehviewer.client.parser.UserConfigParser
 import com.hippo.ehviewer.client.parser.VoteCommentParser
 import com.hippo.ehviewer.client.parser.VoteTagParser
 import com.hippo.network.StatusCodeException
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -402,8 +404,15 @@ object EhEngine {
         var i = 0
         val n = gidArray.size
         while (i < n) {
-            addFavorites(gidArray[i], tokenArray[i], dstCat, null)
-            i++
+            try {
+                addFavorites(gidArray[i], tokenArray[i], dstCat, null)
+                i++
+            } catch (e: Exception) {
+                if (e is CancellationException) {
+                    throw e
+                }
+                throw AddFavoritesRangeException(i, e)
+            }
         }
         return null
     }

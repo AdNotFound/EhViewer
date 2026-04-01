@@ -60,6 +60,7 @@ import com.hippo.ehviewer.client.EhRequest
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.data.FavListUrlBuilder
 import com.hippo.ehviewer.client.data.GalleryInfo
+import com.hippo.ehviewer.client.exception.AddFavoritesRangeException
 import com.hippo.ehviewer.client.parser.FavoritesParser
 import com.hippo.ehviewer.ui.CommonOperations
 import com.hippo.ehviewer.widget.GalleryInfoContentHelper
@@ -839,11 +840,14 @@ class FavoritesScene :
         }
 
         override fun onFailure(e: Exception) {
-            // TODO It's a failure, add all of backup back to db.
-            // But how to known which one is failed?
-            // DB Actions
-            EhDB.putLocalFavorites(mBackup)
             val scene = this@FavoritesScene
+            val completedCount = (e as? AddFavoritesRangeException)?.completedCount ?: 0
+            if (completedCount < mBackup.size) {
+                EhDB.putLocalFavorites(mBackup.drop(completedCount))
+            }
+            if (completedCount > 0 && mGidArray != null) {
+                scene.updateHistoryFavSlot(mGidArray.copyOfRange(0, completedCount), mSlot)
+            }
             scene.onGetFavoritesLocal(mKeyword, mTaskId)
         }
 
