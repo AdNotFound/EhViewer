@@ -5,6 +5,7 @@
     <SwitchPreferenceCompat
         android:defaultValue="false"
         android:key="layout_enabled"
+        android:summary="@string/settings_layout_enabled_summary"
         android:title="@string/settings_layout_enabled"
         app:iconSpaceReserved="false" />
 
@@ -12,6 +13,7 @@
         android:defaultValue="false"
         android:dependency="layout_enabled"
         android:key="layout_main_persistent_nav"
+        android:summary="@string/settings_layout_main_persistent_nav_summary"
         android:title="@string/settings_layout_main_persistent_nav"
         app:iconSpaceReserved="false" />
 
@@ -19,6 +21,7 @@
         android:defaultValue="false"
         android:dependency="layout_enabled"
         android:key="layout_settings_two_pane"
+        android:summary="@string/settings_layout_settings_two_pane_summary"
         android:title="@string/settings_layout_settings_two_pane"
         app:iconSpaceReserved="false" />
 
@@ -26,6 +29,7 @@
         android:defaultValue="false"
         android:dependency="layout_enabled"
         android:key="layout_reader_thumbnail_sidebar"
+        android:summary="@string/settings_layout_reader_thumbnail_sidebar_summary"
         android:title="@string/settings_layout_reader_thumbnail_sidebar"
         app:iconSpaceReserved="false" />
 </PreferenceScreen>
