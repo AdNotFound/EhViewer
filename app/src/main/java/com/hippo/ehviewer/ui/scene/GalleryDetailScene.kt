@@ -170,6 +170,9 @@ class GalleryDetailScene :
 
     // Below header
     private var mBelowHeader: View? = null
+    private var mLeftDetailContent: View? = null
+    private var mLeftProgress: View? = null
+    private var mLeftViewTransition: ViewTransition? = null
 
     // Info
     private var mInfo: View? = null
@@ -535,6 +538,11 @@ class GalleryDetailScene :
         mRead!!.setOnClickListener(this)
         mUploader!!.setOnLongClickListener(this)
         mBelowHeader = view.findViewById(R.id.below_header)
+        mLeftDetailContent = view.findViewById(R.id.left_detail_content)
+        mLeftProgress = view.findViewById(R.id.left_progress)
+        if (mLeftDetailContent != null && mLeftProgress != null) {
+            mLeftViewTransition = ViewTransition(mLeftDetailContent, mLeftProgress)
+        }
         mInfo = ViewUtils.`$$`(view, R.id.info)
         mLanguage = ViewUtils.`$$`(mInfo, R.id.language) as TextView
         mPages = ViewUtils.`$$`(mInfo, R.id.pages) as TextView
@@ -615,6 +623,9 @@ class GalleryDetailScene :
         mDownload = null
         mRead = null
         mBelowHeader = null
+        mLeftDetailContent = null
+        mLeftProgress = null
+        mLeftViewTransition = null
         mInfo = null
         mLanguage = null
         mPages = null
@@ -738,12 +749,14 @@ class GalleryDetailScene :
                 mViewTransition!!.showView(0, doAnimation)
                 // Show mBelowHeader
                 mViewTransition2!!.showView(0, doAnimation)
+                mLeftViewTransition?.showView(0, doAnimation)
             }
 
             STATE_REFRESH -> {
                 setLightStatusBar(true)
                 // Show mProgressView
                 mViewTransition!!.showView(1, doAnimation)
+                mLeftViewTransition?.showView(1, doAnimation)
             }
 
             STATE_REFRESH_HEADER -> {
@@ -752,12 +765,14 @@ class GalleryDetailScene :
                 mViewTransition!!.showView(0, doAnimation)
                 // Show mProgress
                 mViewTransition2!!.showView(1, doAnimation)
+                mLeftViewTransition?.showView(1, doAnimation)
             }
 
             STATE_INIT, STATE_FAILED -> {
                 setLightStatusBar(true)
                 // Show mFailedView
                 mViewTransition!!.showView(2, doAnimation)
+                mLeftViewTransition?.showView(0, false)
             }
         }
         if ((oldState == STATE_INIT || oldState == STATE_FAILED || oldState == STATE_REFRESH) &&

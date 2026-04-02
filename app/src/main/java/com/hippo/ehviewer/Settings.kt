@@ -147,6 +147,8 @@ object Settings {
     private const val DEFAULT_LAYOUT_ENABLED = false
     private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV = "layout_main_persistent_nav"
     private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV = false
+    private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE = "layout_main_persistent_nav_visible"
+    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE = true
     private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = "layout_main_persistent_nav_width"
     private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = 1
     private const val KEY_LAYOUT_SETTINGS_TWO_PANE = "layout_settings_two_pane"
@@ -342,6 +344,9 @@ object Settings {
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV)) {
             putLayoutMainPersistentNav(enableLargeScreenLayout)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE)) {
+            putLayoutMainPersistentNavVisible(DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE)
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)) {
             putLayoutMainPersistentNavWidth(DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
@@ -684,6 +689,12 @@ object Settings {
         get() = getBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV)
     fun putLayoutMainPersistentNav(value: Boolean) {
         putBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV, value)
+    }
+
+    val layoutMainPersistentNavVisible: Boolean
+        get() = getBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE)
+    fun putLayoutMainPersistentNavVisible(value: Boolean) {
+        putBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE, value)
     }
 
     val layoutMainPersistentNavWidth: Int

@@ -3,7 +3,6 @@ package com.hippo.ehviewer.ui.fragment
 import android.app.Activity
 import android.os.Bundle
 import androidx.annotation.StringRes
-import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.SwitchPreferenceCompat
 import com.hippo.ehviewer.R
@@ -12,10 +11,10 @@ import com.hippo.ehviewer.ui.SettingsActivity
 class LayoutFragment : BasePreferenceFragment() {
     private var layoutEnabledPreference: SwitchPreferenceCompat? = null
     private var mainPersistentNavPreference: SwitchPreferenceCompat? = null
-    private var mainPersistentNavWidthPreference: ListPreference? = null
+    private var mainPersistentNavWidthPreference: Preference? = null
     private var settingsTwoPanePreference: SwitchPreferenceCompat? = null
     private var detailTwoPanePreference: SwitchPreferenceCompat? = null
-    private var detailLeftWidthPreference: ListPreference? = null
+    private var detailLeftWidthPreference: Preference? = null
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         addPreferencesFromResource(R.xml.layout_settings)
