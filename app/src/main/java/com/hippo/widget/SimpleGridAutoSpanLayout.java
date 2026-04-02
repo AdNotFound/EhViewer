@@ -24,6 +24,7 @@ public class SimpleGridAutoSpanLayout extends SimpleGridLayout {
 
     private int mColumnSize = -1;
     private boolean mColumnSizeChanged = true;
+    private int mLastTotalSpace = -1;
     private int mStrategy;
 
     public SimpleGridAutoSpanLayout(Context context) {
@@ -59,6 +60,7 @@ public class SimpleGridAutoSpanLayout extends SimpleGridLayout {
         }
         mColumnSize = columnSize;
         mColumnSizeChanged = true;
+        mLastTotalSpace = -1;
     }
 
     public void setStrategy(int strategy) {
@@ -67,6 +69,7 @@ public class SimpleGridAutoSpanLayout extends SimpleGridLayout {
         }
         mStrategy = strategy;
         mColumnSizeChanged = true;
+        mLastTotalSpace = -1;
     }
 
     @Override
@@ -74,16 +77,19 @@ public class SimpleGridAutoSpanLayout extends SimpleGridLayout {
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         int widthSize = MeasureSpec.getSize(widthMeasureSpec);
 
-        if (mColumnSizeChanged && mColumnSize > 0 && widthMode == MeasureSpec.EXACTLY) {
+        if (mColumnSize > 0 && widthMode == MeasureSpec.EXACTLY) {
             int totalSpace = widthSize - getPaddingRight() - getPaddingLeft();
-            int spanCount;
-            if (mStrategy == STRATEGY_SUITABLE_SIZE) {
-                spanCount = getSpanCountForSuitableSize(totalSpace, mColumnSize);
-            } else {
-                spanCount = getSpanCountForMinSize(totalSpace, mColumnSize);
+            if (mColumnSizeChanged || totalSpace != mLastTotalSpace) {
+                int spanCount;
+                if (mStrategy == STRATEGY_SUITABLE_SIZE) {
+                    spanCount = getSpanCountForSuitableSize(totalSpace, mColumnSize);
+                } else {
+                    spanCount = getSpanCountForMinSize(totalSpace, mColumnSize);
+                }
+                setColumnCount(spanCount);
+                mColumnSizeChanged = false;
+                mLastTotalSpace = totalSpace;
             }
-            setColumnCount(spanCount);
-            mColumnSizeChanged = false;
         }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }

@@ -14,8 +14,8 @@ class LayoutFragment : BasePreferenceFragment() {
     private var mainPersistentNavPreference: SwitchPreferenceCompat? = null
     private var mainPersistentNavWidthPreference: ListPreference? = null
     private var settingsTwoPanePreference: SwitchPreferenceCompat? = null
-    private var readerThumbnailSidebarPreference: SwitchPreferenceCompat? = null
-    private var readerThumbnailSidebarWidthPreference: ListPreference? = null
+    private var detailTwoPanePreference: SwitchPreferenceCompat? = null
+    private var detailLeftWidthPreference: ListPreference? = null
 
     override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         addPreferencesFromResource(R.xml.layout_settings)
@@ -23,23 +23,23 @@ class LayoutFragment : BasePreferenceFragment() {
         mainPersistentNavPreference = findPreference("layout_main_persistent_nav")
         mainPersistentNavWidthPreference = findPreference("layout_main_persistent_nav_width")
         settingsTwoPanePreference = findPreference("layout_settings_two_pane")
-        readerThumbnailSidebarPreference = findPreference("layout_reader_thumbnail_sidebar")
-        readerThumbnailSidebarWidthPreference = findPreference("layout_reader_thumbnail_sidebar_width")
+        detailTwoPanePreference = findPreference("layout_detail_two_pane")
+        detailLeftWidthPreference = findPreference("layout_detail_left_width")
 
         layoutEnabledPreference?.onPreferenceChangeListener = this
         mainPersistentNavPreference?.onPreferenceChangeListener = this
         mainPersistentNavWidthPreference?.onPreferenceChangeListener = this
         settingsTwoPanePreference?.onPreferenceChangeListener = this
-        readerThumbnailSidebarPreference?.onPreferenceChangeListener = this
-        readerThumbnailSidebarWidthPreference?.onPreferenceChangeListener = this
+        detailTwoPanePreference?.onPreferenceChangeListener = this
+        detailLeftWidthPreference?.onPreferenceChangeListener = this
         updatePreferenceVisibility()
     }
 
     override fun onPreferenceChange(preference: Preference, newValue: Any): Boolean {
         val layoutEnabled = if (preference.key == "layout_enabled") newValue as Boolean else layoutEnabledPreference?.isChecked == true
         val mainPersistentNav = if (preference.key == "layout_main_persistent_nav") newValue as Boolean else mainPersistentNavPreference?.isChecked == true
-        val readerThumbnailSidebar = if (preference.key == "layout_reader_thumbnail_sidebar") newValue as Boolean else readerThumbnailSidebarPreference?.isChecked == true
-        updatePreferenceVisibility(layoutEnabled, mainPersistentNav, readerThumbnailSidebar)
+        val detailTwoPane = if (preference.key == "layout_detail_two_pane") newValue as Boolean else detailTwoPanePreference?.isChecked == true
+        updatePreferenceVisibility(layoutEnabled, mainPersistentNav, detailTwoPane)
         requireActivity().setResult(Activity.RESULT_OK, SettingsActivity.recreateMainActivityResult())
         return true
     }
@@ -47,10 +47,10 @@ class LayoutFragment : BasePreferenceFragment() {
     private fun updatePreferenceVisibility(
         layoutEnabled: Boolean = layoutEnabledPreference?.isChecked == true,
         mainPersistentNav: Boolean = mainPersistentNavPreference?.isChecked == true,
-        readerThumbnailSidebar: Boolean = readerThumbnailSidebarPreference?.isChecked == true,
+        detailTwoPane: Boolean = detailTwoPanePreference?.isChecked == true,
     ) {
         mainPersistentNavWidthPreference?.isVisible = layoutEnabled && mainPersistentNav
-        readerThumbnailSidebarWidthPreference?.isVisible = layoutEnabled && readerThumbnailSidebar
+        detailLeftWidthPreference?.isVisible = layoutEnabled && detailTwoPane
     }
 
     @get:StringRes

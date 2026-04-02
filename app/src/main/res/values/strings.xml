@@ -215,6 +215,7 @@
     <string name="no_comments">No comments</string>
     <string name="more_comment">More comments</string>
     <string name="no_more_comments">No more comments</string>
+    <string name="open_comment_page">Open comments page</string>
     <string name="no_previews">No previews</string>
     <string name="more_previews">More previews</string>
     <string name="no_more_previews">No more previews</string>
@@ -469,7 +470,10 @@
     <string name="settings_layout_main_persistent_nav_width">Main sidebar width</string>
     <string name="settings_layout_main_persistent_nav_summary">Keeps the main navigation visible instead of hiding it in a drawer.</string>
     <string name="settings_layout_settings_two_pane">Two-pane settings</string>
+    <string name="settings_layout_detail_two_pane">Two-pane gallery details</string>
     <string name="settings_layout_settings_two_pane_summary">Shows the settings list and detail view side by side on wider screens.</string>
+    <string name="settings_layout_detail_two_pane_summary">Splits the gallery detail page into two columns on wider screens.</string>
+    <string name="settings_layout_detail_left_width">Gallery detail sidebar width</string>
     <string name="settings_layout_reader_thumbnail_sidebar">Reader thumbnail sidebar</string>
     <string name="settings_layout_reader_thumbnail_sidebar_width">Thumbnail sidebar width</string>
     <string name="settings_layout_reader_thumbnail_sidebar_summary">Shows page thumbnails beside the reader for quicker jumping.</string>

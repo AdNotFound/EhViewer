@@ -151,6 +151,10 @@ object Settings {
     private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = 1
     private const val KEY_LAYOUT_SETTINGS_TWO_PANE = "layout_settings_two_pane"
     private const val DEFAULT_LAYOUT_SETTINGS_TWO_PANE = false
+    private const val KEY_LAYOUT_DETAIL_TWO_PANE = "layout_detail_two_pane"
+    private const val DEFAULT_LAYOUT_DETAIL_TWO_PANE = false
+    private const val KEY_LAYOUT_DETAIL_LEFT_WIDTH = "layout_detail_left_width"
+    private const val DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH = 1
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR = "layout_reader_thumbnail_sidebar"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR = false
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = "layout_reader_thumbnail_sidebar_width"
@@ -344,6 +348,12 @@ object Settings {
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_SETTINGS_TWO_PANE)) {
             putLayoutSettingsTwoPane(enableLargeScreenLayout)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_DETAIL_TWO_PANE)) {
+            putLayoutDetailTwoPane(enableLargeScreenLayout)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_DETAIL_LEFT_WIDTH)) {
+            putLayoutDetailLeftWidth(DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH)
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR)) {
             putLayoutReaderThumbnailSidebar(enableLargeScreenLayout)
@@ -686,6 +696,18 @@ object Settings {
         get() = getBoolean(KEY_LAYOUT_SETTINGS_TWO_PANE, DEFAULT_LAYOUT_SETTINGS_TWO_PANE)
     fun putLayoutSettingsTwoPane(value: Boolean) {
         putBoolean(KEY_LAYOUT_SETTINGS_TWO_PANE, value)
+    }
+
+    val layoutDetailTwoPane: Boolean
+        get() = getBoolean(KEY_LAYOUT_DETAIL_TWO_PANE, DEFAULT_LAYOUT_DETAIL_TWO_PANE)
+    fun putLayoutDetailTwoPane(value: Boolean) {
+        putBoolean(KEY_LAYOUT_DETAIL_TWO_PANE, value)
+    }
+
+    val layoutDetailLeftWidth: Int
+        get() = getIntFromStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH)
+    fun putLayoutDetailLeftWidth(value: Int) {
+        putIntToStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, value)
     }
 
     val layoutReaderThumbnailSidebar: Boolean

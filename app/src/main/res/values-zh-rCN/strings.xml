@@ -193,6 +193,7 @@
     <string name="no_comments">暂无评论</string>
     <string name="more_comment">查看更多评论</string>
     <string name="no_more_comments">已显示所有评论</string>
+    <string name="open_comment_page">查看评论页</string>
     <string name="no_previews">没有预览</string>
     <string name="more_previews">查看更多预览</string>
     <string name="no_more_previews">已显示所有预览</string>
@@ -443,7 +444,10 @@
     <string name="settings_layout_main_persistent_nav_width">主界面侧栏宽度</string>
     <string name="settings_layout_main_persistent_nav_summary">在主界面固定显示导航侧栏，不再收纳到抽屉中。</string>
     <string name="settings_layout_settings_two_pane">设置页双栏显示</string>
+    <string name="settings_layout_detail_two_pane">详情页双栏显示</string>
     <string name="settings_layout_settings_two_pane_summary">在较宽屏幕上同时显示设置列表和详情内容。</string>
+    <string name="settings_layout_detail_two_pane_summary">在较宽屏幕上将画廊详情页拆分为双栏显示。</string>
+    <string name="settings_layout_detail_left_width">详情页左栏宽度</string>
     <string name="settings_layout_reader_thumbnail_sidebar">阅读器缩略图侧栏</string>
     <string name="settings_layout_reader_thumbnail_sidebar_width">缩略图侧栏宽度</string>
     <string name="settings_layout_reader_thumbnail_sidebar_summary">在阅读器侧边显示页面缩略图，方便快速跳转。</string>

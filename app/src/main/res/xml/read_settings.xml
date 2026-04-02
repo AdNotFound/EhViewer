@@ -139,6 +139,23 @@
 
     <SwitchPreferenceCompat
         android:defaultValue="false"
+        android:key="layout_reader_thumbnail_sidebar"
+        android:summary="@string/settings_layout_reader_thumbnail_sidebar_summary"
+        android:title="@string/settings_layout_reader_thumbnail_sidebar"
+        app:iconSpaceReserved="false" />
+
+    <ListPreference
+        android:defaultValue="1"
+        android:dependency="layout_reader_thumbnail_sidebar"
+        android:key="layout_reader_thumbnail_sidebar_width"
+        android:title="@string/settings_layout_reader_thumbnail_sidebar_width"
+        app:entries="@array/layout_sidebar_width_entries"
+        app:entryValues="@array/layout_sidebar_width_entry_values"
+        app:iconSpaceReserved="false"
+        app:useSimpleSummaryProvider="true" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
         android:key="volume_page"
         android:title="@string/settings_read_volume_page"
         app:iconSpaceReserved="false" />

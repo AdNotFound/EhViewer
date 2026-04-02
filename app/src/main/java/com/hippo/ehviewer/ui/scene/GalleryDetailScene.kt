@@ -27,9 +27,11 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
+import android.util.TypedValue
 import android.os.Environment
 import android.view.LayoutInflater
 import android.view.MenuItem
@@ -237,6 +239,7 @@ class GalleryDetailScene :
     private var mState = STATE_INIT
     private var mModifyingFavorites = false
     private var mBasicInfoOnly = false
+    private var mUseLargeTwoPaneLayout = false
 
     @StringRes
     private fun getRatingText(rating: Float): Int = when ((rating * 2).roundToInt()) {
@@ -480,8 +483,20 @@ class GalleryDetailScene :
         } else {
             DownloadInfo.STATE_INVALID
         }
-        val view = inflater.inflate(R.layout.scene_gallery_detail, container, false)
+        mUseLargeTwoPaneLayout = Settings.layoutEnabled && Settings.layoutDetailTwoPane && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val view = inflater.inflate(
+            if (mUseLargeTwoPaneLayout) {
+                R.layout.scene_gallery_detail_large
+            } else {
+                R.layout.scene_gallery_detail
+            },
+            container,
+            false,
+        )
         val main = ViewUtils.`$$`(view, R.id.main) as ViewGroup
+        if (mUseLargeTwoPaneLayout) {
+            applyLargeDetailLeftWidth(view)
+        }
         val mainView = ViewUtils.`$$`(main, R.id.scroll_view) as ScrollView
         mainView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             if (mActionGroup != null && mHeader != null) {
@@ -500,7 +515,7 @@ class GalleryDetailScene :
         drawable!!.setBounds(0, 0, drawable.intrinsicWidth, drawable.intrinsicHeight)
         mTip!!.setCompoundDrawables(null, drawable, null, null)
         mTip!!.setOnClickListener(this)
-        mHeader = ViewUtils.`$$`(mainView, R.id.header) as FrameLayout
+        mHeader = ViewUtils.`$$`(view, R.id.header) as FrameLayout
         mColorBg = ViewUtils.`$$`(mHeader, R.id.color_bg)
         mThumb = ViewUtils.`$$`(mHeader, R.id.thumb) as LoadImageView
         mTitle = ViewUtils.`$$`(mHeader, R.id.title) as TextView
@@ -519,16 +534,15 @@ class GalleryDetailScene :
         mDownload!!.setOnLongClickListener(this)
         mRead!!.setOnClickListener(this)
         mUploader!!.setOnLongClickListener(this)
-        mBelowHeader = mainView.findViewById(R.id.below_header)
-        val belowHeader = mBelowHeader
-        mInfo = ViewUtils.`$$`(belowHeader, R.id.info)
+        mBelowHeader = view.findViewById(R.id.below_header)
+        mInfo = ViewUtils.`$$`(view, R.id.info)
         mLanguage = ViewUtils.`$$`(mInfo, R.id.language) as TextView
         mPages = ViewUtils.`$$`(mInfo, R.id.pages) as TextView
         mSize = ViewUtils.`$$`(mInfo, R.id.size) as TextView
         mPosted = ViewUtils.`$$`(mInfo, R.id.posted) as TextView
         mFavoredTimes = ViewUtils.`$$`(mInfo, R.id.favoredTimes) as TextView
         mInfo!!.setOnClickListener(this)
-        mActions = ViewUtils.`$$`(belowHeader, R.id.actions)
+        mActions = ViewUtils.`$$`(view, R.id.actions)
         mNewerVersion = ViewUtils.`$$`(mActions, R.id.newerVersion) as TextView
         mRatingText = ViewUtils.`$$`(mActions, R.id.rating_text) as TextView
         mRating = ViewUtils.`$$`(mActions, R.id.rating) as RatingBar
@@ -549,20 +563,20 @@ class GalleryDetailScene :
         mRate!!.setOnClickListener(this)
         mSimilar!!.setOnClickListener(this)
         ensureActionDrawable()
-        mTags = ViewUtils.`$$`(belowHeader, R.id.tags) as LinearLayout
+        mTags = ViewUtils.`$$`(view, R.id.tags) as LinearLayout
         mNoTags = ViewUtils.`$$`(mTags, R.id.no_tags) as TextView
-        mComments = ViewUtils.`$$`(belowHeader, R.id.comments) as LinearLayout
+        mComments = ViewUtils.`$$`(view, R.id.comments) as LinearLayout
         if (Settings.showComments) {
             mCommentsText = ViewUtils.`$$`(mComments, R.id.comments_text) as TextView
             mComments!!.setOnClickListener(this)
         } else {
             mComments!!.visibility = View.GONE
         }
-        mPreviews = ViewUtils.`$$`(belowHeader, R.id.previews)
+        mPreviews = ViewUtils.`$$`(view, R.id.previews)
         mGridLayout = ViewUtils.`$$`(mPreviews, R.id.grid_layout) as SimpleGridAutoSpanLayout
         mPreviewText = ViewUtils.`$$`(mPreviews, R.id.preview_text) as TextView
         mPreviews!!.setOnClickListener(this)
-        mProgress = ViewUtils.`$$`(mainView, R.id.progress)
+        mProgress = ViewUtils.`$$`(view, R.id.progress)
         mViewTransition2 = ViewTransition(mBelowHeader, mProgress)
         if (prepareData()) {
             if (mGalleryDetail != null) {
@@ -629,6 +643,7 @@ class GalleryDetailScene :
         mProgress = null
         mViewTransition2 = null
         mPopupMenu = null
+        mUseLargeTwoPaneLayout = false
     }
 
     private fun prepareData(): Boolean {
@@ -934,12 +949,13 @@ class GalleryDetailScene :
         if (comments.isNullOrEmpty()) {
             mCommentsText!!.setText(R.string.no_comments)
             return
-        } else if (comments.size <= maxShowCount) {
+        }
+        val length = maxShowCount.coerceAtMost(comments.size)
+        if (comments.size <= maxShowCount) {
             mCommentsText!!.setText(R.string.no_more_comments)
         } else {
             mCommentsText!!.setText(R.string.more_comment)
         }
-        val length = maxShowCount.coerceAtMost(comments.size)
         for (i in 0 until length) {
             val comment = comments[i]
             val v = inflater.inflate(R.layout.item_gallery_comment, mComments, false)
@@ -969,14 +985,19 @@ class GalleryDetailScene :
         if (gd.previewPages <= 0 || previewSet == null || previewSet.size() == 0) {
             mPreviewText!!.setText(R.string.no_previews)
             return
-        } else if (gd.previewPages == 1 && previewSet.size() <= previewNum) {
+        } else if (gd.previewPages == 1 && previewSet.size() <= if (mUseLargeTwoPaneLayout) max(previewNum, 12) else previewNum) {
             mPreviewText!!.setText(R.string.no_more_previews)
         } else {
             mPreviewText!!.setText(R.string.more_previews)
         }
         mGridLayout!!.setColumnSize(Settings.previewSize)
         mGridLayout!!.setStrategy(SimpleGridAutoSpanLayout.STRATEGY_SUITABLE_SIZE)
-        val size = previewNum.coerceAtMost(previewSet.size())
+        val previewCount = if (mUseLargeTwoPaneLayout) {
+            max(previewNum, 12)
+        } else {
+            previewNum
+        }
+        val size = previewCount.coerceAtMost(previewSet.size())
         for (i in 0 until size) {
             val view = inflater.inflate(R.layout.item_gallery_preview, mGridLayout, false)
             val image = view.findViewById<LoadImageView>(R.id.image)
@@ -986,6 +1007,22 @@ class GalleryDetailScene :
             val text = view.findViewById<TextView>(R.id.text)
             text.text = (previewSet.getPosition(i) + 1).toString()
             previewSet.load(image, gd.gid, i)
+        }
+    }
+
+    private fun getLargeDetailLeftWidth(): Int {
+        val widthDp = when (Settings.layoutDetailLeftWidth) {
+            0 -> 320
+            2 -> 400
+            else -> 360
+        }
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()
+    }
+
+    private fun applyLargeDetailLeftWidth(root: View) {
+        val leftPanel = root.findViewById<View>(R.id.left_panel) ?: return
+        leftPanel.layoutParams = leftPanel.layoutParams.apply {
+            width = getLargeDetailLeftWidth()
         }
     }
 

@@ -236,7 +236,7 @@ class GalleryActivity :
         }
 
     private val useReaderThumbnailSidebarLayout: Boolean
-        get() = Settings.layoutEnabled && Settings.layoutReaderThumbnailSidebar
+        get() = Settings.layoutReaderThumbnailSidebar
 
     private val galleryDetailUrl: String?
         get() {
