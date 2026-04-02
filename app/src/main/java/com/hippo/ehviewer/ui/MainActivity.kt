@@ -267,7 +267,7 @@ class MainActivity :
         mUsePersistentNavigationLayout = mMainNavContainer != null
         if (mUsePersistentNavigationLayout) {
             mPersistentNavigationWidth = getPersistentNavigationWidth()
-            mPersistentNavigationVisible = mMainNavContainer?.isVisible != false
+            mPersistentNavigationVisible = Settings.layoutMainPersistentNavVisible
             updatePersistentNavigationLayout()
         }
         if (mDrawerLayout != null) {
@@ -580,6 +580,7 @@ class MainActivity :
             return
         }
         mPersistentNavigationVisible = visible
+        Settings.putLayoutMainPersistentNavVisible(visible)
         updatePersistentNavigationLayout()
     }
 

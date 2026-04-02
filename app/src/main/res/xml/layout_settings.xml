@@ -17,14 +17,11 @@
         android:title="@string/settings_layout_main_persistent_nav"
         app:iconSpaceReserved="false" />
 
-    <ListPreference
+    <com.hippo.ehviewer.preference.SidebarWidthSeekBarPreference
         android:defaultValue="1"
         android:key="layout_main_persistent_nav_width"
         android:title="@string/settings_layout_main_persistent_nav_width"
-        app:entries="@array/layout_sidebar_width_entries"
-        app:entryValues="@array/layout_sidebar_width_entry_values"
-        app:iconSpaceReserved="false"
-        app:useSimpleSummaryProvider="true" />
+        app:iconSpaceReserved="false" />
 
     <SwitchPreferenceCompat
         android:defaultValue="false"
@@ -42,13 +39,10 @@
         android:title="@string/settings_layout_detail_two_pane"
         app:iconSpaceReserved="false" />
 
-    <ListPreference
+    <com.hippo.ehviewer.preference.SidebarWidthSeekBarPreference
         android:defaultValue="1"
         android:key="layout_detail_left_width"
         android:title="@string/settings_layout_detail_left_width"
-        app:entries="@array/layout_sidebar_width_entries"
-        app:entryValues="@array/layout_sidebar_width_entry_values"
-        app:iconSpaceReserved="false"
-        app:useSimpleSummaryProvider="true" />
+        app:iconSpaceReserved="false" />
 
 </PreferenceScreen>
