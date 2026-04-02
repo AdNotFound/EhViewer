@@ -165,6 +165,8 @@ object Settings {
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = 1
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = "layout_reader_thumbnail_sidebar_visible"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = true
+    private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT = "layout_reader_thumbnail_sidebar_on_right"
+    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT = true
 
     /********************
      ****** Download
@@ -372,6 +374,9 @@ object Settings {
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE)) {
             putLayoutReaderThumbnailSidebarVisible(true)
+        }
+        if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT)) {
+            putLayoutReaderThumbnailSidebarOnRight(DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT)
         }
     }
 
@@ -747,6 +752,12 @@ object Settings {
         get() = getBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE)
     fun putLayoutReaderThumbnailSidebarVisible(value: Boolean) {
         putBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE, value)
+    }
+
+    val layoutReaderThumbnailSidebarOnRight: Boolean
+        get() = getBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT)
+    fun putLayoutReaderThumbnailSidebarOnRight(value: Boolean) {
+        putBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT, value)
     }
 
     val downloadLocation: UniFile?
