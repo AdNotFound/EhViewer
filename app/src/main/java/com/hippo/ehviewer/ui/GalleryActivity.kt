@@ -42,7 +42,9 @@ import android.util.TypedValue
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
+import android.view.Gravity
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.webkit.MimeTypeMap
@@ -217,7 +219,11 @@ class GalleryActivity :
     private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
     private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
     private var mReaderSidebarVisible = true
+    private var mReaderSidebarOnRight = true
     private var mReaderSidebarPreviewJob: Job? = null
+    private var mReaderSidebarToggleDownRawX = 0f
+    private var mReaderSidebarToggleDragging = false
+    private var mReaderSidebarToggleTouchSlop = 0
     private var mSeekBarPanelAnimator: ObjectAnimator? = null
     private var mLayoutMode = 0
     private var mSize = 0
@@ -453,7 +459,10 @@ class GalleryActivity :
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
             mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
             mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
+            mReaderSidebarOnRight = Settings.layoutReaderThumbnailSidebarOnRight
+            mReaderSidebarToggleTouchSlop = ViewConfiguration.get(this).scaledTouchSlop
             mReaderSidebarToggle?.setOnClickListener { toggleReaderSidebar() }
+            mReaderSidebarToggle?.setOnTouchListener { view, event -> onReaderSidebarToggleTouch(view, event) }
             updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
             updateReaderSidebarData(forceCenter = true)
         }
@@ -845,6 +854,61 @@ class GalleryActivity :
         updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
     }
 
+    private fun onReaderSidebarToggleTouch(view: View, event: MotionEvent): Boolean {
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                mReaderSidebarToggleDownRawX = event.rawX
+                mReaderSidebarToggleDragging = false
+                view.parent?.requestDisallowInterceptTouchEvent(true)
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                val deltaX = event.rawX - mReaderSidebarToggleDownRawX
+                if (!mReaderSidebarToggleDragging && kotlin.math.abs(deltaX) > mReaderSidebarToggleTouchSlop) {
+                    mReaderSidebarToggleDragging = true
+                }
+                if (mReaderSidebarToggleDragging) {
+                    view.translationX = deltaX
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                val deltaX = event.rawX - mReaderSidebarToggleDownRawX
+                view.parent?.requestDisallowInterceptTouchEvent(false)
+                if (mReaderSidebarToggleDragging) {
+                    view.animate().translationX(0f).setDuration(160L).start()
+                    maybeSwitchReaderSidebarSide(deltaX)
+                } else if (event.actionMasked == MotionEvent.ACTION_UP) {
+                    view.performClick()
+                }
+                mReaderSidebarToggleDragging = false
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun maybeSwitchReaderSidebarSide(deltaX: Float) {
+        val threshold = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            36f,
+            resources.displayMetrics,
+        )
+        val targetOnRight = when {
+            mReaderSidebarOnRight && deltaX <= -threshold -> false
+            !mReaderSidebarOnRight && deltaX >= threshold -> true
+            else -> mReaderSidebarOnRight
+        }
+        if (targetOnRight == mReaderSidebarOnRight) {
+            return
+        }
+        mReaderSidebarOnRight = targetOnRight
+        Settings.putLayoutReaderThumbnailSidebarOnRight(targetOnRight)
+        updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
+    }
+
     private fun updateReaderSidebarVisibility(showHiddenIndicator: Boolean = false) {
         val contentContainer = mReaderContentContainer ?: return
         val sidebarContainer = mReaderSidebarContainer ?: return
@@ -852,27 +916,37 @@ class GalleryActivity :
         val contentLayoutParams = contentContainer.layoutParams as? FrameLayout.LayoutParams ?: return
         val dividerWidth = mReaderSidebarDivider?.layoutParams?.width ?: 0
         val sidebarWidth = getReaderSidebarWidth()
-        mReaderSidebarContainer?.layoutParams = mReaderSidebarContainer?.layoutParams?.apply {
+        mReaderSidebarContainer?.layoutParams = (mReaderSidebarContainer?.layoutParams as? FrameLayout.LayoutParams)?.apply {
             width = sidebarWidth
+            gravity = if (mReaderSidebarOnRight) Gravity.END else Gravity.START
         }
         mReaderSidebarDivider?.layoutParams = (mReaderSidebarDivider?.layoutParams as? FrameLayout.LayoutParams)?.apply {
-            marginEnd = sidebarWidth
+            gravity = if (mReaderSidebarOnRight) Gravity.END else Gravity.START
+            marginEnd = if (mReaderSidebarOnRight) sidebarWidth else 0
+            marginStart = if (mReaderSidebarOnRight) 0 else sidebarWidth
         }
-        val endMargin = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
-        if (contentLayoutParams.marginEnd != endMargin) {
-            contentLayoutParams.marginEnd = endMargin
+        val insetMargin = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
+        val targetStartMargin = if (mReaderSidebarOnRight) 0 else insetMargin
+        val targetEndMargin = if (mReaderSidebarOnRight) insetMargin else 0
+        if (contentLayoutParams.marginStart != targetStartMargin || contentLayoutParams.marginEnd != targetEndMargin) {
+            contentLayoutParams.marginStart = targetStartMargin
+            contentLayoutParams.marginEnd = targetEndMargin
             contentContainer.layoutParams = contentLayoutParams
         }
         mReaderSidebarDivider?.isVisible = mReaderSidebarVisible
         sidebarContainer.isVisible = mReaderSidebarVisible
         val toggleLayoutParams = toggleView.layoutParams as? FrameLayout.LayoutParams ?: return
-        if (toggleLayoutParams.marginEnd != endMargin) {
-            toggleLayoutParams.marginEnd = endMargin
+        toggleLayoutParams.gravity = if (mReaderSidebarOnRight) Gravity.END else Gravity.START
+        val targetToggleStartMargin = if (mReaderSidebarOnRight) 0 else insetMargin
+        val targetToggleEndMargin = if (mReaderSidebarOnRight) insetMargin else 0
+        if (toggleLayoutParams.marginStart != targetToggleStartMargin || toggleLayoutParams.marginEnd != targetToggleEndMargin) {
+            toggleLayoutParams.marginStart = targetToggleStartMargin
+            toggleLayoutParams.marginEnd = targetToggleEndMargin
             toggleView.layoutParams = toggleLayoutParams
         }
         toggleView.animate().cancel()
         toggleView.removeCallbacks(mHideReaderSidebarToggleRunnable)
-        toggleView.scaleX = if (mReaderSidebarVisible) -1f else 1f
+        toggleView.scaleX = if (mReaderSidebarOnRight == mReaderSidebarVisible) -1f else 1f
         if (mReaderSidebarVisible) {
             toggleView.alpha = 0.92f
         } else {
