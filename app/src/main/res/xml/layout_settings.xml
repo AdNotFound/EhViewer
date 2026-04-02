@@ -37,17 +37,18 @@
     <SwitchPreferenceCompat
         android:defaultValue="false"
         android:dependency="layout_enabled"
-        android:key="layout_reader_thumbnail_sidebar"
-        android:summary="@string/settings_layout_reader_thumbnail_sidebar_summary"
-        android:title="@string/settings_layout_reader_thumbnail_sidebar"
+        android:key="layout_detail_two_pane"
+        android:summary="@string/settings_layout_detail_two_pane_summary"
+        android:title="@string/settings_layout_detail_two_pane"
         app:iconSpaceReserved="false" />
 
     <ListPreference
         android:defaultValue="1"
-        android:key="layout_reader_thumbnail_sidebar_width"
-        android:title="@string/settings_layout_reader_thumbnail_sidebar_width"
+        android:key="layout_detail_left_width"
+        android:title="@string/settings_layout_detail_left_width"
         app:entries="@array/layout_sidebar_width_entries"
         app:entryValues="@array/layout_sidebar_width_entry_values"
         app:iconSpaceReserved="false"
         app:useSimpleSummaryProvider="true" />
+
 </PreferenceScreen>

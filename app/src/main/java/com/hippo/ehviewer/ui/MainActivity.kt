@@ -257,7 +257,7 @@ class MainActivity :
         if (Settings.dF && Settings.bypassVpn) {
             bypassVpn()
         }
-        setContentView(if (Settings.layoutEnabled && Settings.layoutMainPersistentNav) R.layout.activity_main_large else R.layout.activity_main)
+        setContentView(if (Settings.layoutEnabled && Settings.layoutMainPersistentNav && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) R.layout.activity_main_large else R.layout.activity_main)
         mSnackBar = ViewUtils.`$$`(this, R.id.snackbar) as CoordinatorLayout
         mStageLayout = ViewUtils.`$$`(this, R.id.fragment_container) as EhStageLayout
         mDrawerLayout = ViewUtils.`$$`(this, R.id.draw_view) as DrawerLayout

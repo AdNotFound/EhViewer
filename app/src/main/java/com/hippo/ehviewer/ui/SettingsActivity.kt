@@ -17,6 +17,7 @@ package com.hippo.ehviewer.ui
 
 import android.os.Bundle
 import android.content.Intent
+import android.content.res.Configuration
 import android.view.MenuItem
 import android.view.View
 import androidx.annotation.StringRes
@@ -35,7 +36,7 @@ class SettingsActivity : EhActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(
-            if (Settings.layoutEnabled && Settings.layoutSettingsTwoPane) {
+            if (Settings.layoutEnabled && Settings.layoutSettingsTwoPane && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 R.layout.activity_preference_large
             } else {
                 R.layout.activity_preference

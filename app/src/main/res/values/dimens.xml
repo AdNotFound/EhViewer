@@ -105,6 +105,9 @@
 
     <dimen name="gallery_detail_thumb_width">128dp</dimen>
     <dimen name="gallery_detail_thumb_height">192dp</dimen>
+    <dimen name="gallery_detail_large_left_width">360dp</dimen>
+    <dimen name="gallery_detail_large_thumb_width">152dp</dimen>
+    <dimen name="gallery_detail_large_thumb_height">228dp</dimen>
 
     <dimen name="gallery_widget_margin_h">12dp</dimen>
     <dimen name="gallery_widget_margin_v">12dp</dimen>

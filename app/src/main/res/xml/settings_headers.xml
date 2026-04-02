@@ -28,7 +28,7 @@
 
     <Preference
         android:key="layout"
-        android:icon="@drawable/ic_baseline_menu_24"
+        android:icon="@drawable/v_menu_primary_x24"
         android:title="@string/settings_layout" />
 
     <Preference
