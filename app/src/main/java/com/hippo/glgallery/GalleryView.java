@@ -115,6 +115,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final List<Object[]> mArgsListTemp = new ArrayList<>(5);
     private final AtomicInteger mCurrentIndex = new AtomicInteger(GalleryPageView.INVALID_INDEX);
     private int mCurrentPairSize = 1;
+    private boolean mPageStructureChanged = false;
     private Adapter mAdapter;
 
     public int getPagePairSize(int index) {
@@ -129,6 +130,11 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
             return mLayoutManager.getPairStart(index);
         }
         return index;
+    }
+
+    void notifyPageStructureChanged() {
+        mPageStructureChanged = true;
+        invalidate();
     }
 
     private ImageMovableTextTexture mPageTextTexture;
@@ -924,8 +930,10 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         int newPairSize = getPagePairSize(newCurrentIndex);
         boolean pairSizeChanged = (mCurrentPairSize != newPairSize);
         mCurrentPairSize = newPairSize;
+        boolean pageStructureChanged = mPageStructureChanged;
+        mPageStructureChanged = false;
 
-        if ((oldCurrentIndex != newCurrentIndex || pairSizeChanged) && mListener != null) {
+        if ((oldCurrentIndex != newCurrentIndex || pairSizeChanged || pageStructureChanged) && mListener != null) {
             mListener.onUpdateCurrentIndex(newCurrentIndex);
         }
     }

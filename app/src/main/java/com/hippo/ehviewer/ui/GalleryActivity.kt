@@ -173,7 +173,7 @@ class GalleryActivity :
         mSeekBarPanel?.let { hideSlider(it) }
     }
     private val mHideReaderSidebarToggleRunnable = Runnable {
-        mReaderSidebarToggle?.animate()?.alpha(0f)?.setDuration(READER_SIDEBAR_TOGGLE_FADE_DURATION)?.start()
+        mReaderSidebarToggle?.animate()?.alpha(READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA)?.setDuration(READER_SIDEBAR_TOGGLE_FADE_DURATION)?.start()
     }
     private val mHideSliderListener: SimpleAnimatorListener = object : SimpleAnimatorListener() {
         override fun onAnimationEnd(animation: Animator) {
@@ -218,6 +218,7 @@ class GalleryActivity :
     private var mReaderContentContainer: View? = null
     private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
     private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
+    private var mReaderSidebarPageStarts: List<Int> = emptyList()
     private var mReaderSidebarVisible = true
     private var mReaderSidebarOnRight = true
     private var mReaderSidebarPreviewJob: Job? = null
@@ -565,6 +566,7 @@ class GalleryActivity :
         }
         mSize = mGalleryProvider!!.size
         mReaderSidebarPreviewMap.clear()
+        mReaderSidebarPageStarts = emptyList()
         updateDoublePageMode()
         updateSlider()
         updateProgress()
@@ -777,7 +779,18 @@ class GalleryActivity :
     }
 
     private fun updateReaderSidebarData(forceCenter: Boolean = false) {
-        mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, buildReaderSidebarPageStarts())
+        val pageStarts = buildReaderSidebarPageStarts()
+        mReaderSidebarPageStarts = pageStarts
+        mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts)
+        updateReaderSidebarSelection(forceCenter)
+    }
+
+    private fun refreshReaderSidebarStructure(forceCenter: Boolean = false) {
+        val pageStarts = buildReaderSidebarPageStarts()
+        if (pageStarts != mReaderSidebarPageStarts) {
+            mReaderSidebarPageStarts = pageStarts
+            mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts)
+        }
         updateReaderSidebarSelection(forceCenter)
     }
 
@@ -940,7 +953,7 @@ class GalleryActivity :
         mReaderSidebarDivider?.isVisible = mReaderSidebarVisible
         sidebarContainer.isVisible = mReaderSidebarVisible
         val toggleLayoutParams = toggleView.layoutParams as? FrameLayout.LayoutParams ?: return
-        toggleLayoutParams.gravity = if (mReaderSidebarOnRight) Gravity.END else Gravity.START
+        toggleLayoutParams.gravity = (if (mReaderSidebarOnRight) Gravity.END else Gravity.START) or Gravity.CENTER_VERTICAL
         val targetToggleStartMargin = if (mReaderSidebarOnRight) 0 else insetMargin
         val targetToggleEndMargin = if (mReaderSidebarOnRight) insetMargin else 0
         if (toggleLayoutParams.marginStart != targetToggleStartMargin || toggleLayoutParams.marginEnd != targetToggleEndMargin) {
@@ -953,9 +966,9 @@ class GalleryActivity :
         toggleView.removeCallbacks(mHideReaderSidebarToggleRunnable)
         toggleView.scaleX = if (mReaderSidebarOnRight == mReaderSidebarVisible) -1f else 1f
         if (mReaderSidebarVisible) {
-            toggleView.alpha = 0.92f
+            toggleView.alpha = 0.98f
         } else {
-            toggleView.alpha = if (showHiddenIndicator) 0.92f else 0f
+            toggleView.alpha = if (showHiddenIndicator) 0.98f else READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
             if (showHiddenIndicator) {
                 toggleView.postDelayed(mHideReaderSidebarToggleRunnable, READER_SIDEBAR_TOGGLE_HINT_DELAY)
             }
@@ -1602,7 +1615,7 @@ class GalleryActivity :
                     mCurrentIndex = mValue
                     updateSlider()
                     updateProgress()
-                    updateReaderSidebarSelection(forceCenter = true)
+                    refreshReaderSidebarStructure(forceCenter = true)
                 }
 
                 NOTIFY_KEY_TAP_MENU_AREA -> onTapMenuArea()
@@ -1662,8 +1675,10 @@ class GalleryActivity :
             } else {
                 holder.imageSecondary.resetClip()
                 holder.imageSecondary.setImageDrawable(null)
-                holder.imageSecondary.visibility = View.GONE
-                holder.imageGap.visibility = View.GONE
+                holder.imageSecondary.setBackgroundResource(0)
+                val preserveDoublePageSlot = isDoublePageMode
+                holder.imageSecondary.visibility = if (preserveDoublePageSlot) View.INVISIBLE else View.GONE
+                holder.imageGap.visibility = if (preserveDoublePageSlot) View.INVISIBLE else View.GONE
             }
             holder.text.text = if (pageEnd - pageStart > 1) {
                 "${pageStart + 1}-${pageEnd}"
@@ -1728,6 +1743,7 @@ class GalleryActivity :
         private const val HIDE_SLIDER_DELAY: Long = 3000
         private const val READER_SIDEBAR_TOGGLE_HINT_DELAY: Long = 1500
         private const val READER_SIDEBAR_TOGGLE_FADE_DURATION: Long = 180
+        private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0.4f
         private const val NOTIFY_KEY_LAYOUT_MODE = 0
         private const val NOTIFY_KEY_SIZE = 1
         private const val NOTIFY_KEY_CURRENT_INDEX = 2

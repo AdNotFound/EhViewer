@@ -126,14 +126,16 @@
 
     <ImageView
         android:id="@+id/reader_sidebar_toggle"
-        android:layout_width="20dp"
-        android:layout_height="match_parent"
-        android:layout_gravity="end"
+        android:layout_width="30dp"
+        android:layout_height="92dp"
+        android:layout_gravity="end|center_vertical"
         android:layout_marginEnd="129dp"
-        android:background="@android:color/transparent"
+        android:background="@drawable/bg_reader_sidebar_toggle"
         android:contentDescription="@string/reader_sidebar_toggle"
-        android:paddingHorizontal="2dp"
-        android:scaleType="center"
+        android:elevation="4dp"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="18dp"
+        android:scaleType="centerInside"
         app:srcCompat="@drawable/v_arrow_left_dark_x24"
         app:tint="?android:attr/textColorSecondary" />
 
