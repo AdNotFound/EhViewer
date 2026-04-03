@@ -51,6 +51,7 @@ import android.webkit.MimeTypeMap
 import android.widget.CompoundButton
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.Spinner
@@ -853,7 +854,9 @@ class GalleryActivity :
     private fun getReaderSidebarWidth(): Int {
         val widthDp = when (Settings.layoutReaderThumbnailSidebarWidth) {
             0 -> 96
-            2 -> 160
+            1 -> 112
+            3 -> 144
+            4 -> 160
             else -> 128
         }
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()
@@ -1675,9 +1678,11 @@ class GalleryActivity :
     }
 
     private class ReaderSidebarHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+        val imageLeadingSpace: View = itemView.findViewById(R.id.image_leading_space)
         val image: LoadImageView = itemView.findViewById(R.id.image)
         val imageSecondary: LoadImageView = itemView.findViewById(R.id.image_secondary)
         val imageGap: View = itemView.findViewById(R.id.image_gap)
+        val imageTrailingSpace: View = itemView.findViewById(R.id.image_trailing_space)
         val text: TextView = itemView.findViewById(R.id.text)
     }
 
@@ -1702,6 +1707,16 @@ class GalleryActivity :
         private var pageStarts: List<Int> = emptyList()
         private var pageStartToPosition: Map<Int, Int> = emptyMap()
 
+        private fun updateSlotLayout(view: View, width: Int, weight: Float) {
+            val params = view.layoutParams as? LinearLayout.LayoutParams ?: return
+            if (params.width == width && params.weight == weight) {
+                return
+            }
+            params.width = width
+            params.weight = weight
+            view.layoutParams = params
+        }
+
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ReaderSidebarHolder = ReaderSidebarHolder(
             inflater.inflate(R.layout.item_gallery_sidebar_preview, parent, false),
         )
@@ -1713,6 +1728,10 @@ class GalleryActivity :
             val pageEnd = minOf(pageCount, pageStart + pairSize)
             bindSidebarPreview(holder.image, previews[pageStart])
             if (pageEnd - pageStart > 1) {
+                holder.imageLeadingSpace.visibility = View.GONE
+                holder.imageTrailingSpace.visibility = View.GONE
+                updateSlotLayout(holder.image, 0, 1f)
+                updateSlotLayout(holder.imageSecondary, 0, 1f)
                 holder.imageSecondary.visibility = View.VISIBLE
                 holder.imageGap.visibility = View.VISIBLE
                 bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1])
@@ -1720,9 +1739,22 @@ class GalleryActivity :
                 holder.imageSecondary.resetClip()
                 holder.imageSecondary.setImageDrawable(null)
                 holder.imageSecondary.setBackgroundResource(0)
-                val preserveDoublePageSlot = isDoublePageMode
-                holder.imageSecondary.visibility = if (preserveDoublePageSlot) View.INVISIBLE else View.GONE
-                holder.imageGap.visibility = if (preserveDoublePageSlot) View.INVISIBLE else View.GONE
+                if (isDoublePageMode) {
+                    holder.imageLeadingSpace.visibility = View.VISIBLE
+                    holder.imageTrailingSpace.visibility = View.VISIBLE
+                    updateSlotLayout(holder.imageLeadingSpace, 0, 1f)
+                    updateSlotLayout(holder.image, 0, 2f)
+                    updateSlotLayout(holder.imageTrailingSpace, 0, 1f)
+                    holder.imageSecondary.visibility = View.GONE
+                    holder.imageGap.visibility = View.GONE
+                } else {
+                    holder.imageLeadingSpace.visibility = View.GONE
+                    holder.imageTrailingSpace.visibility = View.GONE
+                    updateSlotLayout(holder.image, 0, 1f)
+                    updateSlotLayout(holder.imageSecondary, 0, 1f)
+                    holder.imageSecondary.visibility = View.GONE
+                    holder.imageGap.visibility = View.GONE
+                }
             }
             holder.text.text = if (pageEnd - pageStart > 1) {
                 "${pageStart + 1}-${pageEnd}"
@@ -1787,7 +1819,7 @@ class GalleryActivity :
         private const val HIDE_SLIDER_DELAY: Long = 3000
         private const val READER_SIDEBAR_TOGGLE_HINT_DELAY: Long = 1500
         private const val READER_SIDEBAR_TOGGLE_FADE_DURATION: Long = 180
-        private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0.4f
+        private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0f
         private const val NOTIFY_KEY_LAYOUT_MODE = 0
         private const val NOTIFY_KEY_SIZE = 1
         private const val NOTIFY_KEY_CURRENT_INDEX = 2

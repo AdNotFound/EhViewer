@@ -1086,7 +1086,9 @@ class GalleryDetailScene :
     private fun getLargeDetailLeftWidth(): Int {
         val widthDp = when (Settings.layoutDetailLeftWidth) {
             0 -> 320
-            2 -> 400
+            1 -> 340
+            3 -> 380
+            4 -> 400
             else -> 360
         }
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()

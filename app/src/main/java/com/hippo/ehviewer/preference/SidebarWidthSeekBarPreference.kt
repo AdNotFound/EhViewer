@@ -11,7 +11,7 @@ import com.hippo.ehviewer.R
 
 class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Preference(context, attrs) {
 
-    private var value = 1
+    private var value = 2
     private var valueTextView: TextView? = null
 
     init {
@@ -23,7 +23,7 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
         val seekBar = holder.findViewById(R.id.scale_seekbar) as SeekBar
         valueTextView = holder.findViewById(R.id.scale_value) as TextView
 
-        seekBar.max = 2
+        seekBar.max = 4
         seekBar.progress = value
         updateLabel(value)
 
@@ -45,13 +45,13 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
         })
     }
 
-    override fun onGetDefaultValue(a: TypedArray, index: Int): Any = a.getInt(index, 1)
+    override fun onGetDefaultValue(a: TypedArray, index: Int): Any = a.getInt(index, 2)
 
     override fun onSetInitialValue(defaultValue: Any?) {
         val defaultInt = when (defaultValue) {
             is Int -> defaultValue
-            is String -> defaultValue.toIntOrNull() ?: 1
-            else -> 1
+            is String -> defaultValue.toIntOrNull() ?: 2
+            else -> 2
         }
         value = getPersistedWidth(defaultInt)
     }
@@ -68,21 +68,15 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
 
     private fun getPersistedWidth(defaultValue: Int): Int {
         val storedValue = sharedPreferences?.all?.get(key)
-        return when (storedValue) {
+        return (when (storedValue) {
             is Int -> storedValue
             is Long -> storedValue.toInt()
             is String -> storedValue.toIntOrNull() ?: defaultValue
             else -> getPersistedString(defaultValue.toString())?.toIntOrNull() ?: defaultValue
-        }
+        }).coerceIn(0, 4)
     }
 
     private fun updateLabel(value: Int) {
-        valueTextView?.setText(
-            when (value) {
-                0 -> R.string.settings_layout_sidebar_width_compact
-                2 -> R.string.settings_layout_sidebar_width_wide
-                else -> R.string.settings_layout_sidebar_width_standard
-            },
-        )
+        valueTextView?.text = (value + 1).toString()
     }
 }

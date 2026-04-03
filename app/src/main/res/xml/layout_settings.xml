@@ -18,7 +18,7 @@
         app:iconSpaceReserved="false" />
 
     <com.hippo.ehviewer.preference.SidebarWidthSeekBarPreference
-        android:defaultValue="1"
+        android:defaultValue="2"
         android:key="layout_main_persistent_nav_width"
         android:title="@string/settings_layout_main_persistent_nav_width"
         app:iconSpaceReserved="false" />
@@ -40,7 +40,7 @@
         app:iconSpaceReserved="false" />
 
     <com.hippo.ehviewer.preference.SidebarWidthSeekBarPreference
-        android:defaultValue="1"
+        android:defaultValue="2"
         android:key="layout_detail_left_width"
         android:title="@string/settings_layout_detail_left_width"
         app:iconSpaceReserved="false" />
