@@ -151,7 +151,8 @@ class GalleryDetailScene :
     BaseScene(),
     View.OnClickListener,
     DownloadInfoListener,
-    OnLongClickListener {
+    OnLongClickListener,
+    GalleryDetailOverlayHost {
     private var mTip: TextView? = null
     private var mViewTransition: ViewTransition? = null
 
@@ -173,6 +174,8 @@ class GalleryDetailScene :
     private var mLeftDetailContent: View? = null
     private var mLeftProgress: View? = null
     private var mLeftViewTransition: ViewTransition? = null
+    private var mRightScrollView: View? = null
+    private var mRightOverlayContainer: ViewGroup? = null
 
     // Info
     private var mInfo: View? = null
@@ -501,6 +504,8 @@ class GalleryDetailScene :
             applyLargeDetailLeftWidth(view)
         }
         val mainView = ViewUtils.`$$`(main, R.id.scroll_view) as ScrollView
+        mRightScrollView = mainView
+        mRightOverlayContainer = view.findViewById(R.id.right_overlay_container)
         mainView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
             if (mActionGroup != null && mHeader != null) {
                 setLightStatusBar(
@@ -602,6 +607,10 @@ class GalleryDetailScene :
             mTip!!.setText(R.string.error_cannot_find_gallery)
             adjustViewVisibility(STATE_FAILED, false)
         }
+        if (mUseLargeTwoPaneLayout && childFragmentManager.findFragmentById(R.id.right_overlay_container) != null) {
+            mRightScrollView?.visibility = View.GONE
+            mRightOverlayContainer?.visibility = View.VISIBLE
+        }
         EhDownloadManager.addDownloadInfoListener(this)
         return view
     }
@@ -655,6 +664,36 @@ class GalleryDetailScene :
         mViewTransition2 = null
         mPopupMenu = null
         mUseLargeTwoPaneLayout = false
+        mRightScrollView = null
+        mRightOverlayContainer = null
+    }
+
+    private fun showDetailOverlay(fragment: Fragment, tag: String) {
+        val container = mRightOverlayContainer ?: return
+        mRightScrollView?.visibility = View.GONE
+        container.visibility = View.VISIBLE
+        childFragmentManager.beginTransaction()
+            .replace(R.id.right_overlay_container, fragment, tag)
+            .commitAllowingStateLoss()
+    }
+
+    override fun closeDetailOverlay() {
+        val container = mRightOverlayContainer ?: return
+        childFragmentManager.findFragmentById(R.id.right_overlay_container)?.let {
+            childFragmentManager.beginTransaction()
+                .remove(it)
+                .commitAllowingStateLoss()
+        }
+        container.visibility = View.GONE
+        mRightScrollView?.visibility = View.VISIBLE
+    }
+
+    override fun onDetailOverlayCommentsUpdated(comments: GalleryCommentList?) {
+        if (mGalleryDetail == null || comments == null) {
+            return
+        }
+        mGalleryDetail!!.comments = comments
+        bindComments(comments.comments)
     }
 
     private fun prepareData(): Boolean {
@@ -1208,7 +1247,11 @@ class GalleryDetailScene :
             mInfo -> {
                 val args = Bundle()
                 args.putParcelable(GalleryInfoScene.KEY_GALLERY_DETAIL, galleryDetail)
-                startScene(Announcer(GalleryInfoScene::class.java).setArgs(args))
+                if (mUseLargeTwoPaneLayout) {
+                    showDetailOverlay(GalleryInfoScene().apply { arguments = args }, "detail_overlay_info")
+                } else {
+                    startScene(Announcer(GalleryInfoScene::class.java).setArgs(args))
+                }
             }
 
             mHeartGroup -> {
@@ -1313,11 +1356,15 @@ class GalleryDetailScene :
                 args.putString(GalleryCommentsScene.KEY_TOKEN, galleryDetail.token)
                 args.putParcelable(GalleryCommentsScene.KEY_COMMENT_LIST, galleryDetail.comments)
                 args.putParcelable(GalleryCommentsScene.KEY_GALLERY_DETAIL, galleryDetail)
-                startScene(
-                    Announcer(GalleryCommentsScene::class.java)
-                        .setArgs(args)
-                        .setRequestCode(this, REQUEST_CODE_COMMENT_GALLERY),
-                )
+                if (mUseLargeTwoPaneLayout) {
+                    showDetailOverlay(GalleryCommentsScene().apply { arguments = args }, "detail_overlay_comments")
+                } else {
+                    startScene(
+                        Announcer(GalleryCommentsScene::class.java)
+                            .setArgs(args)
+                            .setRequestCode(this, REQUEST_CODE_COMMENT_GALLERY),
+                    )
+                }
             }
 
             mPreviews -> {
@@ -1331,7 +1378,11 @@ class GalleryDetailScene :
                 val args = Bundle()
                 args.putParcelable(GalleryPreviewsScene.KEY_GALLERY_INFO, galleryDetail)
                 args.putInt(GalleryPreviewsScene.KEY_SCROLL_TO, scrollTo)
-                startScene(Announcer(GalleryPreviewsScene::class.java).setArgs(args))
+                if (mUseLargeTwoPaneLayout) {
+                    showDetailOverlay(GalleryPreviewsScene().apply { arguments = args }, "detail_overlay_previews")
+                } else {
+                    startScene(Announcer(GalleryPreviewsScene::class.java).setArgs(args))
+                }
             }
 
             else -> {
@@ -1625,6 +1676,10 @@ class GalleryDetailScene :
     }
 
     override fun onBackPressed() {
+        if (mUseLargeTwoPaneLayout && mRightOverlayContainer?.visibility == View.VISIBLE) {
+            closeDetailOverlay()
+            return
+        }
         if (mViewTransition != null &&
             mThumb != null &&
             mViewTransition!!.shownViewIndex == 0 &&

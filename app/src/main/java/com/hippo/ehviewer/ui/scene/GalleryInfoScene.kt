@@ -172,7 +172,7 @@ class GalleryInfoScene : ToolbarScene() {
     }
 
     override fun onNavigationClick() {
-        onBackPressed()
+        (parentFragment as? GalleryDetailOverlayHost)?.closeDetailOverlay() ?: onBackPressed()
     }
 
     private class InfoHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {

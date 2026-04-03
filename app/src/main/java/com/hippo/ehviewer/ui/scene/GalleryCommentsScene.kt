@@ -330,6 +330,13 @@ class GalleryCommentsScene :
         onBackPressed()
     }
 
+    private fun dispatchCommentListResult(result: GalleryCommentList?) {
+        val re = Bundle()
+        re.putParcelable(KEY_COMMENT_LIST, result)
+        setResult(RESULT_OK, re)
+        (parentFragment as? GalleryDetailOverlayHost)?.onDetailOverlayCommentsUpdated(result)
+    }
+
     private fun showFilterCommenterDialog(commenter: String?, position: Int) {
         val context = context
         if (context == null || commenter == null) {
@@ -696,7 +703,7 @@ class GalleryCommentsScene :
         if (null != mEditPanel && mEditPanel!!.isVisible) {
             hideEditPanel()
         } else {
-            finish()
+            (parentFragment as? GalleryDetailOverlayHost)?.closeDetailOverlay() ?: finish()
         }
     }
 
@@ -711,9 +718,7 @@ class GalleryCommentsScene :
         mAdapter!!.notifyDataSetChanged()
         updateView(true)
 
-        val re = Bundle()
-        re.putParcelable(KEY_COMMENT_LIST, result)
-        setResult(RESULT_OK, re)
+        dispatchCommentListResult(result)
     }
 
     private fun onRefreshGalleryFailure() {
@@ -735,9 +740,7 @@ class GalleryCommentsScene :
         }
         mGalleryDetail!!.comments = result
         mAdapter!!.notifyDataSetChanged()
-        val re = Bundle()
-        re.putParcelable(KEY_COMMENT_LIST, result)
-        setResult(RESULT_OK, re)
+        dispatchCommentListResult(result)
 
         // Remove text
         if (mEditText != null) {
@@ -778,10 +781,7 @@ class GalleryCommentsScene :
         }
         mAdapter!!.notifyItemChanged(position)
 
-        val re = Bundle()
-        val comments = mGalleryDetail!!.comments
-        re.putParcelable(KEY_COMMENT_LIST, comments)
-        setResult(RESULT_OK, re)
+        dispatchCommentListResult(mGalleryDetail!!.comments)
     }
 
     override fun onRefresh() {
