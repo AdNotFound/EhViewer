@@ -150,21 +150,22 @@ object Settings {
     private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE = "layout_main_persistent_nav_visible"
     private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE = true
     private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = "layout_main_persistent_nav_width"
-    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = 1
+    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = 2
     private const val KEY_LAYOUT_SETTINGS_TWO_PANE = "layout_settings_two_pane"
     private const val DEFAULT_LAYOUT_SETTINGS_TWO_PANE = false
     private const val KEY_LAYOUT_DETAIL_TWO_PANE = "layout_detail_two_pane"
     private const val DEFAULT_LAYOUT_DETAIL_TWO_PANE = false
     private const val KEY_LAYOUT_DETAIL_LEFT_WIDTH = "layout_detail_left_width"
-    private const val DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH = 1
+    private const val DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH = 2
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR = "layout_reader_thumbnail_sidebar"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR = false
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = "layout_reader_thumbnail_sidebar_width"
-    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = 1
+    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = 2
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = "layout_reader_thumbnail_sidebar_visible"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = true
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT = "layout_reader_thumbnail_sidebar_on_right"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT = true
+    private const val KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED = "layout_sidebar_width_five_levels_migrated"
 
     /********************
      ****** Download
@@ -340,6 +341,7 @@ object Settings {
                 putDoF(true)
             }
         }
+        migrateLegacyLayoutSidebarWidths()
         val enableLargeScreenLayout = application.resources.configuration.smallestScreenWidthDp >= 600
         if (!sSettingsPre.contains(KEY_LAYOUT_ENABLED)) {
             putLayoutEnabled(enableLargeScreenLayout)
@@ -373,6 +375,34 @@ object Settings {
         }
         if (!sSettingsPre.contains(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT)) {
             putLayoutReaderThumbnailSidebarOnRight(DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT)
+        }
+    }
+
+    private fun migrateLegacyLayoutSidebarWidths() {
+        if (sSettingsPre.getBoolean(KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED, false)) {
+            return
+        }
+        migrateLegacyLayoutSidebarWidth(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
+        migrateLegacyLayoutSidebarWidth(KEY_LAYOUT_DETAIL_LEFT_WIDTH)
+        migrateLegacyLayoutSidebarWidth(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH)
+        putBoolean(KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED, true)
+    }
+
+    private fun migrateLegacyLayoutSidebarWidth(key: String) {
+        val rawValue = when (val storedValue = sSettingsPre.all[key]) {
+            is Int -> storedValue
+            is Long -> storedValue.toInt()
+            is String -> storedValue.toIntOrNull()
+            else -> null
+        } ?: return
+        val migratedValue = when (rawValue) {
+            0 -> 0
+            1 -> 2
+            2 -> 4
+            else -> rawValue.coerceIn(0, 4)
+        }
+        if (migratedValue != rawValue) {
+            putIntToStr(key, migratedValue)
         }
     }
 
@@ -703,7 +733,7 @@ object Settings {
     }
 
     val layoutMainPersistentNavWidth: Int
-        get() = getIntFromStr(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
+        get() = getIntFromStr(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH).coerceIn(0, 4)
     fun putLayoutMainPersistentNavWidth(value: Int) {
         putIntToStr(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH, value)
     }
@@ -721,7 +751,7 @@ object Settings {
     }
 
     val layoutDetailLeftWidth: Int
-        get() = getIntFromStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH)
+        get() = getIntFromStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH).coerceIn(0, 4)
     fun putLayoutDetailLeftWidth(value: Int) {
         putIntToStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, value)
     }
@@ -733,7 +763,7 @@ object Settings {
     }
 
     val layoutReaderThumbnailSidebarWidth: Int
-        get() = getIntFromStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH)
+        get() = getIntFromStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH).coerceIn(0, 4)
     fun putLayoutReaderThumbnailSidebarWidth(value: Int) {
         putIntToStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, value)
     }

@@ -564,7 +564,9 @@ class MainActivity :
     private fun getPersistentNavigationWidth(): Int {
         val navWidthDp = when (Settings.layoutMainPersistentNavWidth) {
             0 -> 280
-            2 -> 360
+            1 -> 300
+            3 -> 340
+            4 -> 360
             else -> 320
         }
         val navWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, navWidthDp.toFloat(), resources.displayMetrics).toInt()
