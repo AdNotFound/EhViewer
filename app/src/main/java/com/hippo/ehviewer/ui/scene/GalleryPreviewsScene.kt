@@ -174,7 +174,7 @@ class GalleryPreviewsScene : ToolbarScene() {
     }
 
     override fun onNavigationClick() {
-        onBackPressed()
+        (parentFragment as? GalleryDetailOverlayHost)?.closeDetailOverlay() ?: onBackPressed()
     }
 
     fun onItemClick(position: Int): Boolean {

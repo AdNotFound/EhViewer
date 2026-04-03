@@ -35,6 +35,7 @@
             android:background="?attr/galleryDetailDivider" />
 
         <FrameLayout
+            android:id="@+id/right_panel"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1">
@@ -58,6 +59,13 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:layout_margin="@dimen/keyline_margin" />
+
+            <FrameLayout
+                android:id="@+id/right_overlay_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="?android:attr/colorBackground"
+                android:visibility="gone" />
 
         </FrameLayout>
 
