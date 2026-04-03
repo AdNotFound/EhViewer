@@ -1649,8 +1649,10 @@ class GalleryActivity :
         if (preview != null) {
             view.visibility = View.VISIBLE
             view.setBackgroundResource(0)
-            if (preview.clipWidth > 0 && preview.clipHeight > 0) {
+            if (preview.hasClipAspect()) {
                 view.applySidebarAspect(preview.clipWidth, preview.clipHeight)
+            } else if (preview.hasPreviewAspect()) {
+                view.applySidebarAspect(preview.previewWidth, preview.previewHeight)
             } else {
                 view.resetSidebarAspect()
             }

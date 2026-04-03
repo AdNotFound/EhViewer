@@ -509,14 +509,14 @@ object GalleryDetailParser {
         PATTERN_PREVIEW.findAll(body).forEach {
             val pageUrl = it.groupValues[1]
             val position = it.groupValues[2].toInt() - 1
+            val width = it.groupValues[3].toInt()
+            val height = it.groupValues[4].toInt()
             val url = it.groupValues[5]
             val offset = it.groupValues[6]
             val sha1 = it.groupValues[7]
             if (offset.isEmpty()) {
-                largePreviewSet.addItem(position, url, pageUrl, sha1)
+                largePreviewSet.addItem(position, url, width, height, pageUrl, sha1)
             } else {
-                val width = it.groupValues[3].toInt()
-                val height = it.groupValues[4].toInt()
                 normalPreviewSet.addItem(position, url, offset.toInt(), 0, width, height, pageUrl, sha1)
             }
         }

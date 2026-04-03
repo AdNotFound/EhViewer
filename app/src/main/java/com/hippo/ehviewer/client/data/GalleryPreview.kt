@@ -26,11 +26,17 @@ class GalleryPreview(
     var imageUrl: String? = null,
     var pageUrl: String? = null,
     var position: Int = 0,
+    var previewWidth: Int = Int.MIN_VALUE,
+    var previewHeight: Int = Int.MIN_VALUE,
     var offsetX: Int = Int.MIN_VALUE,
     var offsetY: Int = Int.MIN_VALUE,
     var clipWidth: Int = Int.MIN_VALUE,
     var clipHeight: Int = Int.MIN_VALUE,
 ) : Parcelable {
+    fun hasPreviewAspect(): Boolean = previewWidth > 0 && previewHeight > 0
+
+    fun hasClipAspect(): Boolean = clipWidth > 0 && clipHeight > 0
+
     fun load(view: LoadImageView) {
         view.setClip(offsetX, offsetY, clipWidth, clipHeight)
         view.load(imageKey!!, imageUrl!!, offsetY == Int.MIN_VALUE || isAtLeastQ)
