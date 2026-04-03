@@ -22,13 +22,13 @@
             android:layout_weight="1"
             android:visibility="gone" />
 
-        <com.hippo.ehviewer.widget.FixedThumb
+        <com.hippo.ehviewer.widget.ReaderSidebarThumb
             android:id="@+id/image"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:foreground="?selectableItemBackground"
-            app:aspect="0.667"
+            app:aspect="1.0"
             app:maxAspect="0.8"
             app:minAspect="0.5"
             app:retryType="longClick" />
@@ -38,13 +38,13 @@
             android:layout_width="4dp"
             android:layout_height="1dp" />
 
-        <com.hippo.ehviewer.widget.FixedThumb
+        <com.hippo.ehviewer.widget.ReaderSidebarThumb
             android:id="@+id/image_secondary"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:foreground="?selectableItemBackground"
-            app:aspect="0.667"
+            app:aspect="1.0"
             app:maxAspect="0.8"
             app:minAspect="0.5"
             app:retryType="longClick" />

@@ -89,6 +89,7 @@ import com.hippo.ehviewer.gallery.EhGalleryProvider
 import com.hippo.ehviewer.gallery.GalleryProvider2
 import com.hippo.ehviewer.widget.GalleryGuideView
 import com.hippo.ehviewer.widget.GalleryHeader
+import com.hippo.ehviewer.widget.ReaderSidebarThumb
 import com.hippo.ehviewer.widget.ReversibleSeekBar
 import com.hippo.glgallery.GalleryProvider
 import com.hippo.glgallery.GalleryView
@@ -852,11 +853,13 @@ class GalleryActivity :
 
     private fun getReaderSidebarWidth(): Int {
         val widthDp = when (Settings.layoutReaderThumbnailSidebarWidth) {
-            0 -> 96
-            1 -> 112
-            3 -> 144
-            4 -> 160
-            else -> 128
+            0 -> 88
+            1 -> 120
+            2 -> 152
+            4 -> 216
+            5 -> 248
+            6 -> 280
+            else -> 184
         }
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()
     }
@@ -1635,20 +1638,26 @@ class GalleryActivity :
 
     private class ReaderSidebarHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val imageLeadingSpace: View = itemView.findViewById(R.id.image_leading_space)
-        val image: LoadImageView = itemView.findViewById(R.id.image)
-        val imageSecondary: LoadImageView = itemView.findViewById(R.id.image_secondary)
+        val image: ReaderSidebarThumb = itemView.findViewById(R.id.image)
+        val imageSecondary: ReaderSidebarThumb = itemView.findViewById(R.id.image_secondary)
         val imageGap: View = itemView.findViewById(R.id.image_gap)
         val imageTrailingSpace: View = itemView.findViewById(R.id.image_trailing_space)
         val text: TextView = itemView.findViewById(R.id.text)
     }
 
-    private fun bindSidebarPreview(view: LoadImageView, preview: GalleryPreview?) {
+    private fun bindSidebarPreview(view: ReaderSidebarThumb, preview: GalleryPreview?) {
         if (preview != null) {
             view.visibility = View.VISIBLE
             view.setBackgroundResource(0)
+            if (preview.clipWidth > 0 && preview.clipHeight > 0) {
+                view.applySidebarAspect(preview.clipWidth, preview.clipHeight)
+            } else {
+                view.resetSidebarAspect()
+            }
             preview.load(view)
         } else {
             view.visibility = View.VISIBLE
+            view.resetSidebarAspect()
             view.resetClip()
             view.setImageDrawable(null)
             view.setBackgroundResource(R.drawable.bg_reader_sidebar_placeholder)
