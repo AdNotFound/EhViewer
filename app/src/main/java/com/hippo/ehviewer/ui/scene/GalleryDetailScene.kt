@@ -246,6 +246,12 @@ class GalleryDetailScene :
     private var mModifyingFavorites = false
     private var mBasicInfoOnly = false
     private var mUseLargeTwoPaneLayout = false
+    private val mHideDetailOverlayRunnable = Runnable {
+        val container = mRightOverlayContainer ?: return@Runnable
+        if (childFragmentManager.findFragmentById(R.id.right_overlay_container) == null) {
+            container.visibility = View.GONE
+        }
+    }
 
     @StringRes
     private fun getRatingText(rating: Float): Int = when ((rating * 2).roundToInt()) {
@@ -608,7 +614,6 @@ class GalleryDetailScene :
             adjustViewVisibility(STATE_FAILED, false)
         }
         if (mUseLargeTwoPaneLayout && childFragmentManager.findFragmentById(R.id.right_overlay_container) != null) {
-            mRightScrollView?.visibility = View.GONE
             mRightOverlayContainer?.visibility = View.VISIBLE
         }
         EhDownloadManager.addDownloadInfoListener(this)
@@ -670,9 +675,16 @@ class GalleryDetailScene :
 
     private fun showDetailOverlay(fragment: Fragment, tag: String) {
         val container = mRightOverlayContainer ?: return
-        mRightScrollView?.visibility = View.GONE
+        container.removeCallbacks(mHideDetailOverlayRunnable)
         container.visibility = View.VISIBLE
         childFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
+            .setCustomAnimations(
+                R.anim.scene_open_enter_horizontal,
+                R.anim.scene_open_exit,
+                R.anim.scene_close_enter,
+                R.anim.scene_close_exit,
+            )
             .replace(R.id.right_overlay_container, fragment, tag)
             .commitAllowingStateLoss()
     }
@@ -681,11 +693,18 @@ class GalleryDetailScene :
         val container = mRightOverlayContainer ?: return
         childFragmentManager.findFragmentById(R.id.right_overlay_container)?.let {
             childFragmentManager.beginTransaction()
+                .setReorderingAllowed(true)
+                .setCustomAnimations(
+                    R.anim.scene_open_enter_horizontal,
+                    R.anim.scene_open_exit,
+                    R.anim.scene_close_enter,
+                    R.anim.scene_close_exit,
+                )
                 .remove(it)
                 .commitAllowingStateLoss()
         }
-        container.visibility = View.GONE
-        mRightScrollView?.visibility = View.VISIBLE
+        container.removeCallbacks(mHideDetailOverlayRunnable)
+        container.postDelayed(mHideDetailOverlayRunnable, DETAIL_OVERLAY_CLOSE_DURATION)
     }
 
     override fun onDetailOverlayCommentsUpdated(comments: GalleryCommentList?) {
@@ -1086,10 +1105,12 @@ class GalleryDetailScene :
     private fun getLargeDetailLeftWidth(): Int {
         val widthDp = when (Settings.layoutDetailLeftWidth) {
             0 -> 320
-            1 -> 340
-            3 -> 380
-            4 -> 400
-            else -> 360
+            1 -> 380
+            2 -> 440
+            4 -> 560
+            5 -> 620
+            6 -> 680
+            else -> 500
         }
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()
     }
@@ -2363,6 +2384,7 @@ class GalleryDetailScene :
         private const val KEY_GALLERY_DETAIL = "gallery_detail"
         private const val KEY_REQUEST_ID = "request_id"
         private const val KEY_BASIC_INFO_ONLY = "basic_info_only"
+        private const val DETAIL_OVERLAY_CLOSE_DURATION = 250L
         private const val TRANSITION_ANIMATION_DISABLED = true
         private fun getArtist(tagGroups: Array<GalleryTagGroup>?): String? {
             if (null == tagGroups) {

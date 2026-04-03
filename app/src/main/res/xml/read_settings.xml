@@ -144,7 +144,7 @@
         app:iconSpaceReserved="false" />
 
     <com.hippo.ehviewer.preference.SidebarWidthSeekBarPreference
-        android:defaultValue="2"
+        android:defaultValue="3"
         android:dependency="layout_reader_thumbnail_sidebar"
         android:key="layout_reader_thumbnail_sidebar_width"
         android:title="@string/settings_layout_reader_thumbnail_sidebar_width"

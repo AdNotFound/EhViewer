@@ -11,7 +11,7 @@ import com.hippo.ehviewer.R
 
 class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Preference(context, attrs) {
 
-    private var value = 2
+    private var value = 3
     private var valueTextView: TextView? = null
 
     init {
@@ -23,7 +23,7 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
         val seekBar = holder.findViewById(R.id.scale_seekbar) as SeekBar
         valueTextView = holder.findViewById(R.id.scale_value) as TextView
 
-        seekBar.max = 4
+        seekBar.max = 6
         seekBar.progress = value
         updateLabel(value)
 
@@ -45,13 +45,13 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
         })
     }
 
-    override fun onGetDefaultValue(a: TypedArray, index: Int): Any = a.getInt(index, 2)
+    override fun onGetDefaultValue(a: TypedArray, index: Int): Any = a.getInt(index, 3)
 
     override fun onSetInitialValue(defaultValue: Any?) {
         val defaultInt = when (defaultValue) {
             is Int -> defaultValue
-            is String -> defaultValue.toIntOrNull() ?: 2
-            else -> 2
+            is String -> defaultValue.toIntOrNull() ?: 3
+            else -> 3
         }
         value = getPersistedWidth(defaultInt)
     }
@@ -73,7 +73,7 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
             is Long -> storedValue.toInt()
             is String -> storedValue.toIntOrNull() ?: defaultValue
             else -> getPersistedString(defaultValue.toString())?.toIntOrNull() ?: defaultValue
-        }).coerceIn(0, 4)
+        }).coerceIn(0, 6)
     }
 
     private fun updateLabel(value: Int) {
