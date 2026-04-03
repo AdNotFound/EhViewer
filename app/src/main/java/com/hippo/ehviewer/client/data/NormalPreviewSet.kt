@@ -66,6 +66,8 @@ class NormalPreviewSet(
         galleryPreview.imageKey = mImageKeyList[index]
         galleryPreview.imageUrl = mImageUrlList[index]
         galleryPreview.pageUrl = mPageUrlList[index]
+        galleryPreview.previewWidth = mClipWidthList[index]
+        galleryPreview.previewHeight = mClipHeightList[index]
         galleryPreview.offsetX = mOffsetXList[index]
         galleryPreview.offsetY = mOffsetYList[index]
         galleryPreview.clipWidth = mClipWidthList[index]

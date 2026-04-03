@@ -23,12 +23,16 @@ import com.hippo.yorozuya.collect.IntList
 class LargePreviewSet(
     private val mPositionList: IntList = IntList(),
     private val mImageUrlList: ArrayList<String> = arrayListOf(),
+    private val mPreviewWidthList: IntList = IntList(),
+    private val mPreviewHeightList: IntList = IntList(),
     private val mPageUrlList: ArrayList<String> = arrayListOf(),
     private val mSha1List: ArrayList<String> = arrayListOf(),
 ) : PreviewSet() {
-    fun addItem(index: Int, imageUrl: String, pageUrl: String, sha1: String) {
+    fun addItem(index: Int, imageUrl: String, width: Int, height: Int, pageUrl: String, sha1: String) {
         mPositionList.add(index)
         mImageUrlList.add(imageUrl)
+        mPreviewWidthList.add(width)
+        mPreviewHeightList.add(height)
         mPageUrlList.add(pageUrl)
         mSha1List.add(sha1)
     }
@@ -47,6 +51,8 @@ class LargePreviewSet(
         galleryPreview.imageKey = getLargePreviewKey(gid, galleryPreview.position)
         galleryPreview.imageUrl = mImageUrlList[index]
         galleryPreview.pageUrl = mPageUrlList[index]
+        galleryPreview.previewWidth = mPreviewWidthList[index]
+        galleryPreview.previewHeight = mPreviewHeightList[index]
         return galleryPreview
     }
 
