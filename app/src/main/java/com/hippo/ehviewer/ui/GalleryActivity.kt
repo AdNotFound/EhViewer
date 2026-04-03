@@ -879,8 +879,11 @@ class GalleryActivity :
                 val deltaX = event.rawX - mReaderSidebarToggleDownRawX
                 view.parent?.requestDisallowInterceptTouchEvent(false)
                 if (mReaderSidebarToggleDragging) {
-                    view.animate().translationX(0f).setDuration(160L).start()
-                    maybeSwitchReaderSidebarSide(deltaX)
+                    view.animate().cancel()
+                    view.translationX = 0f
+                    if (!maybeSwitchReaderSidebarSide(deltaX)) {
+                        view.animate().translationX(0f).setDuration(160L).start()
+                    }
                 } else if (event.actionMasked == MotionEvent.ACTION_UP) {
                     view.performClick()
                 }
@@ -891,7 +894,7 @@ class GalleryActivity :
         return false
     }
 
-    private fun maybeSwitchReaderSidebarSide(deltaX: Float) {
+    private fun maybeSwitchReaderSidebarSide(deltaX: Float): Boolean {
         val threshold = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             36f,
@@ -903,11 +906,12 @@ class GalleryActivity :
             else -> mReaderSidebarOnRight
         }
         if (targetOnRight == mReaderSidebarOnRight) {
-            return
+            return false
         }
         mReaderSidebarOnRight = targetOnRight
         Settings.putLayoutReaderThumbnailSidebarOnRight(targetOnRight)
         updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
+        return true
     }
 
     private fun updateReaderSidebarVisibility(showHiddenIndicator: Boolean = false) {
@@ -946,6 +950,7 @@ class GalleryActivity :
             toggleView.layoutParams = toggleLayoutParams
         }
         toggleView.animate().cancel()
+        toggleView.translationX = 0f
         toggleView.removeCallbacks(mHideReaderSidebarToggleRunnable)
         toggleView.scaleX = if (mReaderSidebarOnRight == mReaderSidebarVisible) -1f else 1f
         if (mReaderSidebarVisible) {

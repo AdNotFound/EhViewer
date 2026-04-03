@@ -659,7 +659,10 @@ class GalleryDetailScene :
 
     private fun prepareData(): Boolean {
         if (mGalleryDetail != null) {
-            return true
+            if (ensureGalleryDetailTransientState()) {
+                return true
+            }
+            mGalleryDetail = null
         }
         val gid = gid
         if (gid == -1L) {
@@ -668,13 +671,29 @@ class GalleryDetailScene :
         // Get from cache
         mGalleryDetail = galleryDetailCache[gid]
         if (mGalleryDetail != null) {
-            return true
+            if (ensureGalleryDetailTransientState()) {
+                return true
+            }
+            mGalleryDetail = null
         }
         val application = requireContext().applicationContext as EhApplication
         if (application.containGlobalStuff(mRequestId)) {
             application.removeGlobalStuff(mRequestId)
         }
         return request()
+    }
+
+    private fun ensureGalleryDetailTransientState(): Boolean {
+        val galleryDetail = mGalleryDetail ?: return false
+        if (mBasicInfoOnly || galleryDetail.previewSet != null) {
+            return true
+        }
+        val cachedDetail = galleryDetailCache[galleryDetail.gid] ?: return false
+        if (cachedDetail.previewSet == null) {
+            return false
+        }
+        mGalleryDetail = cachedDetail
+        return true
     }
 
     private fun request(): Boolean {
