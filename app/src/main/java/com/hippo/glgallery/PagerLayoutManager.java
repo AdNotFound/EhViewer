@@ -413,12 +413,11 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
 
         if (updateSpread(page)) {
-            // New spread detected, need to re-fill to adjust pairing
-            mGalleryView.requestFill();
-        } else {
-            // Just normal image load, request fill to render texture
-            mGalleryView.requestFill();
+            mGalleryView.notifyPageStructureChanged();
         }
+        // New spread detected needs re-fill to adjust pairing;
+        // normal image load also needs re-fill to render texture.
+        mGalleryView.requestFill();
     }
 
     private void layoutPage(GalleryPageView page, int widthSpec, int heightSpec,
