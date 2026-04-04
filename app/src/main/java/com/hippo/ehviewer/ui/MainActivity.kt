@@ -562,18 +562,27 @@ class MainActivity :
     }
 
     private fun getPersistentNavigationWidth(): Int {
-        val navWidthDp = when (Settings.layoutMainPersistentNavWidth) {
-            0 -> 240
-            1 -> 290
-            2 -> 340
-            4 -> 440
-            5 -> 490
-            6 -> 540
-            else -> 390
-        }
-        val navWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, navWidthDp.toFloat(), resources.displayMetrics).toInt()
+        val ratio = PERSISTENT_NAV_WIDTH_RATIOS[Settings.layoutMainPersistentNavWidth]
+        val baseWidth = getPersistentNavigationAvailableWidth()
+        val navWidthPx = (baseWidth * ratio).toInt().coerceAtLeast(0)
         val dividerWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, resources.displayMetrics).toInt()
         return navWidthPx + dividerWidthPx
+    }
+
+    private fun getPersistentNavigationAvailableWidth(): Int {
+        val parentWidth = (mDrawerLayout?.parent as? View)?.width ?: 0
+        if (parentWidth > 0) {
+            return parentWidth
+        }
+        val drawerWidth = mDrawerLayout?.width ?: 0
+        if (drawerWidth > 0) {
+            return drawerWidth
+        }
+        val windowWidth = window.decorView.width
+        if (windowWidth > 0) {
+            return windowWidth
+        }
+        return resources.displayMetrics.widthPixels
     }
 
     private fun setPersistentNavigationVisible(visible: Boolean) {
@@ -762,6 +771,7 @@ class MainActivity :
     }
 
     companion object {
+        private val PERSISTENT_NAV_WIDTH_RATIOS = floatArrayOf(0.10f, 0.14f, 0.18f, 0.22f, 0.27f, 0.31f, 0.35f)
         private const val KEY_NAV_CHECKED_ITEM = "nav_checked_item"
 
         init {

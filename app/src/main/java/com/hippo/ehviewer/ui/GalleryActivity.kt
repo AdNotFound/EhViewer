@@ -970,16 +970,25 @@ class GalleryActivity :
     }
 
     private fun getReaderSidebarWidth(): Int {
-        val widthDp = when (Settings.layoutReaderThumbnailSidebarWidth) {
-            0 -> 88
-            1 -> 120
-            2 -> 152
-            4 -> 216
-            5 -> 248
-            6 -> 280
-            else -> 184
+        val ratio = READER_SIDEBAR_WIDTH_RATIOS[Settings.layoutReaderThumbnailSidebarWidth]
+        val baseWidth = getReaderSidebarAvailableWidth()
+        return (baseWidth * ratio).toInt().coerceAtLeast(0)
+    }
+
+    private fun getReaderSidebarAvailableWidth(): Int {
+        val rootWidth = findViewById<View>(R.id.main)?.width ?: 0
+        if (rootWidth > 0) {
+            return rootWidth
         }
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()
+        val parentWidth = (mReaderContentContainer?.parent as? View)?.width ?: 0
+        if (parentWidth > 0) {
+            return parentWidth
+        }
+        val windowWidth = window.decorView.width
+        if (windowWidth > 0) {
+            return windowWidth
+        }
+        return resources.displayMetrics.widthPixels
     }
 
     private fun toggleReaderSidebar() {
@@ -1995,5 +2004,6 @@ class GalleryActivity :
         private const val NOTIFY_KEY_TAP_MENU_AREA = 4
         private const val NOTIFY_KEY_TAP_ERROR_TEXT = 5
         private const val NOTIFY_KEY_LONG_PRESS_PAGE = 6
+        private val READER_SIDEBAR_WIDTH_RATIOS = floatArrayOf(0.05f, 0.08f, 0.12f, 0.16f, 0.19f, 0.22f, 0.25f)
     }
 }
