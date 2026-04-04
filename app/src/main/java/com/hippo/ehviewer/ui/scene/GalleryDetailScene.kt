@@ -717,10 +717,10 @@ class GalleryDetailScene :
             childFragmentManager.beginTransaction()
                 .setReorderingAllowed(true)
                 .setCustomAnimations(
-                    R.anim.scene_open_enter_horizontal,
-                    R.anim.scene_open_exit,
-                    R.anim.scene_close_enter,
+                    0,
                     R.anim.scene_close_exit_horizontal,
+                    0,
+                    0,
                 )
                 .remove(it)
                 .commitAllowingStateLoss()
