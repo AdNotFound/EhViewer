@@ -82,6 +82,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     private boolean mStopAnimationFinger;
     private int mInterval;
     private int mIndex;
+    private int mRequestedIndex = GalleryPageView.INVALID_INDEX;
 
     public PagerLayoutManager(Context context, @NonNull GalleryView galleryView,
             int scaleMode, int startPoint, float scaleValue, int interval) {
@@ -156,12 +157,55 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (mSpreads.equals(spreadPages)) {
             return;
         }
-        mSpreads.clear();
-        mSpreads.or(spreadPages);
+        int newPairStart = GalleryPageView.INVALID_INDEX;
+        boolean needRelayoutCurrentPair = false;
+        if (mAdapter != null && mDoublePageMode) {
+            int size = mAdapter.size();
+            if (size > 0) {
+                int requestedIndex = getRequestedIndex(size);
+                int oldPairStart = getPairStart(requestedIndex);
+                int oldPairSize = getPairSize(oldPairStart);
+
+                mSpreads.clear();
+                mSpreads.or(spreadPages);
+
+                newPairStart = getPairStart(requestedIndex);
+                int newPairSize = getPairSize(newPairStart);
+                needRelayoutCurrentPair = oldPairStart != newPairStart || oldPairSize != newPairSize;
+            } else {
+                mSpreads.clear();
+                mSpreads.or(spreadPages);
+            }
+        } else {
+            mSpreads.clear();
+            mSpreads.or(spreadPages);
+        }
         if (mAdapter != null) {
+            if (needRelayoutCurrentPair) {
+                cancelAllAnimations();
+                removeProgress();
+                removeErrorView();
+                removeAllPages();
+                resetParameters();
+                mIndex = newPairStart;
+            }
             mGalleryView.notifyPageStructureChanged();
             mGalleryView.requestFill();
         }
+    }
+
+    private int getRequestedIndex(int size) {
+        int index = mRequestedIndex;
+        if (index == GalleryPageView.INVALID_INDEX) {
+            index = getInternalCurrentIndex();
+        }
+        if (index < 0) {
+            return 0;
+        }
+        if (index >= size) {
+            return size - 1;
+        }
+        return index;
     }
 
     private void resetParameters() {
@@ -930,6 +974,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             if (mIndex < 0) {
                 mIndex = 0;
             }
+            mRequestedIndex = mIndex;
 
             if (mNextSecondary != null) {
                 removePage(mNextSecondary);
@@ -963,6 +1008,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             }
         } else {
             mIndex--;
+            mRequestedIndex = mIndex;
 
             if (mNext != null) {
                 removePage(mNext);
@@ -993,6 +1039,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             if (mIndex >= size) {
                 mIndex = getPairStart(size - 1);
             }
+            mRequestedIndex = mIndex;
 
             // Check if we actually advanced?
             // To simplify: Just Re-Fill if logic is complex.
@@ -1027,6 +1074,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             }
         } else {
             mIndex++;
+            mRequestedIndex = mIndex;
 
             if (mPrevious != null) {
                 removePage(mPrevious);
@@ -1433,7 +1481,12 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (size <= 0) {
             return;
         }
-        if (index == mIndex || index < 0 || index >= size) {
+        if (index < 0 || index >= size) {
+            return;
+        }
+        mRequestedIndex = index;
+
+        if (!mDoublePageMode && index == mIndex) {
             return;
         }
 
