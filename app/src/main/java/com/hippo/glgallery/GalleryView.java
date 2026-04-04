@@ -42,6 +42,7 @@ import com.hippo.yorozuya.Pool;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -89,6 +90,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private static final int METHOD_SET_DOUBLE_PAGE_MODE = 23;
     private static final int METHOD_SET_DOUBLE_PAGE_OFFSET = 24;
     private static final int METHOD_SET_DOUBLE_PAGE_GAP = 25;
+    private static final int METHOD_SET_PREDICTED_SPREAD_PAGES = 26;
     private final Context mContext;
     private final GestureRecognizer mGestureRecognizer;
     @Nullable
@@ -118,6 +120,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final AtomicInteger mCurrentIndex = new AtomicInteger(GalleryPageView.INVALID_INDEX);
     private int mCurrentPairSize = 1;
     private boolean mPageStructureChanged = false;
+    private BitSet mPredictedSpreadPages = new BitSet();
     private Adapter mAdapter;
 
     public int getPagePairSize(int index) {
@@ -237,6 +240,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     mScaleMode, mStartPosition, 1.0f, mPagerInterval);
             mPagerLayoutManager.setDoublePageOffset(mDoublePageOffset);
             mPagerLayoutManager.setDoublePageGap(mDoublePageGap);
+            mPagerLayoutManager.setPredictedSpreadPages(mPredictedSpreadPages);
         }
     }
 
@@ -767,6 +771,17 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
     }
 
+    public void setPredictedSpreadPages(@NonNull BitSet predictedSpreadPages) {
+        postMethod(METHOD_SET_PREDICTED_SPREAD_PAGES, (BitSet) predictedSpreadPages.clone());
+    }
+
+    private void setPredictedSpreadPagesInternal(@NonNull BitSet predictedSpreadPages) {
+        mPredictedSpreadPages = (BitSet) predictedSpreadPages.clone();
+        if (mPagerLayoutManager != null) {
+            mPagerLayoutManager.setPredictedSpreadPages(mPredictedSpreadPages);
+        }
+    }
+
     void forceFill() {
         mRequestFill = true;
         fill();
@@ -886,6 +901,9 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     break;
                 case METHOD_SET_DOUBLE_PAGE_GAP:
                     setDoublePageGapInternal((Integer) args[0]);
+                    break;
+                case METHOD_SET_PREDICTED_SPREAD_PAGES:
+                    setPredictedSpreadPagesInternal((BitSet) args[0]);
                     break;
             }
         }
