@@ -167,6 +167,8 @@ object Settings {
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = true
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT = "layout_reader_thumbnail_sidebar_on_right"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT = true
+    private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_TOGGLE_AUTO_HIDE = "layout_reader_thumbnail_sidebar_toggle_auto_hide"
+    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_TOGGLE_AUTO_HIDE = false
     private const val KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED = "layout_sidebar_width_five_levels_migrated"
     private const val KEY_LAYOUT_SIDEBAR_WIDTH_SEVEN_LEVELS_MIGRATED = "layout_sidebar_width_seven_levels_migrated"
 
@@ -820,6 +822,15 @@ object Settings {
         get() = getBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT)
     fun putLayoutReaderThumbnailSidebarOnRight(value: Boolean) {
         putBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT, value)
+    }
+
+    val layoutReaderThumbnailSidebarToggleAutoHide: Boolean
+        get() = getBoolean(
+            KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_TOGGLE_AUTO_HIDE,
+            DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_TOGGLE_AUTO_HIDE,
+        )
+    fun putLayoutReaderThumbnailSidebarToggleAutoHide(value: Boolean) {
+        putBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_TOGGLE_AUTO_HIDE, value)
     }
 
     val downloadLocation: UniFile?

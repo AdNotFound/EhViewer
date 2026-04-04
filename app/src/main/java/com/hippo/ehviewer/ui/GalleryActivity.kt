@@ -177,7 +177,7 @@ class GalleryActivity :
         mSeekBarPanel?.let { hideSlider(it) }
     }
     private val mHideReaderSidebarToggleRunnable = Runnable {
-        mReaderSidebarToggle?.animate()?.alpha(READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA)?.setDuration(READER_SIDEBAR_TOGGLE_FADE_DURATION)?.start()
+        mReaderSidebarToggle?.animate()?.alpha(getReaderSidebarToggleRestAlpha())?.setDuration(READER_SIDEBAR_TOGGLE_FADE_DURATION)?.start()
     }
     private val mHideSliderListener: SimpleAnimatorListener = object : SimpleAnimatorListener() {
         override fun onAnimationEnd(animation: Animator) {
@@ -1022,11 +1022,11 @@ class GalleryActivity :
         toggleView.animate().cancel()
         toggleView.translationX = 0f
         toggleView.removeCallbacks(mHideReaderSidebarToggleRunnable)
-        toggleView.scaleX = if (mReaderSidebarOnRight == mReaderSidebarVisible) -1f else 1f
+        toggleView.scaleX = if (mReaderSidebarOnRight) 1f else -1f
         if (mReaderSidebarVisible) {
             toggleView.alpha = READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA
         } else {
-            toggleView.alpha = if (showHiddenIndicator) READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA else READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
+            toggleView.alpha = if (showHiddenIndicator) READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA else getReaderSidebarToggleRestAlpha()
             if (showHiddenIndicator) {
                 toggleView.postDelayed(mHideReaderSidebarToggleRunnable, READER_SIDEBAR_TOGGLE_HINT_DELAY)
             }
@@ -1791,6 +1791,13 @@ class GalleryActivity :
         }
     }
 
+    private fun getReaderSidebarToggleRestAlpha(): Float =
+        if (Settings.layoutReaderThumbnailSidebarToggleAutoHide) {
+            READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
+        } else {
+            READER_SIDEBAR_TOGGLE_REST_ALPHA
+        }
+
     private inner class ReaderSidebarAdapter : RecyclerView.Adapter<ReaderSidebarHolder>() {
         private val inflater: LayoutInflater = layoutInflater
         private var pageCount = 0
@@ -1912,7 +1919,8 @@ class GalleryActivity :
         private const val READER_SIDEBAR_TOGGLE_HINT_DELAY: Long = 1500
         private const val READER_SIDEBAR_TOGGLE_FADE_DURATION: Long = 180
         private const val READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA = 0.82f
-        private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0.28f
+        private const val READER_SIDEBAR_TOGGLE_REST_ALPHA = 0.28f
+        private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0f
         private const val NOTIFY_KEY_LAYOUT_MODE = 0
         private const val NOTIFY_KEY_SIZE = 1
         private const val NOTIFY_KEY_CURRENT_INDEX = 2

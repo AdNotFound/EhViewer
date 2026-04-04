@@ -477,7 +477,8 @@
     <string name="settings_layout_settings_two_pane_summary">Shows the settings list and detail view side by side on wider screens.</string>
     <string name="settings_layout_detail_two_pane_summary">Splits the gallery detail page into two columns on wider screens.</string>
     <string name="settings_layout_detail_left_width">Gallery detail sidebar width</string>
-    <string name="settings_layout_reader_thumbnail_sidebar">Reader thumbnail sidebar</string>
+    <string name="settings_layout_reader_thumbnail_sidebar">Sidebar thumbnails</string>
+    <string name="settings_layout_reader_thumbnail_sidebar_toggle_auto_hide">Auto-hide control</string>
     <string name="settings_layout_reader_thumbnail_sidebar_width">Thumbnail sidebar width</string>
     <string name="settings_layout_reader_thumbnail_sidebar_summary">Shows page thumbnails beside the reader for quicker jumping.</string>
     <string name="settings_layout_sidebar_width_compact">Compact</string>
