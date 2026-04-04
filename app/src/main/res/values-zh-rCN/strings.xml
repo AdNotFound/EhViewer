@@ -448,7 +448,8 @@
     <string name="settings_layout_settings_two_pane_summary">在较宽屏幕上同时显示设置列表和详情内容。</string>
     <string name="settings_layout_detail_two_pane_summary">在较宽屏幕上将画廊详情页拆分为双栏显示。</string>
     <string name="settings_layout_detail_left_width">详情页左栏宽度</string>
-    <string name="settings_layout_reader_thumbnail_sidebar">阅读器缩略图侧栏</string>
+    <string name="settings_layout_reader_thumbnail_sidebar">侧栏缩略图</string>
+    <string name="settings_layout_reader_thumbnail_sidebar_toggle_auto_hide">自动隐藏控件</string>
     <string name="settings_layout_reader_thumbnail_sidebar_width">缩略图侧栏宽度</string>
     <string name="settings_layout_reader_thumbnail_sidebar_summary">在阅读器侧边显示页面缩略图，方便快速跳转。</string>
     <string name="settings_layout_sidebar_width_compact">紧凑</string>
