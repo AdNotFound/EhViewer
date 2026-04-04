@@ -90,7 +90,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private static final int METHOD_SET_DOUBLE_PAGE_MODE = 23;
     private static final int METHOD_SET_DOUBLE_PAGE_OFFSET = 24;
     private static final int METHOD_SET_DOUBLE_PAGE_GAP = 25;
-    private static final int METHOD_SET_PREDICTED_SPREAD_PAGES = 26;
+    private static final int METHOD_SET_SPREAD_PAGES = 26;
     private final Context mContext;
     private final GestureRecognizer mGestureRecognizer;
     @Nullable
@@ -120,7 +120,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final AtomicInteger mCurrentIndex = new AtomicInteger(GalleryPageView.INVALID_INDEX);
     private int mCurrentPairSize = 1;
     private boolean mPageStructureChanged = false;
-    private BitSet mPredictedSpreadPages = new BitSet();
+    private BitSet mSpreadPages = new BitSet();
     private Adapter mAdapter;
 
     public int getPagePairSize(int index) {
@@ -240,7 +240,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     mScaleMode, mStartPosition, 1.0f, mPagerInterval);
             mPagerLayoutManager.setDoublePageOffset(mDoublePageOffset);
             mPagerLayoutManager.setDoublePageGap(mDoublePageGap);
-            mPagerLayoutManager.setPredictedSpreadPages(mPredictedSpreadPages);
+            mPagerLayoutManager.setSpreadPages(mSpreadPages);
         }
     }
 
@@ -771,14 +771,14 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
     }
 
-    public void setPredictedSpreadPages(@NonNull BitSet predictedSpreadPages) {
-        postMethod(METHOD_SET_PREDICTED_SPREAD_PAGES, (BitSet) predictedSpreadPages.clone());
+    public void setSpreadPages(@NonNull BitSet spreadPages) {
+        postMethod(METHOD_SET_SPREAD_PAGES, (BitSet) spreadPages.clone());
     }
 
-    private void setPredictedSpreadPagesInternal(@NonNull BitSet predictedSpreadPages) {
-        mPredictedSpreadPages = (BitSet) predictedSpreadPages.clone();
+    private void setSpreadPagesInternal(@NonNull BitSet spreadPages) {
+        mSpreadPages = (BitSet) spreadPages.clone();
         if (mPagerLayoutManager != null) {
-            mPagerLayoutManager.setPredictedSpreadPages(mPredictedSpreadPages);
+            mPagerLayoutManager.setSpreadPages(mSpreadPages);
         }
     }
 
@@ -902,8 +902,8 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                 case METHOD_SET_DOUBLE_PAGE_GAP:
                     setDoublePageGapInternal((Integer) args[0]);
                     break;
-                case METHOD_SET_PREDICTED_SPREAD_PAGES:
-                    setPredictedSpreadPagesInternal((BitSet) args[0]);
+                case METHOD_SET_SPREAD_PAGES:
+                    setSpreadPagesInternal((BitSet) args[0]);
                     break;
             }
         }

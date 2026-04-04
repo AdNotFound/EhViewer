@@ -222,7 +222,7 @@ class GalleryActivity :
     private var mReaderContentContainer: View? = null
     private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
     private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
-    private val mPredictedSpreadPages = BitSet()
+    private val mSpreadPages = BitSet()
     private var mReaderSidebarPageStarts: List<Int> = emptyList()
     private var mReaderSidebarVisible = true
     private var mReaderSidebarOnRight = true
@@ -571,9 +571,9 @@ class GalleryActivity :
         }
         mSize = mGalleryProvider!!.size
         mReaderSidebarPreviewMap.clear()
-        mPredictedSpreadPages.clear()
+        mSpreadPages.clear()
         mReaderSidebarPageStarts = emptyList()
-        mGalleryView?.setPredictedSpreadPages(mPredictedSpreadPages)
+        mGalleryView?.setSpreadPages(mSpreadPages)
         updateDoublePageMode()
         updateSlider()
         updateProgress()
@@ -837,7 +837,7 @@ class GalleryActivity :
                 val firstChanged = mergeReaderPreviewSet(first.first)
                 withUIContext {
                     if (firstChanged) {
-                        applyPredictedSpreadPages()
+                        applySpreadPages()
                     }
                     updateReaderSidebarData()
                 }
@@ -847,7 +847,7 @@ class GalleryActivity :
                     val changed = mergeReaderPreviewSet(result.first)
                     withUIContext {
                         if (changed) {
-                            applyPredictedSpreadPages()
+                            applySpreadPages()
                         }
                         updateReaderSidebarData()
                     }
@@ -864,28 +864,28 @@ class GalleryActivity :
         for (i in 0 until previewSet.size()) {
             val preview = previewSet.getGalleryPreview(galleryInfo.gid, i)
             mReaderSidebarPreviewMap[preview.position] = preview
-            if (updatePredictedSpread(preview)) {
+            if (updateSpreadPage(preview)) {
                 spreadChanged = true
             }
         }
         return spreadChanged
     }
 
-    private fun updatePredictedSpread(preview: GalleryPreview): Boolean {
+    private fun updateSpreadPage(preview: GalleryPreview): Boolean {
         if (!preview.hasPreviewAspect() || preview.position < 0) {
             return false
         }
         val isSpread = preview.previewWidth > preview.previewHeight
-        val oldValue = mPredictedSpreadPages.get(preview.position)
+        val oldValue = mSpreadPages.get(preview.position)
         if (oldValue == isSpread) {
             return false
         }
-        mPredictedSpreadPages.set(preview.position, isSpread)
+        mSpreadPages.set(preview.position, isSpread)
         return true
     }
 
-    private fun applyPredictedSpreadPages() {
-        mGalleryView?.setPredictedSpreadPages(mPredictedSpreadPages)
+    private fun applySpreadPages() {
+        mGalleryView?.setSpreadPages(mSpreadPages)
     }
 
     private fun getReaderSidebarWidth(): Int {
