@@ -679,6 +679,7 @@ class GalleryActivity :
     override fun onResume() {
         super.onResume()
         mGLRootView?.onResume()
+        mReaderSidebarRecyclerView?.post { restoreVisibleReaderSidebarPreviews() }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -1023,9 +1024,9 @@ class GalleryActivity :
         toggleView.removeCallbacks(mHideReaderSidebarToggleRunnable)
         toggleView.scaleX = if (mReaderSidebarOnRight == mReaderSidebarVisible) -1f else 1f
         if (mReaderSidebarVisible) {
-            toggleView.alpha = 0.98f
+            toggleView.alpha = READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA
         } else {
-            toggleView.alpha = if (showHiddenIndicator) 0.98f else READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
+            toggleView.alpha = if (showHiddenIndicator) READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA else READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
             if (showHiddenIndicator) {
                 toggleView.postDelayed(mHideReaderSidebarToggleRunnable, READER_SIDEBAR_TOGGLE_HINT_DELAY)
             }
@@ -1036,6 +1037,7 @@ class GalleryActivity :
             mGLRootView?.requestLayoutContentPane()
             mGalleryView?.requestLayout()
             if (mReaderSidebarVisible) {
+                restoreVisibleReaderSidebarPreviews()
                 updateReaderSidebarSelection(forceCenter = true)
             }
         }
@@ -1760,6 +1762,35 @@ class GalleryActivity :
         }
     }
 
+    private fun restoreSidebarPreviewIfNeeded(view: ReaderSidebarThumb, preview: GalleryPreview?) {
+        if (preview == null || view.drawable != null) {
+            return
+        }
+        bindSidebarPreview(view, preview)
+    }
+
+    private fun restoreVisibleReaderSidebarPreviews() {
+        val recyclerView = mReaderSidebarRecyclerView ?: return
+        val pageStarts = mReaderSidebarPageStarts
+        if (pageStarts.isEmpty()) {
+            return
+        }
+        for (i in 0 until recyclerView.childCount) {
+            val child = recyclerView.getChildAt(i) ?: continue
+            val holder = recyclerView.getChildViewHolder(child) as? ReaderSidebarHolder ?: continue
+            val position = holder.bindingAdapterPosition
+            if (position == RecyclerView.NO_POSITION || position !in pageStarts.indices) {
+                continue
+            }
+            val pageStart = pageStarts[position]
+            restoreSidebarPreviewIfNeeded(holder.image, mReaderSidebarPreviewMap[pageStart])
+            val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
+            if (pairSize > 1) {
+                restoreSidebarPreviewIfNeeded(holder.imageSecondary, mReaderSidebarPreviewMap[pageStart + 1])
+            }
+        }
+    }
+
     private inner class ReaderSidebarAdapter : RecyclerView.Adapter<ReaderSidebarHolder>() {
         private val inflater: LayoutInflater = layoutInflater
         private var pageCount = 0
@@ -1880,7 +1911,8 @@ class GalleryActivity :
         private const val HIDE_SLIDER_DELAY: Long = 3000
         private const val READER_SIDEBAR_TOGGLE_HINT_DELAY: Long = 1500
         private const val READER_SIDEBAR_TOGGLE_FADE_DURATION: Long = 180
-        private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0f
+        private const val READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA = 0.82f
+        private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0.28f
         private const val NOTIFY_KEY_LAYOUT_MODE = 0
         private const val NOTIFY_KEY_SIZE = 1
         private const val NOTIFY_KEY_CURRENT_INDEX = 2
