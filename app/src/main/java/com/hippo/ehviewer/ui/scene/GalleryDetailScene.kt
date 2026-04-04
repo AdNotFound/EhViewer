@@ -253,6 +253,9 @@ class GalleryDetailScene :
         }
     }
 
+    private val isDetailOverlayVisible: Boolean
+        get() = mUseLargeTwoPaneLayout && mRightOverlayContainer?.visibility == View.VISIBLE
+
     @StringRes
     private fun getRatingText(rating: Float): Int = when ((rating * 2).roundToInt()) {
         0 -> R.string.rating0
@@ -622,6 +625,7 @@ class GalleryDetailScene :
 
     override fun onDestroyView() {
         super.onDestroyView()
+        mRightOverlayContainer?.removeCallbacks(mHideDetailOverlayRunnable)
         EhDownloadManager.removeDownloadInfoListener(this)
         mTip = null
         mViewTransition = null
@@ -671,6 +675,24 @@ class GalleryDetailScene :
         mUseLargeTwoPaneLayout = false
         mRightScrollView = null
         mRightOverlayContainer = null
+    }
+
+    private fun finishDetailScene() {
+        mRightOverlayContainer?.removeCallbacks(mHideDetailOverlayRunnable)
+        if (mViewTransition != null &&
+            mThumb != null &&
+            mViewTransition!!.shownViewIndex == 0 &&
+            mThumb!!.isShown
+        ) {
+            val location = IntArray(2)
+            mThumb!!.getLocationInWindow(location)
+            if (location[1] + mThumb!!.height > 0) {
+                setTransitionName()
+                finish(ExitTransaction(mThumb!!))
+                return
+            }
+        }
+        finish()
     }
 
     private fun showDetailOverlay(fragment: Fragment, tag: String) {
@@ -1182,7 +1204,11 @@ class GalleryDetailScene :
         val galleryDetail = mGalleryDetail ?: return
         when (v) {
             mBackAction -> {
-                onBackPressed()
+                if (isDetailOverlayVisible) {
+                    finishDetailScene()
+                } else {
+                    onBackPressed()
+                }
             }
 
             mOtherActions -> {
@@ -1699,25 +1725,11 @@ class GalleryDetailScene :
     }
 
     override fun onBackPressed() {
-        if (mUseLargeTwoPaneLayout && mRightOverlayContainer?.visibility == View.VISIBLE) {
+        if (isDetailOverlayVisible) {
             closeDetailOverlay()
             return
         }
-        if (mViewTransition != null &&
-            mThumb != null &&
-            mViewTransition!!.shownViewIndex == 0 &&
-            mThumb!!.isShown
-        ) {
-            val location = IntArray(2)
-            mThumb!!.getLocationInWindow(location)
-            // Only show transaction when thumb can be seen
-            if (location[1] + mThumb!!.height > 0) {
-                setTransitionName()
-                finish(ExitTransaction(mThumb!!))
-                return
-            }
-        }
-        finish()
+        finishDetailScene()
     }
 
     override fun onSceneResult(requestCode: Int, resultCode: Int, data: Bundle?) {
