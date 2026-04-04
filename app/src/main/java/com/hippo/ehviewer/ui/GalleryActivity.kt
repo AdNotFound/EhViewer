@@ -118,6 +118,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import java.util.BitSet
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -220,6 +221,7 @@ class GalleryActivity :
     private var mReaderContentContainer: View? = null
     private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
     private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
+    private val mPredictedSpreadPages = BitSet()
     private var mReaderSidebarPageStarts: List<Int> = emptyList()
     private var mReaderSidebarVisible = true
     private var mReaderSidebarOnRight = true
@@ -568,12 +570,14 @@ class GalleryActivity :
         }
         mSize = mGalleryProvider!!.size
         mReaderSidebarPreviewMap.clear()
+        mPredictedSpreadPages.clear()
         mReaderSidebarPageStarts = emptyList()
+        mGalleryView?.setPredictedSpreadPages(mPredictedSpreadPages)
         updateDoublePageMode()
         updateSlider()
         updateProgress()
         updateReaderSidebarData(forceCenter = true)
-        loadReaderSidebarPreviews()
+        loadReaderPreviewMetadata()
     }
 
     private fun updateDoublePageMode() {
@@ -819,8 +823,8 @@ class GalleryActivity :
         }
     }
 
-    private fun loadReaderSidebarPreviews() {
-        if (mReaderSidebarRecyclerView == null || mAction != ACTION_EH) {
+    private fun loadReaderPreviewMetadata() {
+        if (mAction != ACTION_EH) {
             return
         }
         val galleryInfo = mGalleryInfo ?: return
@@ -829,13 +833,23 @@ class GalleryActivity :
         mReaderSidebarPreviewJob = lifecycleScope.launchIO {
             runCatching {
                 val first = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, 0, false))
-                mergeReaderSidebarPreviewSet(first.first)
-                withUIContext { updateReaderSidebarData() }
+                val firstChanged = mergeReaderPreviewSet(first.first)
+                withUIContext {
+                    if (firstChanged) {
+                        applyPredictedSpreadPages()
+                    }
+                    updateReaderSidebarData()
+                }
                 for (page in 1 until first.second) {
                     currentCoroutineContext().ensureActive()
                     val result = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
-                    mergeReaderSidebarPreviewSet(result.first)
-                    withUIContext { updateReaderSidebarData() }
+                    val changed = mergeReaderPreviewSet(result.first)
+                    withUIContext {
+                        if (changed) {
+                            applyPredictedSpreadPages()
+                        }
+                        updateReaderSidebarData()
+                    }
                 }
             }.onFailure {
                 it.printStackTrace()
@@ -843,12 +857,34 @@ class GalleryActivity :
         }
     }
 
-    private fun mergeReaderSidebarPreviewSet(previewSet: com.hippo.ehviewer.client.data.PreviewSet) {
-        val galleryInfo = mGalleryInfo ?: return
+    private fun mergeReaderPreviewSet(previewSet: com.hippo.ehviewer.client.data.PreviewSet): Boolean {
+        val galleryInfo = mGalleryInfo ?: return false
+        var spreadChanged = false
         for (i in 0 until previewSet.size()) {
             val preview = previewSet.getGalleryPreview(galleryInfo.gid, i)
             mReaderSidebarPreviewMap[preview.position] = preview
+            if (updatePredictedSpread(preview)) {
+                spreadChanged = true
+            }
         }
+        return spreadChanged
+    }
+
+    private fun updatePredictedSpread(preview: GalleryPreview): Boolean {
+        if (!preview.hasPreviewAspect() || preview.position < 0) {
+            return false
+        }
+        val isSpread = preview.previewWidth > preview.previewHeight
+        val oldValue = mPredictedSpreadPages.get(preview.position)
+        if (oldValue == isSpread) {
+            return false
+        }
+        mPredictedSpreadPages.set(preview.position, isSpread)
+        return true
+    }
+
+    private fun applyPredictedSpreadPages() {
+        mGalleryView?.setPredictedSpreadPages(mPredictedSpreadPages)
     }
 
     private fun getReaderSidebarWidth(): Int {

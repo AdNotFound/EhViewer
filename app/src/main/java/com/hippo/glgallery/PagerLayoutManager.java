@@ -49,6 +49,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     private final PageFling mPageFling;
     private final SmoothScaler mSmoothScaler;
     private final BitSet mSpreads = new BitSet();
+    private final BitSet mPredictedSpreads = new BitSet();
+    private final BitSet mResolvedSpreads = new BitSet();
     private final Rect mTempRect = new Rect();
     private final android.graphics.Matrix mPairMatrix = new android.graphics.Matrix();
     private final android.graphics.RectF mBaseRectPrimary = new android.graphics.RectF();
@@ -152,6 +154,30 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         }
     }
 
+    public void setPredictedSpreadPages(@NonNull BitSet predictedSpreadPages) {
+        if (mPredictedSpreads.equals(predictedSpreadPages)) {
+            return;
+        }
+        mPredictedSpreads.clear();
+        mPredictedSpreads.or(predictedSpreadPages);
+        if (mAdapter != null) {
+            mGalleryView.notifyPageStructureChanged();
+            mGalleryView.requestFill();
+        }
+    }
+
+    private void clearResolvedSpreads() {
+        mSpreads.clear();
+        mResolvedSpreads.clear();
+    }
+
+    private boolean isSpread(int index) {
+        if (index < 0) {
+            return false;
+        }
+        return mResolvedSpreads.get(index) ? mSpreads.get(index) : mPredictedSpreads.get(index);
+    }
+
     private void resetParameters() {
         mOffset = 0;
         mCanScrollBetweenPages = false;
@@ -194,7 +220,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return index;
 
         // If the index itself is a spread, it's always its own start
-        if (mSpreads.get(index))
+        if (isSpread(index))
             return index;
 
         int slot = getSlotForIndex(index);
@@ -202,7 +228,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
         // If the slot-start is a spread, the second page of the slot becomes its own
         // solo start
-        if (slotStart != index && mSpreads.get(slotStart)) {
+        if (slotStart != index && isSpread(slotStart)) {
             return index;
         }
         return slotStart;
@@ -211,13 +237,13 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     public int getPairSize(int index) {
         if (!mDoublePageMode)
             return 1;
-        if (mSpreads.get(index))
+        if (isSpread(index))
             return 1;
         if (mDoublePageOffset && index == 0)
             return 1;
         if (index >= mAdapter.size() - 1)
             return 1;
-        if (mSpreads.get(index + 1))
+        if (isSpread(index + 1))
             return 1;
 
         // Check if this is a slot-start position
@@ -230,7 +256,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         } else {
             // This is the second page of a slot
             // If the slot-start was a spread, this becomes solo
-            if (mSpreads.get(slotStart)) {
+            if (isSpread(slotStart)) {
                 return 1;
             }
             // Otherwise, we shouldn't be called for non-start indices
@@ -300,7 +326,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         AssertUtils.assertNull("The PagerLayoutManager is attached", mAdapter);
         AssertUtils.assertNotNull("The adapter is null", adapter);
         mAdapter = adapter;
-        mSpreads.clear();
+        clearResolvedSpreads();
         // Reset parameters
         resetParameters();
     }
@@ -387,15 +413,20 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     private boolean updateSpread(GalleryPageView page) {
         ImageView view = page != null ? page.getImageView() : null;
         if (view != null && view.isLoaded()) {
+            int index = page.getIndex();
+            if (index == -1) {
+                return false;
+            }
+            boolean oldSpread = isSpread(index);
             int w = view.getImageTexture().getWidth();
             int h = view.getImageTexture().getHeight();
+            mResolvedSpreads.set(index);
             if (w > h) {
-                int index = page.getIndex();
-                if (index != -1 && !mSpreads.get(index)) {
-                    mSpreads.set(index);
-                    return true;
-                }
+                mSpreads.set(index);
+            } else {
+                mSpreads.clear(index);
             }
+            return oldSpread != isSpread(index);
         }
         return false;
     }
@@ -450,7 +481,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         int h1 = primaryView.getImageTexture().getHeight();
 
         // Spread Detection - check cached bitset instead of full calculation here
-        if (pIndex != -1 && mSpreads.get(pIndex)) {
+        if (pIndex != -1 && isSpread(pIndex)) {
             secondary = null;
         }
 
@@ -462,7 +493,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
             // Check if secondary is spread
             int sIdx = secondary.getIndex();
-            if (sIdx != -1 && mSpreads.get(sIdx)) {
+            if (sIdx != -1 && isSpread(sIdx)) {
                 secondaryView = null;
                 w2 = 0;
             } else {
@@ -1356,7 +1387,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         removeProgress();
         removeErrorView();
         removeAllPages();
-        mSpreads.clear();
+        clearResolvedSpreads();
         // Reset parameters
         resetParameters();
         mGalleryView.requestFill();
