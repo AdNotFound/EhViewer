@@ -223,6 +223,7 @@ class GalleryActivity :
     private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
     private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
     private val mSpreadPages = BitSet()
+    private var mReaderPreviewMetadataRequested = false
     private var mReaderSidebarPageStarts: List<Int> = emptyList()
     private var mReaderSidebarVisible = true
     private var mReaderSidebarOnRight = true
@@ -572,13 +573,14 @@ class GalleryActivity :
         mSize = mGalleryProvider!!.size
         mReaderSidebarPreviewMap.clear()
         mSpreadPages.clear()
+        mReaderPreviewMetadataRequested = false
         mReaderSidebarPageStarts = emptyList()
         mGalleryView?.setSpreadPages(mSpreadPages)
         updateDoublePageMode()
         updateSlider()
         updateProgress()
         updateReaderSidebarData(forceCenter = true)
-        loadReaderPreviewMetadata()
+        ensureReaderPreviewMetadata()
     }
 
     private fun updateDoublePageMode() {
@@ -586,7 +588,19 @@ class GalleryActivity :
         mGalleryView!!.setDoublePageMode(isDoublePageMode)
         mGalleryView!!.setDoublePageOffset(Settings.doublePageOffset)
         mGalleryView!!.setDoublePageGap(Settings.doublePageGap)
+        ensureReaderPreviewMetadata()
         updateReaderSidebarData(forceCenter = true)
+    }
+
+    private fun shouldLoadReaderPreviewMetadata(): Boolean =
+        mAction == ACTION_EH && (mReaderSidebarRecyclerView != null || isDoublePageMode)
+
+    private fun ensureReaderPreviewMetadata() {
+        if (!shouldLoadReaderPreviewMetadata() || mReaderPreviewMetadataRequested) {
+            return
+        }
+        mReaderPreviewMetadataRequested = true
+        loadReaderPreviewMetadata()
     }
 
     private fun pageTurn(isPrevious: Boolean) {
@@ -1742,7 +1756,7 @@ class GalleryActivity :
             view.resetSidebarAspect()
             view.resetClip()
             view.setImageDrawable(null)
-            view.setBackgroundResource(R.drawable.bg_reader_sidebar_placeholder)
+            view.setBackgroundResource(0)
         }
     }
 
