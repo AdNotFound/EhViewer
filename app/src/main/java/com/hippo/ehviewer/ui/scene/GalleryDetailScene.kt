@@ -1121,23 +1121,32 @@ class GalleryDetailScene :
         }
     }
 
-    private fun getLargeDetailLeftWidth(): Int {
-        val widthDp = when (Settings.layoutDetailLeftWidth) {
-            0 -> 320
-            1 -> 380
-            2 -> 440
-            4 -> 560
-            5 -> 620
-            6 -> 680
-            else -> 500
+    private fun getLargeDetailLeftWidth(root: View): Int {
+        val ratio = DETAIL_LEFT_WIDTH_RATIOS[Settings.layoutDetailLeftWidth]
+        val baseWidth = getLargeDetailAvailableWidth(root)
+        return (baseWidth * ratio).toInt().coerceAtLeast(0)
+    }
+
+    private fun getLargeDetailAvailableWidth(root: View): Int {
+        val mainWidth = root.findViewById<View>(R.id.main)?.width ?: 0
+        if (mainWidth > 0) {
+            return mainWidth
         }
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, widthDp.toFloat(), resources.displayMetrics).toInt()
+        val rootWidth = root.width
+        if (rootWidth > 0) {
+            return rootWidth
+        }
+        val windowWidth = activity?.window?.decorView?.width ?: 0
+        if (windowWidth > 0) {
+            return windowWidth
+        }
+        return resources.displayMetrics.widthPixels
     }
 
     private fun applyLargeDetailLeftWidth(root: View) {
         val leftPanel = root.findViewById<View>(R.id.left_panel) ?: return
         leftPanel.layoutParams = leftPanel.layoutParams.apply {
-            width = getLargeDetailLeftWidth()
+            width = getLargeDetailLeftWidth(root)
         }
     }
 
@@ -2407,6 +2416,7 @@ class GalleryDetailScene :
         private const val KEY_BASIC_INFO_ONLY = "basic_info_only"
         private const val DETAIL_OVERLAY_CLOSE_DURATION = 250L
         private const val TRANSITION_ANIMATION_DISABLED = true
+        private val DETAIL_LEFT_WIDTH_RATIOS = floatArrayOf(0.25f, 0.31f, 0.37f, 0.43f, 0.49f, 0.55f, 0.60f)
         private fun getArtist(tagGroups: Array<GalleryTagGroup>?): String? {
             if (null == tagGroups) {
                 return null

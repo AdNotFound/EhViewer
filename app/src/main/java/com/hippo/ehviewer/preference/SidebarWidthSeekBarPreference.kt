@@ -77,6 +77,18 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
     }
 
     private fun updateLabel(value: Int) {
-        valueTextView?.text = (value + 1).toString()
+        val percentages = when (key) {
+            "layout_reader_thumbnail_sidebar_width" -> READER_SIDEBAR_WIDTH_PERCENTAGES
+            "layout_main_persistent_nav_width" -> MAIN_SIDEBAR_WIDTH_PERCENTAGES
+            "layout_detail_left_width" -> DETAIL_SIDEBAR_WIDTH_PERCENTAGES
+            else -> null
+        }
+        valueTextView?.text = percentages?.getOrNull(value)?.let { "$it%" } ?: (value + 1).toString()
+    }
+
+    companion object {
+        private val READER_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(5, 8, 12, 16, 19, 22, 25)
+        private val MAIN_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(10, 14, 18, 22, 27, 31, 35)
+        private val DETAIL_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(25, 31, 37, 43, 49, 55, 60)
     }
 }
