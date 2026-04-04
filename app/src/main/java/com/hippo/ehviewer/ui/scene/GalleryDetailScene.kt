@@ -705,7 +705,7 @@ class GalleryDetailScene :
                 R.anim.scene_open_enter_horizontal,
                 R.anim.scene_open_exit,
                 R.anim.scene_close_enter,
-                R.anim.scene_close_exit,
+                R.anim.scene_close_exit_horizontal,
             )
             .replace(R.id.right_overlay_container, fragment, tag)
             .commitAllowingStateLoss()
@@ -720,7 +720,7 @@ class GalleryDetailScene :
                     R.anim.scene_open_enter_horizontal,
                     R.anim.scene_open_exit,
                     R.anim.scene_close_enter,
-                    R.anim.scene_close_exit,
+                    R.anim.scene_close_exit_horizontal,
                 )
                 .remove(it)
                 .commitAllowingStateLoss()
