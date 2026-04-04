@@ -33,6 +33,7 @@ import android.content.res.Configuration
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Bundle
+import android.os.Build
 import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.os.ParcelFileDescriptor.MODE_READ_ONLY
@@ -221,6 +222,7 @@ class GalleryActivity :
     private var mReaderContentContainer: View? = null
     private var mReaderSidebarAdapter: ReaderSidebarAdapter? = null
     private var mReaderSidebarPreviewMap = linkedMapOf<Int, GalleryPreview>()
+    private var mInitialReaderPreviews: ArrayList<GalleryPreview>? = null
     private val mSpreadPages = BitSet()
     private var mReaderPreviewMetadataRequested = false
     private var mReaderSidebarPageStarts: List<Int> = emptyList()
@@ -327,6 +329,7 @@ class GalleryActivity :
         mFilename = intent.getStringExtra(KEY_FILENAME)
         mUri = intent.data
         mGalleryInfo = intent.getParcelableExtraCompat(KEY_GALLERY_INFO)
+        mInitialReaderPreviews = intent.getGalleryPreviewArrayListExtra(KEY_INITIAL_READER_PREVIEWS)
         mPage = intent.getIntExtra(KEY_PAGE, -1)
     }
 
@@ -357,6 +360,7 @@ class GalleryActivity :
         mFilename = savedInstanceState.getString(KEY_FILENAME)
         mUri = savedInstanceState.getParcelableCompat(KEY_URI)
         mGalleryInfo = savedInstanceState.getParcelableCompat(KEY_GALLERY_INFO)
+        mInitialReaderPreviews = savedInstanceState.getGalleryPreviewArrayList(KEY_INITIAL_READER_PREVIEWS)
         mPage = savedInstanceState.getInt(KEY_PAGE, -1)
         mCurrentIndex = savedInstanceState.getInt(KEY_CURRENT_INDEX)
         buildProvider()
@@ -369,6 +373,9 @@ class GalleryActivity :
         outState.putParcelable(KEY_URI, mUri)
         if (mGalleryInfo != null) {
             outState.putParcelable(KEY_GALLERY_INFO, mGalleryInfo)
+        }
+        if (!mInitialReaderPreviews.isNullOrEmpty()) {
+            outState.putParcelableArrayList(KEY_INITIAL_READER_PREVIEWS, mInitialReaderPreviews)
         }
         outState.putInt(KEY_PAGE, mPage)
         outState.putInt(KEY_CURRENT_INDEX, mCurrentIndex)
@@ -539,6 +546,7 @@ class GalleryActivity :
         // Get start page
         if (mCurrentIndex == 0) mCurrentIndex = if (mPage >= 0) mPage else mGalleryProvider!!.startPage
         mGalleryAdapter = GalleryAdapter(mGLRootView!!, mGalleryProvider!!)
+        resetReaderPreviewState()
         val resources = resources
         mGalleryView = GalleryView.Builder(this, mGalleryAdapter!!)
             .setListener(this)
@@ -549,6 +557,7 @@ class GalleryActivity :
             .setDoublePageMode(isDoublePageMode)
             .setDoublePageOffset(Settings.doublePageOffset)
             .setDoublePageGap(Settings.doublePageGap)
+            .setSpreadPages(mSpreadPages)
             .setBackgroundColor(theme.resolveColor(android.R.attr.colorBackground))
             .setPagerInterval(if (Settings.showPageInterval) resources.getDimensionPixelOffset(R.dimen.gallery_pager_interval) else 0)
             .setScrollInterval(if (Settings.showPageInterval) resources.getDimensionPixelOffset(R.dimen.gallery_scroll_interval) else 0)
@@ -570,10 +579,6 @@ class GalleryActivity :
             mLayoutMode = mGalleryView!!.layoutMode
         }
         mSize = mGalleryProvider!!.size
-        mReaderSidebarPreviewMap.clear()
-        mSpreadPages.clear()
-        mReaderPreviewMetadataRequested = false
-        mReaderSidebarPageStarts = emptyList()
         mGalleryView?.setSpreadPages(mSpreadPages)
         updateDoublePageMode()
         updateSlider()
@@ -755,7 +760,7 @@ class GalleryActivity :
 
     private fun getPageRange(index: Int): String {
         val alignedIndex = mGalleryView?.getPagePairStart(index) ?: index
-        val count = mGalleryView?.getPagePairSize(alignedIndex) ?: 1
+        val count = getStablePagePairSize(alignedIndex)
         return if (count > 1) {
             "${alignedIndex + 1}-${alignedIndex + 2}"
         } else {
@@ -793,11 +798,72 @@ class GalleryActivity :
         var index = 0
         while (index < mSize) {
             result.add(index)
-            val pairSize = (mGalleryView?.getPagePairSize(index) ?: 1).coerceAtLeast(1)
+            val pairSize = getStablePagePairSize(index).coerceAtLeast(1)
             index += pairSize
         }
         return result
     }
+
+    private fun resetReaderPreviewState() {
+        mReaderSidebarPreviewMap.clear()
+        mSpreadPages.clear()
+        mReaderPreviewMetadataRequested = false
+        mReaderSidebarPageStarts = emptyList()
+        mergeInitialReaderPreviews()
+    }
+
+    private fun mergeInitialReaderPreviews() {
+        val previews = mInitialReaderPreviews ?: return
+        previews.forEach { preview ->
+            if (preview.position >= 0) {
+                mReaderSidebarPreviewMap[preview.position] = preview
+                updateSpreadPage(preview)
+            }
+        }
+    }
+
+    private fun getStablePagePairSize(index: Int): Int {
+        val galleryView = mGalleryView ?: return 1
+        val pairSize = galleryView.getPagePairSize(index)
+        if (!isDoublePageMode || pairSize <= 1) {
+            return 1
+        }
+        val currentPreview = mReaderSidebarPreviewMap[index]
+        if (currentPreview?.hasPreviewAspect() != true) {
+            return 1
+        }
+        if (currentPreview.previewWidth > currentPreview.previewHeight) {
+            return 1
+        }
+        val secondIndex = index + 1
+        if (secondIndex >= mSize) {
+            return 1
+        }
+        val secondPreview = mReaderSidebarPreviewMap[secondIndex]
+        if (secondPreview?.hasPreviewAspect() != true) {
+            return 1
+        }
+        if (secondPreview.previewWidth > secondPreview.previewHeight) {
+            return 1
+        }
+        return pairSize
+    }
+
+    @Suppress("DEPRECATION")
+    private fun Intent.getGalleryPreviewArrayListExtra(key: String): ArrayList<GalleryPreview>? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableArrayListExtra(key, GalleryPreview::class.java)
+        } else {
+            getParcelableArrayListExtra(key)
+        }
+
+    @Suppress("DEPRECATION")
+    private fun Bundle.getGalleryPreviewArrayList(key: String): ArrayList<GalleryPreview>? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getParcelableArrayList(key, GalleryPreview::class.java)
+        } else {
+            getParcelableArrayList(key)
+        }
 
     private fun updateReaderSidebarData(forceCenter: Boolean = false) {
         val pageStarts = buildReaderSidebarPageStarts()
@@ -1868,6 +1934,7 @@ class GalleryActivity :
         const val KEY_FILENAME = "filename"
         const val KEY_URI = "uri"
         const val KEY_GALLERY_INFO = "gallery_info"
+        const val KEY_INITIAL_READER_PREVIEWS = "initial_reader_previews"
         const val KEY_PAGE = "page"
         const val KEY_CURRENT_INDEX = "current_index"
         private const val SLIDER_ANIMATION_DURING: Long = 150
