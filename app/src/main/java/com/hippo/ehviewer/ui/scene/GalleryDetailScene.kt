@@ -89,6 +89,7 @@ import com.hippo.ehviewer.client.data.GalleryComment
 import com.hippo.ehviewer.client.data.GalleryCommentList
 import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.client.data.GalleryInfo
+import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.GalleryTagGroup
 import com.hippo.ehviewer.client.data.ListUrlBuilder
 import com.hippo.ehviewer.client.exception.EhException
@@ -930,11 +931,7 @@ class GalleryDetailScene :
                 Snackbar.LENGTH_LONG,
             )
                 .setAction(R.string.read) {
-                    val intent = Intent(requireContext(), GalleryActivity::class.java)
-                    intent.action = GalleryActivity.ACTION_EH
-                    intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, mGalleryDetail)
-                    intent.putExtra(GalleryActivity.KEY_PAGE, mPage)
-                    startActivity(intent)
+                    startActivity(buildReaderIntent(requireContext(), mGalleryDetail!!, mPage))
                 }
                 .show()
         }
@@ -1264,10 +1261,7 @@ class GalleryDetailScene :
             }
 
             mRead -> {
-                val intent = Intent(activity, GalleryActivity::class.java)
-                intent.action = GalleryActivity.ACTION_EH
-                intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail)
-                startActivity(intent)
+                startActivity(buildReaderIntent(activity, galleryDetail))
             }
 
             mNewerVersion -> {
@@ -1445,14 +1439,29 @@ class GalleryDetailScene :
                 }
                 o = v.getTag(R.id.index)
                 if (o is Int) {
-                    val intent = Intent(context, GalleryActivity::class.java)
-                    intent.action = GalleryActivity.ACTION_EH
-                    intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail)
-                    intent.putExtra(GalleryActivity.KEY_PAGE, o)
-                    startActivity(intent)
+                    startActivity(buildReaderIntent(context, galleryDetail, o))
                 }
             }
         }
+    }
+
+    private fun buildReaderIntent(context: Context, galleryDetail: GalleryDetail, page: Int? = null): Intent =
+        Intent(context, GalleryActivity::class.java).apply {
+            action = GalleryActivity.ACTION_EH
+            putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail)
+            page?.let { putExtra(GalleryActivity.KEY_PAGE, it) }
+            buildInitialReaderPreviews(galleryDetail)?.takeIf { it.isNotEmpty() }?.let {
+                putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)
+            }
+        }
+
+    private fun buildInitialReaderPreviews(galleryDetail: GalleryDetail): ArrayList<GalleryPreview>? {
+        val previewSet = galleryDetail.previewSet ?: return null
+        val list = ArrayList<GalleryPreview>(previewSet.size())
+        for (i in 0 until previewSet.size()) {
+            list.add(previewSet.getGalleryPreview(galleryDetail.gid, i))
+        }
+        return list
     }
 
     private fun showGalleryUpgradeDialog(gd: GalleryDetail) {

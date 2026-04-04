@@ -185,6 +185,9 @@ class GalleryPreviewsScene : ToolbarScene() {
                 val intent = Intent(context, GalleryActivity::class.java)
                 intent.action = GalleryActivity.ACTION_EH
                 intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, mGalleryInfo)
+                ArrayList(mHelper!!.data).takeIf { it.isNotEmpty() }?.let {
+                    intent.putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)
+                }
                 intent.putExtra(GalleryActivity.KEY_PAGE, p.position)
                 startActivity(intent)
             }

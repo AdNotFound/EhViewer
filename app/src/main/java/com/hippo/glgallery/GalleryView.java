@@ -193,6 +193,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         mEmptyString = build.mEmptyString;
         mDoublePageOffset = build.mDoublePageOffset;
         mDoublePageGap = build.mDoublePageGap;
+        mSpreadPages = (BitSet) build.mSpreadPages.clone();
 
         setBackgroundColor(mBackgroundColor);
     }
@@ -1055,6 +1056,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         private boolean mDoublePageMode = false;
         private boolean mDoublePageOffset = false;
         private int mDoublePageGap = 0;
+        private BitSet mSpreadPages = new BitSet();
         private int mPageMinHeight = 256;
         private int mPageInfoInterval = 48;
         private int mProgressColor = Color.WHITE;
@@ -1125,6 +1127,11 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
 
         public Builder setDoublePageGap(int doublePageGap) {
             mDoublePageGap = doublePageGap;
+            return this;
+        }
+
+        public Builder setSpreadPages(@NonNull BitSet spreadPages) {
+            mSpreadPages = (BitSet) spreadPages.clone();
             return this;
         }
 

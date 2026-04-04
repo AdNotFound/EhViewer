@@ -593,17 +593,16 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             return;
         boolean pLoaded = primary.getImageView().isLoaded();
         boolean sLoaded = secondary != null && secondary.getImageView().isLoaded();
-        boolean isRTL = mMode == MODE_RIGHT_TO_LEFT;
 
         if (pLoaded && !sLoaded && secondary != null) {
             primary.setVisibility(GLView.VISIBLE);
-            secondary.setVisibility(GLView.VISIBLE);
-            secondary.setPagePosition(isRTL ? 4 : 3); // Move to edge
+            primary.setPagePosition(0);
+            secondary.setVisibility(GLView.GONE);
             mGalleryView.bringComponentToFront(primary);
         } else if (!pLoaded && sLoaded && secondary != null) {
-            primary.setVisibility(GLView.VISIBLE);
+            primary.setVisibility(GLView.GONE);
             secondary.setVisibility(GLView.VISIBLE);
-            primary.setPagePosition(isRTL ? 3 : 4); // Move to edge
+            secondary.setPagePosition(0);
             mGalleryView.bringComponentToFront(secondary);
         } else {
             primary.setVisibility(GLView.VISIBLE);
