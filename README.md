@@ -11,12 +11,24 @@
     描述
     </a>
     <span> | </span>
+    <a href="#更新">
+    更新
+    </a>
+    <span> | </span>
     <a href="#下载">
     下载
     </a>
     <span> | </span>
     <a href="#截图">
     截图
+    </a>
+    <span> | </span>
+    <a href="#常见问题">
+    常见问题
+    </a>
+    <span> | </span>
+    <a href="#开发">
+    开发
     </a>
     <span> | </span>
     <a href="#感谢">
@@ -31,13 +43,18 @@
 
 # 描述
 
-NekoInverter 版的 EhViewer [白E]，原作者已不再维护，不接受功能请求，欢迎Pull Request
+NekoInverter 版的 EhViewer [白E]。原作者已不再维护，目前以兼容性修复与社区维护为主；不接受功能请求，欢迎提交 Pull Request。
+
+# 更新
+
+- 优化大屏与双栏布局体验
+- 改进了阅读器内缩略图侧边栏
 
 # 下载
 
 **注：需要 Android 9 及以上版本系统**
 
-前往 [Github Actions](https://github.com/AdNotFound/EhViewer/actions) 下载 CI 版
+如无单独发布页，可前往 [Github Actions](https://github.com/AdNotFound/EhViewer/actions) 下载最近一次成功构建的 CI 版本。
 
 # 截图
 
@@ -67,6 +84,18 @@ NekoInverter 版的 EhViewer [白E]，原作者已不再维护，不接受功能
 **其他问题**
 
 - 善用搜索引擎，或者去 E-Hentai 论坛提问
+
+# 开发
+
+建议使用完整的 Android 开发环境，配置 Android SDK 与 JDK 21。
+
+常用命令：
+
+- `./gradlew assembleDebug`：构建调试 APK
+- `./gradlew lintDebug`：运行 Android Lint
+- `./gradlew ktlintCheck`：检查 Kotlin 与 Gradle Kotlin DSL 风格
+- `./gradlew testDebugUnitTest`：运行 JVM 单元测试
+
 # 感谢
 
 本项目受到了诸多开源项目的帮助
