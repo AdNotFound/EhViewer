@@ -35,6 +35,7 @@ import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhClient
 import com.hippo.ehviewer.client.EhRequest
 import com.hippo.ehviewer.client.EhUrl
+import com.hippo.ehviewer.client.data.cacheGalleryDetailPreviewSet
 import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
@@ -198,6 +199,7 @@ class GalleryPreviewsScene : ToolbarScene() {
     private fun onGetPreviewSetSuccess(result: Pair<PreviewSet, Int>, taskId: Int) {
         if (null != mHelper && mHelper!!.isCurrentTask(taskId) && null != mGalleryInfo) {
             val previewSet = result.first
+            cacheGalleryDetailPreviewSet(mGalleryInfo!!.gid, previewSet, result.second)
             val size = previewSet.size()
             val list = ArrayList<GalleryPreview>(size)
             for (i in 0 until size) {
