@@ -969,14 +969,12 @@ class GalleryActivity :
     }
 
     private fun getReaderSidebarWidth(): Int {
-        val widthIndex = Settings.layoutReaderThumbnailSidebarWidth
         val ratio = READER_SIDEBAR_WIDTH_RATIOS[Settings.layoutReaderThumbnailSidebarWidth]
         val baseWidth = getReaderSidebarAvailableWidth()
         val ratioWidth = (baseWidth * ratio).toInt().coerceAtLeast(0)
-        val minWidthDp = READER_SIDEBAR_MIN_WIDTH_DP[widthIndex]
         val minWidthPx = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
-            minWidthDp.toFloat(),
+            READER_SIDEBAR_MIN_WIDTH_DP.toFloat(),
             resources.displayMetrics,
         ).toInt()
         return ratioWidth.coerceAtLeast(minWidthPx)
@@ -1968,7 +1966,7 @@ class GalleryActivity :
         private const val NOTIFY_KEY_TAP_MENU_AREA = 4
         private const val NOTIFY_KEY_TAP_ERROR_TEXT = 5
         private const val NOTIFY_KEY_LONG_PRESS_PAGE = 6
-        private val READER_SIDEBAR_WIDTH_RATIOS = floatArrayOf(0.05f, 0.08f, 0.12f, 0.16f, 0.19f, 0.22f, 0.25f)
-        private val READER_SIDEBAR_MIN_WIDTH_DP = intArrayOf(88, 120, 152, 184, 216, 248, 280)
+        private val READER_SIDEBAR_WIDTH_RATIOS = FloatArray(21) { (5 + it) / 100f }
+        private const val READER_SIDEBAR_MIN_WIDTH_DP = 56
     }
 }
