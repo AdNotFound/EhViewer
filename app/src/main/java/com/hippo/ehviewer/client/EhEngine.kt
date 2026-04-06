@@ -27,6 +27,7 @@ import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryTagGroup
 import com.hippo.ehviewer.client.data.PreviewSet
+import com.hippo.ehviewer.client.data.cacheGalleryDetailPreviewSet
 import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.ehviewer.client.exception.AddFavoritesRangeException
 import com.hippo.ehviewer.client.exception.InsufficientFundsException
@@ -38,6 +39,7 @@ import com.hippo.ehviewer.client.parser.FavoritesParser
 import com.hippo.ehviewer.client.parser.ForumsParser
 import com.hippo.ehviewer.client.parser.GalleryApiParser
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
+import com.hippo.ehviewer.client.parser.GalleryDetailUrlParser
 import com.hippo.ehviewer.client.parser.GalleryListParser
 import com.hippo.ehviewer.client.parser.GalleryMultiPageViewerParser
 import com.hippo.ehviewer.client.parser.GalleryNotAvailableParser
@@ -270,7 +272,12 @@ object EhEngine {
         val referer = EhUrl.referer
         Log.d(TAG, url)
         return EhRequestBuilder(url, referer).executeAndParsingWith {
-            GalleryDetailParser.parsePreviewSet(this) to GalleryDetailParser.parsePreviewPages(this)
+            val previewSet = GalleryDetailParser.parsePreviewSet(this)
+            val previewPages = GalleryDetailParser.parsePreviewPages(this)
+            GalleryDetailUrlParser.parse(url)?.let {
+                cacheGalleryDetailPreviewSet(it.gid, previewSet, previewPages)
+            }
+            previewSet to previewPages
         }
     }
 

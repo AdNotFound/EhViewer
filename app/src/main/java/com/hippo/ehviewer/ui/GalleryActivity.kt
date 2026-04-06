@@ -83,7 +83,6 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
-import com.hippo.ehviewer.client.data.cacheGalleryDetailPreviewSet
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.hasAds
@@ -918,7 +917,6 @@ class GalleryActivity :
                 val first = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, 0, false))
                 val firstChanged = mergeReaderPreviewSet(first.first)
                 withUIContext {
-                    cacheGalleryDetailPreviewSet(galleryInfo.gid, first.first, first.second)
                     if (firstChanged) {
                         applySpreadPages()
                     }
