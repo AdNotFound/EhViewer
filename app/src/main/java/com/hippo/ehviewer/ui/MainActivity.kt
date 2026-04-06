@@ -16,7 +16,6 @@
 package com.hippo.ehviewer.ui
 
 import android.annotation.SuppressLint
-import android.app.UiModeManager
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -278,13 +277,16 @@ class MainActivity :
             mAvatar = ViewUtils.`$$`(headerLayout, R.id.avatar) as LoadImageView
             mDisplayName = ViewUtils.`$$`(headerLayout, R.id.display_name) as TextView
             ViewUtils.`$$`(headerLayout, R.id.night_mode).setOnClickListener {
-                val theme = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_YES <= 0
-                val target = if (((getSystemService(UI_MODE_SERVICE) as UiModeManager).nightMode == UiModeManager.MODE_NIGHT_YES) == theme) {
-                    AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                } else if (theme) {
-                    AppCompatDelegate.MODE_NIGHT_YES
-                } else {
-                    AppCompatDelegate.MODE_NIGHT_NO
+                val isNightMode =
+                    resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
+                val target = when (Settings.theme) {
+                    AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM -> if (isNightMode) {
+                        AppCompatDelegate.MODE_NIGHT_NO
+                    } else {
+                        AppCompatDelegate.MODE_NIGHT_YES
+                    }
+                    AppCompatDelegate.MODE_NIGHT_YES -> AppCompatDelegate.MODE_NIGHT_NO
+                    else -> AppCompatDelegate.MODE_NIGHT_YES
                 }
                 AppCompatDelegate.setDefaultNightMode(target)
                 Settings.putTheme(target)

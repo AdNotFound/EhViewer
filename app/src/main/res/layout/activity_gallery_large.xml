@@ -137,7 +137,7 @@
         android:paddingVertical="12dp"
         android:scaleType="centerInside"
         app:srcCompat="@drawable/v_reader_sidebar_toggle_symbol_x24"
-        app:tint="?android:attr/textColorPrimaryInverse" />
+        app:tint="?android:attr/textColorPrimary" />
 
     <LinearLayout
         android:id="@+id/reader_sidebar_container"
