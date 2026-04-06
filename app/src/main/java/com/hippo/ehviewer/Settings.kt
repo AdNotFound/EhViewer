@@ -162,7 +162,7 @@ object Settings {
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR = "layout_reader_thumbnail_sidebar"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR = false
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = "layout_reader_thumbnail_sidebar_width"
-    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = 3
+    private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = 11
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = "layout_reader_thumbnail_sidebar_visible"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_VISIBLE = true
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_ON_RIGHT = "layout_reader_thumbnail_sidebar_on_right"
@@ -171,6 +171,8 @@ object Settings {
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_TOGGLE_AUTO_HIDE = false
     private const val KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED = "layout_sidebar_width_five_levels_migrated"
     private const val KEY_LAYOUT_SIDEBAR_WIDTH_SEVEN_LEVELS_MIGRATED = "layout_sidebar_width_seven_levels_migrated"
+    private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH_TWENTY_ONE_LEVELS_MIGRATED =
+        "layout_reader_thumbnail_sidebar_width_twenty_one_levels_migrated"
 
     /********************
      ****** Download
@@ -350,6 +352,7 @@ object Settings {
         }
         migrateLegacyLayoutSidebarWidths()
         migrateLayoutSidebarWidthsToSevenLevels()
+        migrateReaderThumbnailSidebarWidthToTwentyOneLevels()
         val enableLargeScreenLayout = application.resources.configuration.smallestScreenWidthDp >= 600
         if (!sSettingsPre.contains(KEY_LAYOUT_ENABLED)) {
             putLayoutEnabled(enableLargeScreenLayout)
@@ -442,6 +445,36 @@ object Settings {
         if (migratedValue != rawValue) {
             putIntToStr(key, migratedValue)
         }
+    }
+
+    private fun migrateReaderThumbnailSidebarWidthToTwentyOneLevels() {
+        if (sSettingsPre.getBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH_TWENTY_ONE_LEVELS_MIGRATED, false)) {
+            return
+        }
+        val key = KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH
+        val rawValue = when (val storedValue = sSettingsPre.all[key]) {
+            is Int -> storedValue
+            is Long -> storedValue.toInt()
+            is String -> storedValue.toIntOrNull()
+            else -> null
+        }
+        val migratedValue = when (rawValue) {
+            null -> null
+            0 -> 0
+            1 -> 3
+            2 -> 7
+            3 -> 11
+            4 -> 14
+            5 -> 17
+            6 -> 20
+            else -> rawValue.coerceIn(0, 20)
+        }
+        migratedValue?.let {
+            if (it != rawValue) {
+                putIntToStr(key, it)
+            }
+        }
+        putBoolean(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH_TWENTY_ONE_LEVELS_MIGRATED, true)
     }
 
     private fun getBoolean(key: String, defValue: Boolean): Boolean = try {
@@ -807,7 +840,7 @@ object Settings {
     }
 
     val layoutReaderThumbnailSidebarWidth: Int
-        get() = getIntFromStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH).coerceIn(0, 6)
+        get() = getIntFromStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH).coerceIn(0, 20)
     fun putLayoutReaderThumbnailSidebarWidth(value: Int) {
         putIntToStr(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH, value)
     }

@@ -23,7 +23,7 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
         val seekBar = holder.findViewById(R.id.scale_seekbar) as SeekBar
         valueTextView = holder.findViewById(R.id.scale_value) as TextView
 
-        seekBar.max = 6
+        seekBar.max = getMaxValue()
         seekBar.progress = value
         updateLabel(value)
 
@@ -45,13 +45,13 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
         })
     }
 
-    override fun onGetDefaultValue(a: TypedArray, index: Int): Any = a.getInt(index, 3)
+    override fun onGetDefaultValue(a: TypedArray, index: Int): Any = a.getInt(index, getDefaultValue())
 
     override fun onSetInitialValue(defaultValue: Any?) {
         val defaultInt = when (defaultValue) {
             is Int -> defaultValue
-            is String -> defaultValue.toIntOrNull() ?: 3
-            else -> 3
+            is String -> defaultValue.toIntOrNull() ?: getDefaultValue()
+            else -> getDefaultValue()
         }
         value = getPersistedWidth(defaultInt)
     }
@@ -73,7 +73,17 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
             is Long -> storedValue.toInt()
             is String -> storedValue.toIntOrNull() ?: defaultValue
             else -> getPersistedString(defaultValue.toString())?.toIntOrNull() ?: defaultValue
-        }).coerceIn(0, 6)
+        }).coerceIn(0, getMaxValue())
+    }
+
+    private fun getDefaultValue(): Int = when (key) {
+        "layout_reader_thumbnail_sidebar_width" -> 11
+        else -> 3
+    }
+
+    private fun getMaxValue(): Int = when (key) {
+        "layout_reader_thumbnail_sidebar_width" -> READER_SIDEBAR_WIDTH_PERCENTAGES.lastIndex
+        else -> 6
     }
 
     private fun updateLabel(value: Int) {
@@ -87,7 +97,7 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
     }
 
     companion object {
-        private val READER_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(5, 8, 12, 16, 19, 22, 25)
+        private val READER_SIDEBAR_WIDTH_PERCENTAGES = IntArray(21) { 5 + it }
         private val MAIN_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(10, 14, 18, 22, 27, 31, 35)
         private val DETAIL_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(25, 31, 37, 43, 49, 55, 60)
     }
