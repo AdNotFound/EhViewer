@@ -33,7 +33,6 @@ import coil3.gif.GifDecoder
 import coil3.memory.MemoryCache
 import coil3.network.ConnectivityChecker
 import coil3.network.NetworkFetcher
-import coil3.network.okhttp.asNetworkClient
 import coil3.request.crossfade
 import coil3.serviceLoaderEnabled
 import coil3.util.DebugLogger
@@ -47,6 +46,7 @@ import com.hippo.ehviewer.coil.AdBlockInterceptor
 import com.hippo.ehviewer.coil.DownloadThumbInterceptor
 import com.hippo.ehviewer.coil.MapExtraInfoInterceptor
 import com.hippo.ehviewer.coil.MergeInterceptor
+import com.hippo.ehviewer.coil.limitConcurrency
 import com.hippo.ehviewer.dao.buildMainDB
 import com.hippo.ehviewer.download.DownloadManager
 import com.hippo.ehviewer.ui.EhActivity
@@ -234,7 +234,7 @@ class EhApplication :
             }
             add(
                 NetworkFetcher.Factory(
-                    networkClient = { coilOkHttpClient.asNetworkClient() },
+                    networkClient = { coilNetworkClient },
                     connectivityChecker = { ConnectivityChecker.ONLINE },
                 ),
             )
@@ -300,6 +300,8 @@ class EhApplication :
                 }
                 .build()
         }
+
+        val coilNetworkClient by lazy { coilOkHttpClient.limitConcurrency() }
 
         // Never use this okhttp client to download large blobs!!!
         val okHttpClient by lazy {

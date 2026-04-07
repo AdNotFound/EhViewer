@@ -22,7 +22,7 @@ import coil3.intercept.Interceptor
 import coil3.request.ErrorResult
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
-import com.hippo.ehviewer.client.isNormalPreviewKey
+import com.hippo.ehviewer.client.isPreviewKey
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -32,7 +32,7 @@ object MergeInterceptor : Interceptor {
 
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult = coroutineScope {
         val req = chain.request
-        val key = req.memoryCacheKey?.takeIf { it.isNormalPreviewKey } ?: return@coroutineScope chain.proceed()
+        val key = req.memoryCacheKey?.takeIf { it.isPreviewKey } ?: return@coroutineScope chain.proceed()
 
         val deferred = synchronized(activeRequests) {
             activeRequests.getOrPut(key) {
