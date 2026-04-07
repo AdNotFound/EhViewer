@@ -52,7 +52,7 @@ NekoInverter 版的 EhViewer [白E]。原作者已不再维护，目前以兼容
 
 # 下载
 
-**注：需要 Android 9 及以上版本系统**
+**注：最低支持 Android 6.0（API 23），建议使用 Android 9 及以上版本系统**
 
 如无单独发布页，可前往 [Github Actions](https://github.com/AdNotFound/EhViewer/actions) 下载最近一次成功构建的 CI 版本。
 
