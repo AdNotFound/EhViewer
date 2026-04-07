@@ -33,7 +33,7 @@ private val NormalPreviewKeyRegex = Regex("/(c[12m])/[^/]+/(\\d+-\\d+)")
 
 fun getImageKey(gid: Long, index: Int) = "image:$gid:$index"
 
-fun getThumbKey(gid: Long): String = "preview:large:$gid:0"
+fun getThumbKey(gid: Long): String = "cover:$gid"
 
 fun getLargePreviewKey(gid: Long, index: Int) = "preview:large:$gid:$index"
 
@@ -41,6 +41,9 @@ fun getNormalPreviewKey(url: String) = NormalPreviewKeyRegex.find(url)?.let { "p
 
 val String.isNormalPreviewKey
     get() = startsWith("preview:normal:")
+
+val String.isPreviewKey
+    get() = startsWith("preview:")
 
 val String.thumbUrl
     get() = removePrefix(URL_PREFIX_THUMB_E)

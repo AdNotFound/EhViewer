@@ -61,7 +61,9 @@ import androidx.core.net.toUri
 import androidx.core.view.ViewCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentTransaction
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.transition.TransitionInflater
 import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.snackbar.Snackbar
@@ -88,6 +90,7 @@ import com.hippo.ehviewer.client.EhUtils
 import com.hippo.ehviewer.client.data.GalleryComment
 import com.hippo.ehviewer.client.data.GalleryCommentList
 import com.hippo.ehviewer.client.data.GalleryDetail
+import com.hippo.ehviewer.client.data.galleryDetailPreviewUpdates
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.GalleryTagGroup
@@ -142,6 +145,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.coroutines.executeAsync
 import rikka.core.res.resolveBoolean
 import rikka.core.res.resolveColor
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -602,6 +607,15 @@ class GalleryDetailScene :
         mPreviews!!.setOnClickListener(this)
         mProgress = ViewUtils.`$$`(view, R.id.progress)
         mViewTransition2 = ViewTransition(mBelowHeader, mProgress)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                galleryDetailPreviewUpdates.collect { updatedGid ->
+                    if (updatedGid == gid) {
+                        refreshPreviewSectionFromCache(force = true)
+                    }
+                }
+            }
+        }
         if (prepareData()) {
             if (mGalleryDetail != null) {
                 bindViewSecond()
@@ -778,18 +792,23 @@ class GalleryDetailScene :
         return true
     }
 
-    // The detail UI can be ready before preview metadata arrives.
-    // Refresh the preview section when cached preview data becomes available.
-    private fun refreshPreviewSectionFromCache() {
-        val galleryDetail = mGalleryDetail ?: return
-        if (mBasicInfoOnly || galleryDetail.previewSet != null) {
+    private fun refreshPreviewSectionFromCache(force: Boolean = false) {
+        if (mBasicInfoOnly) {
             return
         }
-        if (!ensureGalleryDetailTransientState()) {
+        if (!force) {
+            val galleryDetail = mGalleryDetail ?: return
+            if (galleryDetail.previewSet != null) {
+                return
+            }
+        }
+        val cachedDetail = galleryDetailCache[gid] ?: mGalleryDetail ?: return
+        if (cachedDetail.previewSet == null) {
             return
         }
+        mGalleryDetail = cachedDetail
         mPreviews?.visibility = View.VISIBLE
-        bindPreviews(mGalleryDetail ?: return)
+        bindPreviews(cachedDetail)
     }
 
     private fun request(): Boolean {

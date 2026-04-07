@@ -1,10 +1,13 @@
 package com.hippo.ehviewer.client.data
 
 import com.hippo.ehviewer.EhApplication.Companion.galleryDetailCache
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 
-/**
- * Syncs a reusable first preview page into the shared detail cache.
- */
+private val galleryDetailPreviewUpdateFlow = MutableSharedFlow<Long>(extraBufferCapacity = 1)
+
+val galleryDetailPreviewUpdates = galleryDetailPreviewUpdateFlow.asSharedFlow()
+
 fun cacheGalleryDetailPreviewSet(
     gid: Long,
     previewSet: PreviewSet,
@@ -16,10 +19,16 @@ fun cacheGalleryDetailPreviewSet(
 
     val galleryDetail = galleryDetailCache[gid] ?: return
     val cachedPreviewSet = galleryDetail.previewSet
+    var updated = false
     if (cachedPreviewSet == null || cachedPreviewSet.size() <= previewSet.size()) {
         galleryDetail.previewSet = previewSet
+        updated = true
     }
     if (previewPages > galleryDetail.previewPages) {
         galleryDetail.previewPages = previewPages
+        updated = true
+    }
+    if (updated) {
+        galleryDetailPreviewUpdateFlow.tryEmit(gid)
     }
 }
