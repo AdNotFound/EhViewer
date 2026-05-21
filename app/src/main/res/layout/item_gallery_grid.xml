@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:foreground="@drawable/tile_background"
             android:scaleType="centerCrop"
-            app:retryType="none" />
+            app:retryType="click" />
 
         <TextView
             android:id="@+id/title"
