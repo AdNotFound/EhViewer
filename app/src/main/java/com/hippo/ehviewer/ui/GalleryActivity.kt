@@ -852,7 +852,7 @@ class GalleryActivity :
 
     @Suppress("DEPRECATION")
     private fun Intent.getGalleryPreviewArrayListExtra(key: String): ArrayList<GalleryPreview>? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             getParcelableArrayListExtra(key, GalleryPreview::class.java)
         } else {
             getParcelableArrayListExtra(key)
@@ -860,7 +860,7 @@ class GalleryActivity :
 
     @Suppress("DEPRECATION")
     private fun Bundle.getGalleryPreviewArrayList(key: String): ArrayList<GalleryPreview>? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             getParcelableArrayList(key, GalleryPreview::class.java)
         } else {
             getParcelableArrayList(key)
