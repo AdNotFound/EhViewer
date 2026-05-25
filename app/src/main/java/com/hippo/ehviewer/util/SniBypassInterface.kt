@@ -20,8 +20,8 @@ import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import com.hippo.ehviewer.EhApplication
-import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhCookieStore
+import com.hippo.okhttp.UAPresets
 import com.hippo.util.launchIO
 import com.hippo.util.withUIContext
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -62,7 +62,7 @@ class SniBypassInterface(private val webView: WebView) {
 
                 val request = Request.Builder()
                     .url(url)
-                    .header("User-Agent", Settings.userAgent)
+                    .header("User-Agent", UAPresets.WEBVIEW_ANDROID)
                     .header("Referer", url)
                     .post(formBodyBuilder.build())
                     .build()

@@ -21,10 +21,10 @@ import android.webkit.WebView
 import com.hippo.ehviewer.Settings
 
 @SuppressLint("SetJavaScriptEnabled")
-fun WebView.setDefaultSettings() = settings.run {
+fun WebView.setDefaultSettings(ua: String = Settings.userAgent) = settings.run {
     builtInZoomControls = true
     displayZoomControls = false
     javaScriptEnabled = true
     domStorageEnabled = true
-    userAgentString = Settings.userAgent
+    userAgentString = ua
 }

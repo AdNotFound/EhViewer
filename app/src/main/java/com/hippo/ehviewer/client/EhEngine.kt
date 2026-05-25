@@ -55,6 +55,7 @@ import com.hippo.ehviewer.client.parser.UserConfigParser
 import com.hippo.ehviewer.client.parser.VoteCommentParser
 import com.hippo.ehviewer.client.parser.VoteTagParser
 import com.hippo.network.StatusCodeException
+import com.hippo.okhttp.UAPresets
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -161,7 +162,7 @@ object EhEngine {
         val url = EhUrl.API_SIGN_IN
         val origin = "https://forums.e-hentai.org"
         Log.d(TAG, url)
-        return EhRequestBuilder(url, referer, origin)
+        return EhRequestBuilder(url, referer, origin, UAPresets.WEBVIEW_ANDROID)
             .post(builder.build())
             .executeAndParsingWith(SignInParser::parse)
     }

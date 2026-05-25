@@ -32,6 +32,7 @@ import com.hippo.ehviewer.util.EhWebViewClientHelper
 import com.hippo.ehviewer.util.SniBypassInterface
 import com.hippo.ehviewer.util.setDefaultSettings
 import com.hippo.ehviewer.widget.DialogWebChromeClient
+import com.hippo.okhttp.UAPresets
 import com.hippo.util.launchIO
 import com.hippo.util.withUIContext
 import okhttp3.Cookie
@@ -57,7 +58,7 @@ class WebViewSignInScene : SolidScene() {
         }
         return WebView(requireContext()).apply {
             setBackgroundColor(theme.resolveColor(android.R.attr.colorBackground))
-            setDefaultSettings()
+            setDefaultSettings(UAPresets.WEBVIEW_ANDROID)
             settings.displayZoomControls = true
             webViewClient = LoginWebViewClient()
             webChromeClient = DialogWebChromeClient(context)
