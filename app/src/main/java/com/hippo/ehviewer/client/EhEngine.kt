@@ -28,8 +28,8 @@ import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryTagGroup
 import com.hippo.ehviewer.client.data.PreviewSet
 import com.hippo.ehviewer.client.data.cacheGalleryDetailPreviewSet
-import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.ehviewer.client.exception.AddFavoritesRangeException
+import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.ehviewer.client.exception.InsufficientFundsException
 import com.hippo.ehviewer.client.exception.NotLoggedInException
 import com.hippo.ehviewer.client.exception.ParseException

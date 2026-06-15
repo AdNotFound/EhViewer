@@ -32,9 +32,9 @@ import android.os.Bundle
 import android.os.PersistableBundle
 import android.text.TextUtils
 import android.util.Log
+import android.util.TypedValue
 import android.view.MenuItem
 import android.view.View
-import android.util.TypedValue
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -285,7 +285,9 @@ class MainActivity :
                     } else {
                         AppCompatDelegate.MODE_NIGHT_YES
                     }
+
                     AppCompatDelegate.MODE_NIGHT_YES -> AppCompatDelegate.MODE_NIGHT_NO
+
                     else -> AppCompatDelegate.MODE_NIGHT_YES
                 }
                 AppCompatDelegate.setDefaultNightMode(target)

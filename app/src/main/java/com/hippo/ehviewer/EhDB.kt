@@ -41,8 +41,7 @@ object EhDB {
     private val db = ehDatabase
     private val dbLock = ReentrantLock()
 
-    private inline fun <T> accessDb(crossinline block: () -> T): T =
-        dbLock.withLock { block() }
+    private inline fun <T> accessDb(crossinline block: () -> T): T = dbLock.withLock { block() }
 
     // Fix state
     val allDownloadInfo: List<DownloadInfo>
@@ -367,12 +366,12 @@ object EhDB {
         runCatching {
             oldDB = databaseBuilder(context, EhDatabase::class.java, tmpDBName)
                 .createFromInputStream { context.contentResolver.openInputStream(uri) }.build()
-                
+
             // Force Room to open the database and validate the schema immediately.
             // If the schema is invalid (e.g. from another branch), this will throw an exception
             // and correctly fall back to the raw SQLite strategy.
             oldDB!!.openHelper.readableDatabase
-            
+
             // Download label
             val importDb = oldDB!!
             val manager = DownloadManager
@@ -419,7 +418,7 @@ object EhDB {
                     if (it !in currentFilterList) addFilter(it)
                 }
             }.onFailure { errorList.add("Filter: " + it.message) }
-            
+
             // Bookmarks
             runCatching {
                 val bookmarksList = importDb.bookmarksBao().list()
@@ -445,52 +444,84 @@ object EhDB {
                 val rawDB = android.database.sqlite.SQLiteDatabase.openDatabase(
                     dbFile.path,
                     null,
-                    android.database.sqlite.SQLiteDatabase.OPEN_READONLY
+                    android.database.sqlite.SQLiteDatabase.OPEN_READONLY,
                 )
                 rawDB.use {
+                    // Common function to safely get string from cursor
+                    fun android.database.Cursor.getStringOrNull(columnName: String): String? {
+                        val index = getColumnIndex(columnName)
+                        return if (index != -1 && !isNull(index)) getString(index) else null
+                    }
 
-                // Common function to safely get string from cursor
-                fun android.database.Cursor.getStringOrNull(columnName: String): String? {
-                    val index = getColumnIndex(columnName)
-                    return if (index != -1 && !isNull(index)) getString(index) else null
-                }
-                
-                fun android.database.Cursor.getLongOrNull(columnName: String): Long? {
-                    val index = getColumnIndex(columnName)
-                    return if (index != -1 && !isNull(index)) getLong(index) else null
-                }
+                    fun android.database.Cursor.getLongOrNull(columnName: String): Long? {
+                        val index = getColumnIndex(columnName)
+                        return if (index != -1 && !isNull(index)) getLong(index) else null
+                    }
 
-                fun android.database.Cursor.getIntOrNull(columnName: String): Int? {
-                    val index = getColumnIndex(columnName)
-                    return if (index != -1 && !isNull(index)) getInt(index) else null
-                }
+                    fun android.database.Cursor.getIntOrNull(columnName: String): Int? {
+                        val index = getColumnIndex(columnName)
+                        return if (index != -1 && !isNull(index)) getInt(index) else null
+                    }
 
-                // 1. Download Labels
-                runCatching {
-                    val cursor = rawDB.rawQuery("SELECT * FROM DOWNLOAD_LABELS", null)
-                    val existingLabels = db.downloadLabelDao().list()
-                    cursor.use { c ->
-                        while (c.moveToNext()) {
-                            val label = c.getStringOrNull("LABEL")
-                            if (label != null && existingLabels.find { it.label == label } == null) {
-                                db.downloadLabelDao().insert(DownloadLabel(label = label, time = c.getLongOrNull("TIME") ?: 0L))
+                    // 1. Download Labels
+                    runCatching {
+                        val cursor = rawDB.rawQuery("SELECT * FROM DOWNLOAD_LABELS", null)
+                        val existingLabels = db.downloadLabelDao().list()
+                        cursor.use { c ->
+                            while (c.moveToNext()) {
+                                val label = c.getStringOrNull("LABEL")
+                                if (label != null && existingLabels.find { it.label == label } == null) {
+                                    db.downloadLabelDao().insert(DownloadLabel(label = label, time = c.getLongOrNull("TIME") ?: 0L))
+                                }
                             }
                         }
-                    }
-                }.onFailure { errorList.add("Fallback Download Labels: " + it.message) }
+                    }.onFailure { errorList.add("Fallback Download Labels: " + it.message) }
 
-                // 2. Downloads
-                runCatching {
-                    val manager = DownloadManager
-                    val cursor = rawDB.rawQuery("SELECT * FROM DOWNLOADS", null)
-                    cursor.use { c ->
-                        val list = mutableListOf<DownloadInfo>()
-                        while (c.moveToNext()) {
-                            val gid = c.getLongOrNull("GID") ?: continue
-                            if (!manager.containDownloadInfo(gid)) {
+                    // 2. Downloads
+                    runCatching {
+                        val manager = DownloadManager
+                        val cursor = rawDB.rawQuery("SELECT * FROM DOWNLOADS", null)
+                        cursor.use { c ->
+                            val list = mutableListOf<DownloadInfo>()
+                            while (c.moveToNext()) {
+                                val gid = c.getLongOrNull("GID") ?: continue
+                                if (!manager.containDownloadInfo(gid)) {
+                                    val thumb = c.getStringOrNull("THUMB")
+                                    if (thumb.isNullOrEmpty()) continue
+                                    val info = DownloadInfo()
+                                    info.gid = gid
+                                    info.token = c.getStringOrNull("TOKEN")
+                                    info.title = c.getStringOrNull("TITLE")
+                                    info.titleJpn = c.getStringOrNull("TITLE_JPN")
+                                    info.thumb = thumb
+                                    info.category = c.getIntOrNull("CATEGORY") ?: 0
+                                    info.posted = c.getStringOrNull("POSTED")
+                                    info.uploader = c.getStringOrNull("UPLOADER")
+                                    info.rating = c.getIntOrNull("RATING")?.toFloat() ?: 0f
+                                    info.simpleLanguage = c.getStringOrNull("SIMPLE_LANGUAGE")
+                                    info.state = c.getIntOrNull("STATE") ?: 0
+                                    info.legacy = c.getIntOrNull("LEGACY") ?: 0
+                                    info.time = c.getLongOrNull("TIME") ?: 0L
+                                    info.label = c.getStringOrNull("LABEL")
+                                    list.add(info)
+                                }
+                            }
+                            if (list.isNotEmpty()) {
+                                manager.addDownload(list, false)
+                            }
+                        }
+                    }.onFailure { errorList.add("Fallback Downloads: " + it.message) }
+
+                    // 3. History
+                    runCatching {
+                        val cursor = rawDB.rawQuery("SELECT * FROM HISTORY", null)
+                        cursor.use { c ->
+                            val list = mutableListOf<HistoryInfo>()
+                            while (c.moveToNext()) {
+                                val gid = c.getLongOrNull("GID") ?: continue
                                 val thumb = c.getStringOrNull("THUMB")
                                 if (thumb.isNullOrEmpty()) continue
-                                val info = DownloadInfo()
+                                val info = HistoryInfo()
                                 info.gid = gid
                                 info.token = c.getStringOrNull("TOKEN")
                                 info.title = c.getStringOrNull("TITLE")
@@ -501,169 +532,135 @@ object EhDB {
                                 info.uploader = c.getStringOrNull("UPLOADER")
                                 info.rating = c.getIntOrNull("RATING")?.toFloat() ?: 0f
                                 info.simpleLanguage = c.getStringOrNull("SIMPLE_LANGUAGE")
-                                info.state = c.getIntOrNull("STATE") ?: 0
-                                info.legacy = c.getIntOrNull("LEGACY") ?: 0
                                 info.time = c.getLongOrNull("TIME") ?: 0L
-                                info.label = c.getStringOrNull("LABEL")
+                                info.favoriteSlotBackingField = c.getIntOrNull("MODE") ?: 0
                                 list.add(info)
                             }
-                        }
-                        if (list.isNotEmpty()) {
-                            manager.addDownload(list, false)
-                        }
-                    }
-                }.onFailure { errorList.add("Fallback Downloads: " + it.message) }
-
-                // 3. History
-                runCatching {
-                    val cursor = rawDB.rawQuery("SELECT * FROM HISTORY", null)
-                    cursor.use { c ->
-                        val list = mutableListOf<HistoryInfo>()
-                        while (c.moveToNext()) {
-                            val gid = c.getLongOrNull("GID") ?: continue
-                            val thumb = c.getStringOrNull("THUMB")
-                            if (thumb.isNullOrEmpty()) continue
-                            val info = HistoryInfo()
-                            info.gid = gid
-                            info.token = c.getStringOrNull("TOKEN")
-                            info.title = c.getStringOrNull("TITLE")
-                            info.titleJpn = c.getStringOrNull("TITLE_JPN")
-                            info.thumb = thumb
-                            info.category = c.getIntOrNull("CATEGORY") ?: 0
-                            info.posted = c.getStringOrNull("POSTED")
-                            info.uploader = c.getStringOrNull("UPLOADER")
-                            info.rating = c.getIntOrNull("RATING")?.toFloat() ?: 0f
-                            info.simpleLanguage = c.getStringOrNull("SIMPLE_LANGUAGE")
-                            info.time = c.getLongOrNull("TIME") ?: 0L
-                            info.favoriteSlotBackingField = c.getIntOrNull("MODE") ?: 0
-                            list.add(info)
-                        }
-                        if (list.isNotEmpty()) {
-                            putHistoryInfo(list)
-                        }
-                    }
-                }.onFailure { errorList.add("Fallback History: " + it.message) }
-
-                // 4. Local Favorites
-                runCatching {
-                    val cursor = rawDB.rawQuery("SELECT * FROM LOCAL_FAVORITES", null)
-                    cursor.use { c ->
-                        while (c.moveToNext()) {
-                            val gid = c.getLongOrNull("GID") ?: continue
-                            if (!containLocalFavorites(gid)) {
-                                val thumb = c.getStringOrNull("THUMB")
-                                if (thumb.isNullOrEmpty()) continue
-                                val info = LocalFavoriteInfo()
-                                info.gid = gid
-                                info.token = c.getStringOrNull("TOKEN")
-                                info.title = c.getStringOrNull("TITLE")
-                                info.titleJpn = c.getStringOrNull("TITLE_JPN")
-                                info.thumb = thumb
-                                info.category = c.getIntOrNull("CATEGORY") ?: 0
-                                info.posted = c.getStringOrNull("POSTED")
-                                info.uploader = c.getStringOrNull("UPLOADER")
-                                info.rating = c.getIntOrNull("RATING")?.toFloat() ?: 0f
-                                info.simpleLanguage = c.getStringOrNull("SIMPLE_LANGUAGE")
-                                info.time = c.getLongOrNull("TIME") ?: 0L
-                                putLocalFavorites(info)
+                            if (list.isNotEmpty()) {
+                                putHistoryInfo(list)
                             }
                         }
-                    }
-                }.onFailure { errorList.add("Fallback LocalFavorites: " + it.message) }
+                    }.onFailure { errorList.add("Fallback History: " + it.message) }
 
-                // 5. QuickSearch
-                runCatching {
-                    val cursor = rawDB.rawQuery("SELECT * FROM QUICK_SEARCH", null)
-                    val currentQuickSearchList = db.quickSearchDao().list()
-                    cursor.use { c ->
-                        val importList = mutableListOf<QuickSearch>()
-                        while (c.moveToNext()) {
-                            val name = c.getStringOrNull("NAME")
-                            if (name != null && currentQuickSearchList.find { it.name == name } == null) {
-                                val qs = QuickSearch(
-                                    name = name,
+                    // 4. Local Favorites
+                    runCatching {
+                        val cursor = rawDB.rawQuery("SELECT * FROM LOCAL_FAVORITES", null)
+                        cursor.use { c ->
+                            while (c.moveToNext()) {
+                                val gid = c.getLongOrNull("GID") ?: continue
+                                if (!containLocalFavorites(gid)) {
+                                    val thumb = c.getStringOrNull("THUMB")
+                                    if (thumb.isNullOrEmpty()) continue
+                                    val info = LocalFavoriteInfo()
+                                    info.gid = gid
+                                    info.token = c.getStringOrNull("TOKEN")
+                                    info.title = c.getStringOrNull("TITLE")
+                                    info.titleJpn = c.getStringOrNull("TITLE_JPN")
+                                    info.thumb = thumb
+                                    info.category = c.getIntOrNull("CATEGORY") ?: 0
+                                    info.posted = c.getStringOrNull("POSTED")
+                                    info.uploader = c.getStringOrNull("UPLOADER")
+                                    info.rating = c.getIntOrNull("RATING")?.toFloat() ?: 0f
+                                    info.simpleLanguage = c.getStringOrNull("SIMPLE_LANGUAGE")
+                                    info.time = c.getLongOrNull("TIME") ?: 0L
+                                    putLocalFavorites(info)
+                                }
+                            }
+                        }
+                    }.onFailure { errorList.add("Fallback LocalFavorites: " + it.message) }
+
+                    // 5. QuickSearch
+                    runCatching {
+                        val cursor = rawDB.rawQuery("SELECT * FROM QUICK_SEARCH", null)
+                        val currentQuickSearchList = db.quickSearchDao().list()
+                        cursor.use { c ->
+                            val importList = mutableListOf<QuickSearch>()
+                            while (c.moveToNext()) {
+                                val name = c.getStringOrNull("NAME")
+                                if (name != null && currentQuickSearchList.find { it.name == name } == null) {
+                                    val qs = QuickSearch(
+                                        name = name,
+                                        mode = c.getIntOrNull("MODE") ?: 0,
+                                        category = c.getIntOrNull("CATEGORY") ?: 0,
+                                        keyword = c.getStringOrNull("KEYWORD"),
+                                        advanceSearch = c.getIntOrNull("ADVANCE_SEARCH") ?: 0,
+                                        minRating = c.getIntOrNull("MIN_RATING") ?: 0,
+                                        pageFrom = c.getIntOrNull("PAGE_FROM") ?: 0,
+                                        pageTo = c.getIntOrNull("PAGE_TO") ?: 0,
+                                        time = c.getLongOrNull("TIME") ?: 0L,
+                                    )
+                                    importList.add(qs)
+                                }
+                            }
+                            if (importList.isNotEmpty()) {
+                                importQuickSearch(importList)
+                            }
+                        }
+                    }.onFailure { errorList.add("Fallback QuickSearch: " + it.message) }
+
+                    // 6. Download Dirname
+                    runCatching {
+                        val cursor = rawDB.rawQuery("SELECT * FROM DOWNLOAD_DIRNAME", null)
+                        cursor.use { c ->
+                            while (c.moveToNext()) {
+                                val gid = c.getLongOrNull("GID") ?: continue
+                                val dirname = c.getStringOrNull("DIRNAME")
+                                if (dirname != null) {
+                                    putDownloadDirname(gid, dirname)
+                                }
+                            }
+                        }
+                    }.onFailure { errorList.add("Fallback DownloadDirname: " + it.message) }
+
+                    // 7. Filter
+                    runCatching {
+                        val cursor = rawDB.rawQuery("SELECT * FROM FILTER", null)
+                        val currentFilterList = db.filterDao().list()
+                        cursor.use { c ->
+                            while (c.moveToNext()) {
+                                val filter = Filter(
                                     mode = c.getIntOrNull("MODE") ?: 0,
-                                    category = c.getIntOrNull("CATEGORY") ?: 0,
-                                    keyword = c.getStringOrNull("KEYWORD"),
-                                    advanceSearch = c.getIntOrNull("ADVANCE_SEARCH") ?: 0,
-                                    minRating = c.getIntOrNull("MIN_RATING") ?: 0,
-                                    pageFrom = c.getIntOrNull("PAGE_FROM") ?: 0,
-                                    pageTo = c.getIntOrNull("PAGE_TO") ?: 0,
-                                    time = c.getLongOrNull("TIME") ?: 0L,
+                                    text = c.getStringOrNull("TEXT"),
+                                    enable = c.getIntOrNull("ENABLE")?.let { it != 0 },
                                 )
-                                importList.add(qs)
+                                if (filter !in currentFilterList) {
+                                    addFilter(filter)
+                                }
                             }
                         }
-                        if (importList.isNotEmpty()) {
-                            importQuickSearch(importList)
-                        }
-                    }
-                }.onFailure { errorList.add("Fallback QuickSearch: " + it.message) }
+                    }.onFailure { errorList.add("Fallback Filter: " + it.message) }
 
-                // 6. Download Dirname
-                runCatching {
-                    val cursor = rawDB.rawQuery("SELECT * FROM DOWNLOAD_DIRNAME", null)
-                    cursor.use { c ->
-                        while (c.moveToNext()) {
-                            val gid = c.getLongOrNull("GID") ?: continue
-                            val dirname = c.getStringOrNull("DIRNAME")
-                            if (dirname != null) {
-                                putDownloadDirname(gid, dirname)
+                    // 8. Bookmarks
+                    runCatching {
+                        val cursor = rawDB.rawQuery("SELECT * FROM BOOKMARKS", null)
+                        val currentBookmarks = db.bookmarksBao().list()
+                        cursor.use { c ->
+                            while (c.moveToNext()) {
+                                val gid = c.getLongOrNull("GID") ?: continue
+                                if (currentBookmarks.find { current -> current.gid == gid } == null) {
+                                    val thumb = c.getStringOrNull("THUMB")
+                                    if (thumb.isNullOrEmpty()) continue
+                                    val info = BookmarkInfo()
+                                    info.gid = gid
+                                    info.token = c.getStringOrNull("TOKEN")
+                                    info.title = c.getStringOrNull("TITLE")
+                                    info.titleJpn = c.getStringOrNull("TITLE_JPN")
+                                    info.thumb = thumb
+                                    info.category = c.getIntOrNull("CATEGORY") ?: 0
+                                    info.posted = c.getStringOrNull("POSTED")
+                                    info.uploader = c.getStringOrNull("UPLOADER")
+                                    info.rating = c.getIntOrNull("RATING")?.toFloat() ?: 0f
+                                    info.simpleLanguage = c.getStringOrNull("SIMPLE_LANGUAGE")
+                                    info.page = c.getIntOrNull("PAGE") ?: 0
+                                    info.time = c.getLongOrNull("TIME") ?: 0L
+                                    db.bookmarksBao().insert(info)
+                                }
                             }
                         }
-                    }
-                }.onFailure { errorList.add("Fallback DownloadDirname: " + it.message) }
-
-                // 7. Filter
-                runCatching {
-                    val cursor = rawDB.rawQuery("SELECT * FROM FILTER", null)
-                    val currentFilterList = db.filterDao().list()
-                    cursor.use { c ->
-                        while (c.moveToNext()) {
-                            val filter = Filter(
-                                mode = c.getIntOrNull("MODE") ?: 0,
-                                text = c.getStringOrNull("TEXT"),
-                                enable = c.getIntOrNull("ENABLE")?.let { it != 0 },
-                            )
-                            if (filter !in currentFilterList) {
-                                addFilter(filter)
-                            }
-                        }
-                    }
-                }.onFailure { errorList.add("Fallback Filter: " + it.message) }
-
-                // 8. Bookmarks
-                runCatching {
-                    val cursor = rawDB.rawQuery("SELECT * FROM BOOKMARKS", null)
-                    val currentBookmarks = db.bookmarksBao().list()
-                    cursor.use { c ->
-                        while (c.moveToNext()) {
-                            val gid = c.getLongOrNull("GID") ?: continue
-                            if (currentBookmarks.find { current -> current.gid == gid } == null) {
-                                val thumb = c.getStringOrNull("THUMB")
-                                if (thumb.isNullOrEmpty()) continue
-                                val info = BookmarkInfo()
-                                info.gid = gid
-                                info.token = c.getStringOrNull("TOKEN")
-                                info.title = c.getStringOrNull("TITLE")
-                                info.titleJpn = c.getStringOrNull("TITLE_JPN")
-                                info.thumb = thumb
-                                info.category = c.getIntOrNull("CATEGORY") ?: 0
-                                info.posted = c.getStringOrNull("POSTED")
-                                info.uploader = c.getStringOrNull("UPLOADER")
-                                info.rating = c.getIntOrNull("RATING")?.toFloat() ?: 0f
-                                info.simpleLanguage = c.getStringOrNull("SIMPLE_LANGUAGE")
-                                info.page = c.getIntOrNull("PAGE") ?: 0
-                                info.time = c.getLongOrNull("TIME") ?: 0L
-                                db.bookmarksBao().insert(info)
-                            }
-                        }
-                    }
-                }.onFailure { errorList.add("Fallback Bookmarks: " + it.message) }
-
+                    }.onFailure { errorList.add("Fallback Bookmarks: " + it.message) }
                 } // rawDB.use
                 context.deleteDatabase(tmpDBName)
-                
+
                 // If fallback completed but accumulated some individual errors, report them
                 result = if (errorList.isNotEmpty()) {
                     "Fallback Import partially succeeded with errors:\n" + errorList.joinToString("\n")
