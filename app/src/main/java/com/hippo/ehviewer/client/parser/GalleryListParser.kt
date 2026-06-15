@@ -296,8 +296,8 @@ object GalleryListParser {
         try { // For toplists
             val ptt = d.getElementsByClass("ptt").first()
             if (ptt != null) {
-                val es = ptt.child(0)?.child(0)?.children()
-                if (es != null && es.size >= 2) {
+                val es = ptt.child(0).child(0).children()
+                if (es.size >= 2) {
                     result.pages = es[es.size - 2].text().trim { it <= ' ' }.toInt()
                     es[es.size - 1].children().firstOrNull()?.let { child ->
                         val matcher = PATTERN_NEXT_PAGE.matcher(child.attr("href"))

@@ -88,7 +88,7 @@ class SniBypassInterface(private val webView: WebView) {
                 }
                 cookieManager.flush()
 
-                val bodyString = response.body?.string() ?: ""
+                val bodyString = response.body.string()
 
                 withUIContext {
                     webView.loadDataWithBaseURL(finalUrl, bodyString, "text/html", "UTF-8", finalUrl)

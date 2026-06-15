@@ -846,9 +846,9 @@ class GalleryListScene :
             withUIContext {
                 context ?: return@withUIContext
                 if (found != null) {
-                    startGalleryDetailScene(found!!)
+                    startGalleryDetailScene(found)
                 } else if (error != null) {
-                    showTip(error?.message ?: getString(R.string.error_unknown), LENGTH_LONG)
+                    showTip(error.message ?: getString(R.string.error_unknown), LENGTH_LONG)
                 } else {
                     showTip(R.string.error_cannot_find_gallery, LENGTH_LONG)
                 }

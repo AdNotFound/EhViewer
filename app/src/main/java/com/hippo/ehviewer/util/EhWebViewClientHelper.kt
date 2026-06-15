@@ -41,7 +41,7 @@ object EhWebViewClientHelper {
                     .build()
                 val response = EhApplication.okHttpClient.newCall(okHttpRequest).execute()
                 if (response.isSuccessful) {
-                    response.body?.let { body ->
+                    response.body.let { body ->
                         val contentType = body.contentType()
                         return WebResourceResponse(
                             contentType?.toString()?.substringBefore(";"),
