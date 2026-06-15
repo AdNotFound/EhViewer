@@ -64,6 +64,7 @@ abstract class GalleryProvider {
     }
 
     abstract val size: Int
+    abstract fun getImageUrl(index: Int): String?
 
     private var lastRequestIndex = -1
 
@@ -137,6 +138,10 @@ abstract class GalleryProvider {
         notify(NotifyTask.TYPE_FAILED, index, 0.0f, null, error)
     }
 
+    fun notifyPageNetworkInfo(index: Int, info: String) {
+        notify(NotifyTask.TYPE_NETWORK_INFO, index, 0.0f, null, info)
+    }
+
     private fun notify(
         @NotifyTask.Type type: Int,
         index: Int,
@@ -157,6 +162,7 @@ abstract class GalleryProvider {
         fun onPagePercent(index: Int, percent: Float)
         fun onPageSucceed(index: Int, image: ImageWrapper?)
         fun onPageFailed(index: Int, error: String?)
+        fun onPageNetworkInfo(index: Int, info: String)
         fun onDataChanged(index: Int)
     }
 
@@ -169,19 +175,19 @@ abstract class GalleryProvider {
         private var mIndex = 0
         private var mPercent = 0f
         private var mImage: ImageWrapper? = null
-        private var mError: String? = null
+        private var mMessage: String? = null
         fun setData(
             @Type type: Int,
             index: Int,
             percent: Float,
             image: ImageWrapper?,
-            error: String?,
+            message: String?,
         ) {
             mType = type
             mIndex = index
             mPercent = percent
             mImage = image
-            mError = error
+            mMessage = message
         }
 
         override fun onGLIdle(canvas: GLCanvas, renderRequested: Boolean): Boolean {
@@ -198,18 +204,20 @@ abstract class GalleryProvider {
 
                 TYPE_SUCCEED -> mListener.onPageSucceed(mIndex, mImage)
 
-                TYPE_FAILED -> mListener.onPageFailed(mIndex, mError)
+                TYPE_FAILED -> mListener.onPageFailed(mIndex, mMessage)
+
+                TYPE_NETWORK_INFO -> mListener.onPageNetworkInfo(mIndex, mMessage.orEmpty())
             }
 
             // Clean data
             mImage = null
-            mError = null
+            mMessage = null
             // Push back
             mPool.push(this)
             return false
         }
 
-        @IntDef(TYPE_DATA_CHANGED, TYPE_WAIT, TYPE_PERCENT, TYPE_SUCCEED, TYPE_FAILED)
+        @IntDef(TYPE_DATA_CHANGED, TYPE_WAIT, TYPE_PERCENT, TYPE_SUCCEED, TYPE_FAILED, TYPE_NETWORK_INFO)
         @Retention(
             AnnotationRetention.SOURCE,
         )
@@ -220,6 +228,7 @@ abstract class GalleryProvider {
             const val TYPE_PERCENT = 2
             const val TYPE_SUCCEED = 3
             const val TYPE_FAILED = 4
+            const val TYPE_NETWORK_INFO = 5
         }
     }
 
