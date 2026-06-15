@@ -92,35 +92,41 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     fun addBypassQrCheckPage(index: Int) {
         mBypassQrCheckPages.add(index)
+        mSpiderInfo.bypassedAdPages.add(index)
+        launchIO { mSpiderInfo.saveToCache() }
     }
 
     fun removeBypassQrCheckPage(index: Int) {
         mBypassQrCheckPages.remove(index)
+        mSpiderInfo.bypassedAdPages.remove(index)
+        launchIO { mSpiderInfo.saveToCache() }
     }
 
     suspend fun markAsAd(index: Int) {
         if (!galleryInfo.hasAds) return
         removeBypassQrCheckPage(index)
-        mSpiderDen.getImageSource(index)?.use { src ->
-            val image = try {
-                Image.decode(src, analyzeFeatures = true, blockOnQr = false)
-            } catch (e: AdDetectedException) {
-                mBlockedAdPages.add(index)
-                return
+        val src = mSpiderDen.getImageSource(index) ?: return
+        val image = try {
+            Image.decode(src, analyzeFeatures = true, blockOnQr = false)
+        } catch (e: AdDetectedException) {
+            // src already closed by Image.decode's onFailure
+            mBlockedAdPages.add(index)
+            return
+        }
+        // null: src already closed by Image.decode's onFailure
+        // non-null: image owns src, recycle() will close it
+        image?.let {
+            var hash = (it.image as? BitmapImageWithExtraInfo)?.dHash ?: 0L
+            if (hash == 0L) {
+                val bitmap = (it.image as? BitmapImageWithExtraInfo)?.image?.bitmap
+                    ?: (it.image as? BitmapImage)?.bitmap
+                hash = bitmap?.let { b -> getDHash(b) } ?: 0L
             }
-            image?.let {
-                var hash = (it.image as? BitmapImageWithExtraInfo)?.dHash ?: 0L
-                if (hash == 0L) {
-                    val bitmap = (it.image as? BitmapImageWithExtraInfo)?.image?.bitmap
-                        ?: (it.image as? BitmapImage)?.bitmap
-                    hash = bitmap?.let { b -> getDHash(b) } ?: 0L
-                }
-                if (hash != 0L) {
-                    AdBlockManager.addHash(hash)
-                }
-                mBlockedAdPages.add(index)
-                it.recycle()
+            if (hash != 0L) {
+                AdBlockManager.addHash(hash)
             }
+            mBlockedAdPages.add(index)
+            it.recycle()
         }
     }
 
@@ -132,21 +138,23 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     suspend fun unmarkAsAd(index: Int) {
         if (!galleryInfo.hasAds) return
-        mSpiderDen.getImageSource(index)?.use { src ->
-            val image = try {
-                Image.decode(src, analyzeFeatures = true, blockOnQr = false)
-            } catch (e: AdDetectedException) {
-                mBlockedAdPages.remove(index)
-                return
+        val src = mSpiderDen.getImageSource(index) ?: return
+        val image = try {
+            Image.decode(src, analyzeFeatures = true, blockOnQr = false)
+        } catch (e: AdDetectedException) {
+            // src already closed by Image.decode's onFailure
+            mBlockedAdPages.remove(index)
+            return
+        }
+        // null: src already closed by Image.decode's onFailure
+        // non-null: image owns src, recycle() will close it
+        image?.let {
+            val hash = (it.image as? BitmapImageWithExtraInfo)?.dHash ?: 0L
+            if (hash != 0L) {
+                AdBlockManager.unblock(hash)
             }
-            image?.let {
-                val hash = (it.image as? BitmapImageWithExtraInfo)?.dHash ?: 0L
-                if (hash != 0L) {
-                    AdBlockManager.unblock(hash)
-                }
-                mBlockedAdPages.remove(index)
-                it.recycle()
-            }
+            mBlockedAdPages.remove(index)
+            it.recycle()
         }
     }
 
@@ -317,6 +325,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     private suspend fun doPrepare() {
         mSpiderDen.downloadDir = SpiderDen.getGalleryDownloadDir(galleryInfo.gid)?.takeIf { it.isDirectory }
         mSpiderInfo = readSpiderInfoFromLocal() ?: readSpiderInfoFromInternet() ?: return
+        mBypassQrCheckPages.addAll(mSpiderInfo.bypassedAdPages)
         mPageStateArray = IntArray(mSpiderInfo.pages)
         prepareUpgrade()
         notifyGetPages(mSpiderInfo.pages)
