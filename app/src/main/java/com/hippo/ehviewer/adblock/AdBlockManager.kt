@@ -18,6 +18,7 @@ package com.hippo.ehviewer.adblock
 
 import com.hippo.ehviewer.AppConfig
 import com.hippo.util.launchIO
+import kotlinx.coroutines.DelicateCoroutinesApi
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -98,6 +99,7 @@ object AdBlockManager {
         }
     }
 
+    @OptIn(DelicateCoroutinesApi::class)
     private fun save() {
         if (!isSaving.compareAndSet(false, true)) {
             return
