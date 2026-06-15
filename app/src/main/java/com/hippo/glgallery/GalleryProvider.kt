@@ -218,7 +218,7 @@ abstract class GalleryProvider {
             return false
         }
 
-        @IntDef(TYPE_DATA_CHANGED, TYPE_WAIT, TYPE_PERCENT, TYPE_SUCCEED, TYPE_FAILED)
+        @IntDef(TYPE_DATA_CHANGED, TYPE_WAIT, TYPE_PERCENT, TYPE_SUCCEED, TYPE_FAILED, TYPE_NETWORK_INFO)
         @Retention(
             AnnotationRetention.SOURCE,
         )
