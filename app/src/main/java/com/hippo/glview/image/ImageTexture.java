@@ -397,7 +397,18 @@ public class ImageTexture implements Texture, Animatable {
     }
 
     public boolean isReady() {
-        return mUploadIndex == mTiles.length;
+        synchronized (mTiles) {
+            if (mUploadIndex == mTiles.length) {
+                for (Tile tile : mTiles) {
+                    if (!tile.isLoaded()) {
+                        mUploadIndex = 0;
+                        return false;
+                    }
+                }
+                return true;
+            }
+            return false;
+        }
     }
 
     public void recycle() {
