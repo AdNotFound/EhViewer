@@ -15,6 +15,7 @@ class ReaderSidebarThumb @JvmOverloads constructor(
 ) : FixedThumb(context, attrs, defStyleAttr) {
 
     private var lastDrawableHash = 0
+    private var pendingFadeIn = false
 
     init {
         outlineProvider = object : ViewOutlineProvider() {
@@ -32,9 +33,11 @@ class ReaderSidebarThumb @JvmOverloads constructor(
 
     override fun setImageDrawable(drawable: Drawable?) {
         val newHash = drawable?.hashCode() ?: 0
-        if (newHash != lastDrawableHash && drawable != null && alpha == 0f) {
+        if (newHash != lastDrawableHash && drawable != null && pendingFadeIn) {
             lastDrawableHash = newHash
+            pendingFadeIn = false
             super.setImageDrawable(drawable)
+            alpha = 0f
             animate().alpha(1f).setDuration(FADE_IN_DURATION).start()
         } else {
             lastDrawableHash = newHash
@@ -43,7 +46,7 @@ class ReaderSidebarThumb @JvmOverloads constructor(
     }
 
     fun resetForReuse() {
-        alpha = 0f
+        pendingFadeIn = true
         lastDrawableHash = 0
     }
 

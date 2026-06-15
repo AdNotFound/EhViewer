@@ -77,7 +77,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.app.EditTextDialogBuilder
@@ -911,10 +910,10 @@ class GalleryActivity :
             layoutManager.scrollToPositionWithOffset(targetPosition, offset)
         }
 
+        mSidebarScrollRunnable = scrollRunnable
         if (!recyclerView.isLaidOut) {
             recyclerView.post(scrollRunnable)
         } else {
-            mSidebarScrollRunnable = scrollRunnable
             mSidebarScrollHandler.postDelayed(scrollRunnable, SIDEBAR_SCROLL_DEBOUNCE_MS)
         }
     }
@@ -2031,7 +2030,6 @@ class GalleryActivity :
 
         fun updateData(pageCount: Int, previews: Map<Int, GalleryPreview>, pageStarts: List<Int>) {
             val oldPageStarts = this.pageStarts
-            val oldPageCount = this.pageCount
             this.pageCount = pageCount
             this.previews = previews
             this.pageStarts = pageStarts
@@ -2040,13 +2038,7 @@ class GalleryActivity :
                 // Structure unchanged (only previews loaded) — rebind visible items without full relayout
                 notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
             } else {
-                val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
-                    override fun getOldListSize(): Int = oldPageStarts.size
-                    override fun getNewListSize(): Int = pageStarts.size
-                    override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean = oldPageStarts[oldPos] == pageStarts[newPos]
-                    override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean = oldPageStarts[oldPos] == pageStarts[newPos] && oldPageCount == pageCount
-                })
-                diff.dispatchUpdatesTo(this@ReaderSidebarAdapter)
+                notifyDataSetChanged()
             }
         }
 
