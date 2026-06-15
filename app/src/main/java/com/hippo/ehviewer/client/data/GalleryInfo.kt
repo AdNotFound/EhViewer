@@ -135,5 +135,11 @@ interface GalleryInfo :
 val GalleryInfo.hasAds: Boolean
     get() {
         val detail = (this as? GalleryDetail) ?: com.hippo.ehviewer.EhApplication.galleryDetailCache[gid]
-        return detail?.tags?.any { group -> group.any { "extraneous ads" in it } } ?: false
+        return detail?.tags?.any { group ->
+            group.any { tag ->
+                // Exact match: avoid false positive on "no extraneous ads" etc.
+                val stripped = tag.removePrefix("other:")
+                stripped == "extraneous ads"
+            }
+        } ?: false
     }
