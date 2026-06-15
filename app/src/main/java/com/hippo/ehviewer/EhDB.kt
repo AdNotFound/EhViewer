@@ -370,10 +370,10 @@ object EhDB {
             // Force Room to open the database and validate the schema immediately.
             // If the schema is invalid (e.g. from another branch), this will throw an exception
             // and correctly fall back to the raw SQLite strategy.
-            oldDB!!.openHelper.readableDatabase
+            oldDB.openHelper.readableDatabase
 
             // Download label
-            val importDb = oldDB!!
+            val importDb = oldDB
             val manager = DownloadManager
             runCatching {
                 val downloadLabelList = importDb.downloadLabelDao().list()
