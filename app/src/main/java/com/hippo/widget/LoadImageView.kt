@@ -156,6 +156,9 @@ open class LoadImageView @JvmOverloads constructor(
             onPreSetImageDrawable(newDrawable, true)
         }
         super.setImageDrawable(newDrawable)
+        if (newDrawable != null) {
+            mOnLoadingStateChangeListener?.onLoadingStateChanged(false)
+        }
     }
 
     override fun getDrawable(): Drawable? {
