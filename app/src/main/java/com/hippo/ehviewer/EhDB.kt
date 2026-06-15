@@ -17,7 +17,6 @@ package com.hippo.ehviewer
 
 import android.content.Context
 import android.net.Uri
-import android.os.Looper
 import androidx.paging.PagingSource
 import androidx.room.Room.databaseBuilder
 import com.hippo.ehviewer.EhApplication.Companion.ehDatabase
@@ -37,21 +36,13 @@ import com.hippo.unifile.UniFile
 import com.hippo.util.sendTo
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 
 object EhDB {
     private val db = ehDatabase
     private val dbLock = ReentrantLock()
 
     private inline fun <T> accessDb(crossinline block: () -> T): T =
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            runBlocking(Dispatchers.IO) {
-                dbLock.withLock { block() }
-            }
-        } else {
-            dbLock.withLock { block() }
-        }
+        dbLock.withLock { block() }
 
     // Fix state
     val allDownloadInfo: List<DownloadInfo>
@@ -456,6 +447,7 @@ object EhDB {
                     null,
                     android.database.sqlite.SQLiteDatabase.OPEN_READONLY
                 )
+                rawDB.use {
 
                 // Common function to safely get string from cursor
                 fun android.database.Cursor.getStringOrNull(columnName: String): String? {
@@ -669,7 +661,7 @@ object EhDB {
                     }
                 }.onFailure { errorList.add("Fallback Bookmarks: " + it.message) }
 
-                rawDB.close()
+                } // rawDB.use
                 context.deleteDatabase(tmpDBName)
                 
                 // If fallback completed but accumulated some individual errors, report them
