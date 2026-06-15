@@ -108,7 +108,7 @@
     <View
         android:id="@+id/indicator"
         android:layout_width="3dp"
-        android:layout_height="0dp"
+        android:layout_height="match_parent"
         android:layout_gravity="start|center_vertical"
         android:background="@drawable/bg_reader_sidebar_indicator"
         android:visibility="gone" />
