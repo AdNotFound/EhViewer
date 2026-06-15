@@ -911,11 +911,7 @@ class GalleryActivity :
         }
 
         mSidebarScrollRunnable = scrollRunnable
-        if (!recyclerView.isLaidOut) {
-            recyclerView.post(scrollRunnable)
-        } else {
-            mSidebarScrollHandler.postDelayed(scrollRunnable, SIDEBAR_SCROLL_DEBOUNCE_MS)
-        }
+        mSidebarScrollHandler.postDelayed(scrollRunnable, SIDEBAR_SCROLL_DEBOUNCE_MS)
     }
 
     private fun loadReaderPreviewMetadata() {
