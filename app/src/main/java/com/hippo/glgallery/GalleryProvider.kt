@@ -176,19 +176,19 @@ abstract class GalleryProvider {
         private var mIndex = 0
         private var mPercent = 0f
         private var mImage: ImageWrapper? = null
-        private var mError: String? = null
+        private var mMessage: String? = null
         fun setData(
             @Type type: Int,
             index: Int,
             percent: Float,
             image: ImageWrapper?,
-            error: String?,
+            message: String?,
         ) {
             mType = type
             mIndex = index
             mPercent = percent
             mImage = image
-            mError = error
+            mMessage = message
         }
 
         override fun onGLIdle(canvas: GLCanvas, renderRequested: Boolean): Boolean {
@@ -205,14 +205,14 @@ abstract class GalleryProvider {
 
                 TYPE_SUCCEED -> mListener.onPageSucceed(mIndex, mImage)
 
-                TYPE_FAILED -> mListener.onPageFailed(mIndex, mError)
+                TYPE_FAILED -> mListener.onPageFailed(mIndex, mMessage)
 
-                TYPE_NETWORK_INFO -> mListener.onPageNetworkInfo(mIndex, mError!!)
+                TYPE_NETWORK_INFO -> mListener.onPageNetworkInfo(mIndex, mMessage.orEmpty())
             }
 
             // Clean data
             mImage = null
-            mError = null
+            mMessage = null
             // Push back
             mPool.push(this)
             return false
