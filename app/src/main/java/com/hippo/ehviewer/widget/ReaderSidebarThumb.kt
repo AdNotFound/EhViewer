@@ -1,14 +1,51 @@
 package com.hippo.ehviewer.widget
 
 import android.content.Context
+import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.util.TypedValue
+import android.view.View
+import android.view.ViewOutlineProvider
 
 class ReaderSidebarThumb @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
 ) : FixedThumb(context, attrs, defStyleAttr) {
+
+    private var lastDrawableHash = 0
+
+    init {
+        outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(view: View, outline: Outline) {
+                val radiusPx = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    CORNER_RADIUS_DP,
+                    view.resources.displayMetrics,
+                )
+                outline.setRoundRect(0, 0, view.width, view.height, radiusPx)
+            }
+        }
+        clipToOutline = true
+    }
+
+    override fun setImageDrawable(drawable: Drawable?) {
+        val newHash = drawable?.hashCode() ?: 0
+        if (newHash != lastDrawableHash && drawable != null && alpha == 0f) {
+            lastDrawableHash = newHash
+            super.setImageDrawable(drawable)
+            animate().alpha(1f).setDuration(FADE_IN_DURATION).start()
+        } else {
+            lastDrawableHash = newHash
+            super.setImageDrawable(drawable)
+        }
+    }
+
+    fun resetForReuse() {
+        alpha = 0f
+        lastDrawableHash = 0
+    }
 
     fun resetSidebarAspect() {
         aspect = DEFAULT_ASPECT
@@ -43,5 +80,7 @@ class ReaderSidebarThumb @JvmOverloads constructor(
         private const val DEFAULT_ASPECT = 1f
         private const val MIN_ASPECT = 0.7f
         private const val MAX_ASPECT = 1.6f
+        private const val CORNER_RADIUS_DP = 4f
+        private const val FADE_IN_DURATION = 200L
     }
 }

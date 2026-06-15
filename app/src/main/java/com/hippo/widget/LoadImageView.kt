@@ -44,6 +44,15 @@ open class LoadImageView @JvmOverloads constructor(
     private var mUrl: String? = null
     private var mCrossfade = true
     private var mHardware = true
+    private var mOnLoadingStateChangeListener: OnLoadingStateChangeListener? = null
+
+    fun interface OnLoadingStateChangeListener {
+        fun onLoadingStateChanged(isLoading: Boolean)
+    }
+
+    fun setOnLoadingStateChangeListener(listener: OnLoadingStateChangeListener?) {
+        mOnLoadingStateChangeListener = listener
+    }
 
     @RetryType
     private val mRetryType: Int =
@@ -105,15 +114,25 @@ open class LoadImageView @JvmOverloads constructor(
             size(SizeResolver.ORIGINAL)
             if (!crossfade) crossfade(false)
             listener(
-                { setRetry(false) },
-                { setRetry(true) },
+                {
+                    setRetry(false)
+                    mOnLoadingStateChangeListener?.onLoadingStateChanged(true)
+                },
+                {
+                    setRetry(true)
+                    mOnLoadingStateChangeListener?.onLoadingStateChanged(false)
+                },
                 { _, _ ->
                     val errorDrawable = ContextCompat.getDrawable(context, R.drawable.image_failed)
                     onPreSetImageDrawable(errorDrawable, true)
                     super.setImageDrawable(errorDrawable)
                     setRetry(true)
+                    mOnLoadingStateChangeListener?.onLoadingStateChanged(false)
                 },
-                { _, _ -> setRetry(false) },
+                { _, _ ->
+                    setRetry(false)
+                    mOnLoadingStateChangeListener?.onLoadingStateChanged(false)
+                },
             )
         }
     }
