@@ -41,6 +41,7 @@ class SpiderInfo(
     var previewPages: Int = -1,
     var previewPerPage: Int = -1,
     var upgradeFrom: Long? = null,
+    val bypassedAdPages: MutableSet<Int> = hashSetOf(),
 )
 
 private val cbor = Cbor { ignoreUnknownKeys = true }
