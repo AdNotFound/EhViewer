@@ -35,6 +35,8 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.os.ParcelFileDescriptor.MODE_READ_ONLY
 import android.provider.MediaStore
@@ -53,6 +55,7 @@ import android.widget.CompoundButton
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.Spinner
@@ -74,6 +77,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.app.EditTextDialogBuilder
@@ -229,6 +233,8 @@ class GalleryActivity :
     private var mReaderSidebarVisible = true
     private var mReaderSidebarOnRight = true
     private var mReaderSidebarPreviewJob: Job? = null
+    private val mSidebarScrollHandler = Handler(Looper.getMainLooper())
+    private var mSidebarScrollRunnable: Runnable? = null
     private var mReaderSidebarToggleDownRawX = 0f
     private var mReaderSidebarToggleDragging = false
     private var mReaderSidebarToggleTouchSlop = 0
@@ -892,12 +898,23 @@ class GalleryActivity :
         }
         val recyclerView = mReaderSidebarRecyclerView ?: return
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
-        recyclerView.post {
+
+        // Debounce: cancel pending scroll
+        mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
+
+        val scrollRunnable = Runnable {
             val childHeight = layoutManager.findViewByPosition(targetPosition)?.height
                 ?: recyclerView.getChildAt(0)?.height
                 ?: 0
             val offset = ((recyclerView.height - childHeight) / 2).coerceAtLeast(0)
             layoutManager.scrollToPositionWithOffset(targetPosition, offset)
+        }
+
+        if (!recyclerView.isLaidOut) {
+            recyclerView.post(scrollRunnable)
+        } else {
+            mSidebarScrollRunnable = scrollRunnable
+            mSidebarScrollHandler.postDelayed(scrollRunnable, SIDEBAR_SCROLL_DEBOUNCE_MS)
         }
     }
 
@@ -911,6 +928,8 @@ class GalleryActivity :
         mReaderSidebarPreviewJob = lifecycleScope.launchIO {
             runCatching {
                 val first = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, 0, false))
+                val totalPreviewPages = first.second
+                val previewPerPage = first.first.size()
                 withUIContext {
                     val firstChanged = mergeReaderPreviewSet(first.first)
                     if (firstChanged) {
@@ -918,7 +937,25 @@ class GalleryActivity :
                     }
                     updateReaderSidebarData()
                 }
-                for (page in 1 until first.second) {
+                // Load pages near current index first, then expand outward
+                val currentPage = mCurrentIndex.coerceIn(0, (mSize - 1).coerceAtLeast(0))
+                val currentPagePreviewPage = if (previewPerPage > 0) {
+                    (currentPage / previewPerPage).coerceIn(0, totalPreviewPages - 1)
+                } else {
+                    0
+                }
+                val priorityPages = mutableListOf<Int>()
+                for (offset in 1 until totalPreviewPages) {
+                    val before = currentPagePreviewPage - offset
+                    val after = currentPagePreviewPage + offset
+                    if (before >= 1) priorityPages.add(before)
+                    if (after < totalPreviewPages) priorityPages.add(after)
+                    if (before < 1 && after >= totalPreviewPages) break
+                }
+                for (page in 1 until totalPreviewPages) {
+                    if (page !in priorityPages) priorityPages.add(page)
+                }
+                for (page in priorityPages) {
                     currentCoroutineContext().ensureActive()
                     val result = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
                     withUIContext {
@@ -1768,15 +1805,25 @@ class GalleryActivity :
 
     private class ReaderSidebarHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val imageLeadingSpace: View = itemView.findViewById(R.id.image_leading_space)
+        val imageSlot: View = itemView.findViewById(R.id.image_slot)
         val image: ReaderSidebarThumb = itemView.findViewById(R.id.image)
+        val imageLoading: ProgressBar = itemView.findViewById(R.id.image_loading)
+        val imageSecondarySlot: View = itemView.findViewById(R.id.image_secondary_slot)
         val imageSecondary: ReaderSidebarThumb = itemView.findViewById(R.id.image_secondary)
+        val imageSecondaryLoading: ProgressBar = itemView.findViewById(R.id.image_secondary_loading)
         val imageGap: View = itemView.findViewById(R.id.image_gap)
         val imageTrailingSpace: View = itemView.findViewById(R.id.image_trailing_space)
         val text: TextView = itemView.findViewById(R.id.text)
+        val indicator: View = itemView.findViewById(R.id.indicator)
     }
 
-    private fun bindSidebarPreview(view: ReaderSidebarThumb, preview: GalleryPreview?) {
+    private fun bindSidebarPreview(
+        view: ReaderSidebarThumb,
+        preview: GalleryPreview?,
+        loadingView: ProgressBar? = null,
+    ) {
         if (preview != null) {
+            view.resetForReuse()
             view.visibility = View.VISIBLE
             view.setBackgroundResource(0)
             if (preview.hasClipAspect()) {
@@ -1786,6 +1833,10 @@ class GalleryActivity :
             } else {
                 view.resetSidebarAspect()
             }
+            loadingView?.visibility = View.VISIBLE
+            view.setOnLoadingStateChangeListener { isLoading ->
+                loadingView?.visibility = if (isLoading) View.VISIBLE else View.GONE
+            }
             preview.load(view)
         } else {
             view.visibility = View.VISIBLE
@@ -1793,6 +1844,8 @@ class GalleryActivity :
             view.resetClip()
             view.setImageDrawable(null)
             view.setBackgroundResource(0)
+            loadingView?.visibility = View.GONE
+            view.setOnLoadingStateChangeListener(null)
         }
     }
 
@@ -1800,7 +1853,7 @@ class GalleryActivity :
         if (preview == null || view.drawable != null) {
             return
         }
-        bindSidebarPreview(view, preview)
+        bindSidebarPreview(view, preview, null)
     }
 
     private fun restoreVisibleReaderSidebarPreviews() {
@@ -1839,6 +1892,12 @@ class GalleryActivity :
         private var pageStarts: List<Int> = emptyList()
         private var pageStartToPosition: Map<Int, Int> = emptyMap()
 
+        init {
+            setHasStableIds(true)
+        }
+
+        override fun getItemId(position: Int): Long = pageStarts[position].toLong()
+
         private fun updateSlotLayout(view: View, width: Int, weight: Float) {
             val params = view.layoutParams as? LinearLayout.LayoutParams ?: return
             if (params.width == width && params.weight == weight) {
@@ -1865,9 +1924,9 @@ class GalleryActivity :
                 val pageStart = pageStarts[position]
                 val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
                 val pageEnd = minOf(pageCount, pageStart + pairSize)
-                bindSidebarPreview(holder.image, previews[pageStart])
+                bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
                 if (pageEnd - pageStart > 1) {
-                    bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1])
+                    bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
                 }
             } else {
                 bindSidebarFull(holder, position)
@@ -1879,33 +1938,34 @@ class GalleryActivity :
             val pageStart = pageStarts[position]
             val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
             val pageEnd = minOf(pageCount, pageStart + pairSize)
-            bindSidebarPreview(holder.image, previews[pageStart])
+            bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
             if (pageEnd - pageStart > 1) {
                 holder.imageLeadingSpace.visibility = View.GONE
                 holder.imageTrailingSpace.visibility = View.GONE
-                updateSlotLayout(holder.image, 0, 1f)
-                updateSlotLayout(holder.imageSecondary, 0, 1f)
-                holder.imageSecondary.visibility = View.VISIBLE
+                updateSlotLayout(holder.imageSlot, 0, 1f)
+                updateSlotLayout(holder.imageSecondarySlot, 0, 1f)
+                holder.imageSecondarySlot.visibility = View.VISIBLE
                 holder.imageGap.visibility = View.VISIBLE
-                bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1])
+                bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
             } else {
                 holder.imageSecondary.resetClip()
                 holder.imageSecondary.setImageDrawable(null)
                 holder.imageSecondary.setBackgroundResource(0)
+                holder.imageSecondaryLoading.visibility = View.GONE
                 if (isDoublePageMode) {
                     holder.imageLeadingSpace.visibility = View.VISIBLE
                     holder.imageTrailingSpace.visibility = View.VISIBLE
                     updateSlotLayout(holder.imageLeadingSpace, 0, 1f)
-                    updateSlotLayout(holder.image, 0, 2f)
+                    updateSlotLayout(holder.imageSlot, 0, 2f)
                     updateSlotLayout(holder.imageTrailingSpace, 0, 1f)
-                    holder.imageSecondary.visibility = View.GONE
+                    holder.imageSecondarySlot.visibility = View.GONE
                     holder.imageGap.visibility = View.GONE
                 } else {
                     holder.imageLeadingSpace.visibility = View.GONE
                     holder.imageTrailingSpace.visibility = View.GONE
-                    updateSlotLayout(holder.image, 0, 1f)
-                    updateSlotLayout(holder.imageSecondary, 0, 1f)
-                    holder.imageSecondary.visibility = View.GONE
+                    updateSlotLayout(holder.imageSlot, 0, 1f)
+                    updateSlotLayout(holder.imageSecondarySlot, 0, 1f)
+                    holder.imageSecondarySlot.visibility = View.GONE
                     holder.imageGap.visibility = View.GONE
                 }
             }
@@ -1915,7 +1975,8 @@ class GalleryActivity :
                 (pageStart + 1).toString()
             }
             val activated = position == currentIndex
-            holder.itemView.alpha = if (activated) 1f else 0.72f
+            holder.indicator.visibility = if (activated) View.VISIBLE else View.GONE
+            holder.itemView.alpha = 1f
             holder.text.setTypeface(null, if (activated) Typeface.BOLD else Typeface.NORMAL)
             holder.itemView.setOnClickListener {
                 mGalleryView?.setCurrentPage(pageStart)
@@ -1926,6 +1987,7 @@ class GalleryActivity :
 
         fun updateData(pageCount: Int, previews: Map<Int, GalleryPreview>, pageStarts: List<Int>) {
             val oldPageStarts = this.pageStarts
+            val oldPageCount = this.pageCount
             this.pageCount = pageCount
             this.previews = previews
             this.pageStarts = pageStarts
@@ -1934,7 +1996,13 @@ class GalleryActivity :
                 // Structure unchanged (only previews loaded) — rebind visible items without full relayout
                 notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
             } else {
-                notifyDataSetChanged()
+                val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+                    override fun getOldListSize(): Int = oldPageStarts.size
+                    override fun getNewListSize(): Int = pageStarts.size
+                    override fun areItemsTheSame(oldPos: Int, newPos: Int): Boolean = oldPageStarts[oldPos] == pageStarts[newPos]
+                    override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean = oldPageStarts[oldPos] == pageStarts[newPos] && oldPageCount == pageCount
+                })
+                diff.dispatchUpdatesTo(this@ReaderSidebarAdapter)
             }
         }
 
@@ -1968,6 +2036,7 @@ class GalleryActivity :
 
     companion object {
         private const val PREVIEW_PAYLOAD = "preview"
+        private const val SIDEBAR_SCROLL_DEBOUNCE_MS = 80L
         const val ACTION_EH = "eh"
         const val KEY_ACTION = "action"
         const val KEY_FILENAME = "filename"
@@ -1990,7 +2059,7 @@ class GalleryActivity :
         private const val NOTIFY_KEY_TAP_MENU_AREA = 4
         private const val NOTIFY_KEY_TAP_ERROR_TEXT = 5
         private const val NOTIFY_KEY_LONG_PRESS_PAGE = 6
-        private val READER_SIDEBAR_WIDTH_RATIOS = FloatArray(21) { (5 + it) / 100f }
+        private val READER_SIDEBAR_WIDTH_RATIOS = FloatArray(33) { (3 + it) / 100f }
         private const val READER_SIDEBAR_MIN_WIDTH_DP = 56
     }
 }

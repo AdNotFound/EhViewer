@@ -79,7 +79,7 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
     }
 
     private fun getDefaultValue(): Int = when (key) {
-        "layout_reader_thumbnail_sidebar_width" -> 11
+        "layout_reader_thumbnail_sidebar_width" -> 13
         else -> 3
     }
 
@@ -99,7 +99,7 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
     }
 
     companion object {
-        private val READER_SIDEBAR_WIDTH_PERCENTAGES = IntArray(21) { 5 + it }
+        private val READER_SIDEBAR_WIDTH_PERCENTAGES = IntArray(33) { 3 + it }
         private val MAIN_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(10, 14, 18, 22, 27, 31, 35)
         private val DETAIL_SIDEBAR_WIDTH_PERCENTAGES = intArrayOf(25, 31, 37, 43, 49, 55, 60)
     }
