@@ -911,8 +911,8 @@ class GalleryActivity :
         mReaderSidebarPreviewJob = lifecycleScope.launchIO {
             runCatching {
                 val first = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, 0, false))
-                val firstChanged = mergeReaderPreviewSet(first.first)
                 withUIContext {
+                    val firstChanged = mergeReaderPreviewSet(first.first)
                     if (firstChanged) {
                         applySpreadPages()
                     }
@@ -921,8 +921,8 @@ class GalleryActivity :
                 for (page in 1 until first.second) {
                     currentCoroutineContext().ensureActive()
                     val result = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
-                    val changed = mergeReaderPreviewSet(result.first)
                     withUIContext {
+                        val changed = mergeReaderPreviewSet(result.first)
                         if (changed) {
                             applySpreadPages()
                         }
@@ -1855,6 +1855,27 @@ class GalleryActivity :
 
         @SuppressLint("SetTextI18n")
         override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int) {
+            bindSidebarFull(holder, position)
+        }
+
+        @SuppressLint("SetTextI18n")
+        override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int, payloads: List<Any>) {
+            if (payloads.isNotEmpty()) {
+                // Preview-only update: just rebind images, skip layout/text/alpha
+                val pageStart = pageStarts[position]
+                val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
+                val pageEnd = minOf(pageCount, pageStart + pairSize)
+                bindSidebarPreview(holder.image, previews[pageStart])
+                if (pageEnd - pageStart > 1) {
+                    bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1])
+                }
+            } else {
+                bindSidebarFull(holder, position)
+            }
+        }
+
+        @SuppressLint("SetTextI18n")
+        private fun bindSidebarFull(holder: ReaderSidebarHolder, position: Int) {
             val pageStart = pageStarts[position]
             val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
             val pageEnd = minOf(pageCount, pageStart + pairSize)
@@ -1904,11 +1925,17 @@ class GalleryActivity :
         override fun getItemCount(): Int = pageStarts.size
 
         fun updateData(pageCount: Int, previews: Map<Int, GalleryPreview>, pageStarts: List<Int>) {
+            val oldPageStarts = this.pageStarts
             this.pageCount = pageCount
             this.previews = previews
             this.pageStarts = pageStarts
             this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
-            notifyDataSetChanged()
+            if (oldPageStarts == pageStarts) {
+                // Structure unchanged (only previews loaded) — rebind visible items without full relayout
+                notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
+            } else {
+                notifyDataSetChanged()
+            }
         }
 
         fun updateCurrentIndex(index: Int) {
@@ -1940,6 +1967,7 @@ class GalleryActivity :
     }
 
     companion object {
+        private const val PREVIEW_PAYLOAD = "preview"
         const val ACTION_EH = "eh"
         const val KEY_ACTION = "action"
         const val KEY_FILENAME = "filename"
