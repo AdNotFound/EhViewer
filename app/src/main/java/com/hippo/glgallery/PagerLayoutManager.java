@@ -1224,35 +1224,12 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
                         updateDoublePageLayout();
                     }
 
-                    // Update remainX/Y
-                    // If content is smaller than screen, we force centered (fixX undoes movement).
-                    // So we consumed 0. remainX stays same.
-                    // If content > screen, and we hit wall (fixX != 0).
-                    // We consumed (dx - fixX?).
-                    // remainX should be what's left.
-                    // If fixX == dx (full revert), remainX = original.
-                    // If fixX == 0, remainX = 0.
-                    // So remainX = (int) -fixX.
-                    // Note: fixX matches delta direction processing.
-
-                    if (union.width() <= width) {
-                        // If we didn't actually scroll image (because it fits),
-                        // we shouldn't claim to have consumed it IF we want page turn.
-                        // remainX is unchanged.
-                    } else {
-                        // We consumed all except fix part
+                    // If content fits screen, centering fix undoes the scroll — remain stays unchanged for page-turn detection.
+                    // If content overflows, we consumed all except the clamping correction.
+                    if (union.width() > width) {
                         remainX = (int) fixX;
                     }
-
-                    if (union.height() <= height) {
-                        remainY = (int) dy; // Unconsumed? Or just 0? Vertical scroll usually doesn't change page.
-                        // If fits vertically, we usually ignore vertical drag or overscroll?
-                        // Let's set 0 to avoid getting stuck in loop if vertical doesn't trigger
-                        // anything.
-                        remainY = 0;
-                    } else {
-                        remainY = (int) fixY;
-                    }
+                    remainY = union.height() > height ? (int) fixY : 0;
 
                 } else {
                     ImageView image = mCurrent.getImageView();
@@ -1299,15 +1276,10 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         }
 
         if (mDoublePageMode) {
-            // Unified Double Page Fling
-            // Calculate Union Rect again to find limits
+            // Use already-computed destination rects for fling limits
             android.graphics.RectF union = mTempRectF;
-            calculateDoublePageRects(mCurrent, mCurrentSecondary,
-                    mMode == MODE_RIGHT_TO_LEFT, mBaseRectPrimary, mBaseRectSecondary);
-            mPairMatrix.mapRect(mDstRectPrimary, mBaseRectPrimary);
             union.set(mDstRectPrimary);
-            if (mBaseRectSecondary.width() > 0) {
-                mPairMatrix.mapRect(mDstRectSecondary, mBaseRectSecondary);
+            if (mDstRectSecondary.width() > 0) {
                 union.union(mDstRectSecondary);
             }
 
@@ -1345,8 +1317,6 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
     @Override
     public boolean canScale() {
-        if (mDoublePageMode)
-            return mCurrent != null && mOffset == 0;
         return mCurrent != null && mOffset == 0 && mCurrent.getImageView().isLoaded();
     }
 
@@ -1355,8 +1325,9 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         if (mDoublePageMode) {
             mPairMatrix.postScale(scale, scale, focusX, focusY);
             updateDoublePageLayout();
-            // Need to update mScaleValue for consistency?
-            // mScaleValue = ... from box?
+            float[] values = mMatrixValues;
+            mPairMatrix.getValues(values);
+            mScaleValue = values[android.graphics.Matrix.MSCALE_X];
             return;
         }
 
@@ -1554,36 +1525,20 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
     public void onDoubleTapConfirmed(float x, float y) {
         if (mDoublePageMode) {
-            // Zoom logic for Double Page
-            // Use mPairMatrix scale
             float[] values = mMatrixValues;
             mPairMatrix.getValues(values);
             float currentScale = values[android.graphics.Matrix.MSCALE_X];
 
-            // Define jump stops?
-            // Standard: 1.0 -> Fit Width/Height -> Max
-            // Simplified: 1.0 -> 2.0 -> 1.0
-            float endScale;
-            float endTx = 0, endTy = 0;
-            float startTx = values[android.graphics.Matrix.MTRANS_X];
-            float startTy = values[android.graphics.Matrix.MTRANS_Y];
-
-            if (currentScale < 1.5f) { // Zoom In
-                endScale = 2.0f;
-                // When zooming in, we keep translation (focus logic handles it)
-                endTx = startTx;
-                endTy = startTy;
-            } else { // Zoom Out
-                endScale = 1.0f;
-                // When zooming out to 1.0, we want to reset translation to 0
-                endTx = 0;
-                endTy = 0;
+            if (currentScale < 1.5f) { // Zoom In to 2.0x
+                float startTx = values[android.graphics.Matrix.MTRANS_X];
+                float startTy = values[android.graphics.Matrix.MTRANS_Y];
+                mSmoothScaler.startSmoothScaler(x, y, currentScale, 2.0f,
+                        startTx, startTx, startTy, startTy, 300, null);
+            } else { // Zoom Out to fit — reset matrix, let calculateDoublePageRects center the content
+                mPairMatrix.reset();
+                mScaleValue = 1.0f;
+                updateDoublePageLayout();
             }
-
-            mSmoothScaler.startSmoothScaler(x, y, currentScale, endScale, startTx, endTx, startTy, endTy, 300, null); // Target
-                                                                                                                      // null
-                                                                                                                      // for
-                                                                                                                      // DoublePage
             return;
         }
 
@@ -1761,30 +1716,11 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             float scale = MathUtils.lerp(mStartScale, mEndScale, progress);
 
             if (mDoublePageMode) {
-                float tx = MathUtils.lerp(mStartTx, mEndTx, progress);
-                float ty = MathUtils.lerp(mStartTy, mEndTy, progress);
-
-                // Set matrix with new scale and translation
-                // To avoid complex math of relative postScale with relative translation,
-                // we can just rebuild or use setValues if we track total state.
-                // However, postScale is focus-point based.
-                // Let's use a simpler approach:
                 float dScale = scale / mLastScale;
                 mPairMatrix.postScale(dScale, dScale, mFocusX, mFocusY);
-
-                // If we are zooming out to 1.0, we also nudge translation towards target 0
-                if (mEndScale == 1.0f) {
-                    float[] curValues = new float[9];
-                    mPairMatrix.getValues(curValues);
-                    float curTx = curValues[android.graphics.Matrix.MTRANS_X];
-                    float curTy = curValues[android.graphics.Matrix.MTRANS_Y];
-                    float targetTx = MathUtils.lerp(mStartTx, mEndTx, progress);
-                    float targetTy = MathUtils.lerp(mStartTy, mEndTy, progress);
-                    mPairMatrix.postTranslate(targetTx - curTx, targetTy - curTy);
-                }
-
                 updateDoublePageLayout();
                 mLastScale = scale;
+                mScaleValue = scale;
                 return;
             }
 
