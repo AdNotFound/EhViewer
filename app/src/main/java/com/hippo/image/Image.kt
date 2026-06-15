@@ -33,8 +33,11 @@ import coil3.request.ErrorResult
 import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
-import coil3.size.Dimension
+import coil3.request.maxBitmapSize
 import coil3.size.Precision
+import coil3.size.Scale
+import coil3.size.Size
+import coil3.size.SizeResolver
 import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.adblock.AdBlockManager
@@ -136,7 +139,7 @@ class Image private constructor(
 
     companion object {
         private val appCtx = EhApplication.application
-        private val targetSize
+        private val sizeResolver
             get() = with(appCtx.resources.displayMetrics) {
                 val factor = when (Settings.readImageLimit) {
                     0 -> 0.75f
@@ -147,14 +150,17 @@ class Image private constructor(
                     5 -> 3.0f
                     else -> 1.0f
                 }
-                (minOf(widthPixels, heightPixels) * factor).toInt()
+                val targetSize = (minOf(widthPixels, heightPixels) * factor).toInt()
+                SizeResolver(Size(targetSize, targetSize))
             }
 
         private suspend fun decodeCoil(data: Any, analyzeFeatures: Boolean = false, blockOnQr: Boolean = false): CoilImage {
             val req = ImageRequest.Builder(appCtx).apply {
                 data(data)
-                size(Dimension(targetSize), Dimension.Undefined)
+                size(sizeResolver)
+                scale(Scale.FILL)
                 precision(Precision.INEXACT)
+                maxBitmapSize(Size.ORIGINAL)
                 allowHardware(false)
                 memoryCachePolicy(CachePolicy.DISABLED)
                 if (analyzeFeatures) {
