@@ -105,7 +105,7 @@ object AdBlockManager {
             return
         }
         launchIO {
-            var writtenVersion = -1L
+            var savedVersion = -1L
             try {
                 while (true) {
                     val version = mutationVersion.get()
@@ -121,7 +121,7 @@ object AdBlockManager {
                             }
                         }
                     }
-                    writtenVersion = version
+                    savedVersion = version
                     if (mutationVersion.get() == version) {
                         break
                     }
@@ -130,9 +130,12 @@ object AdBlockManager {
                 e.printStackTrace()
             } finally {
                 isSaving.set(false)
-                if (writtenVersion != mutationVersion.get()) {
-                    save()
-                }
+            }
+            // Race window: a mutation may land between the last version check
+            // and isSaving.set(false). That mutation's save() saw isSaving=true
+            // and returned early. Re-check once to avoid lost writes.
+            if (mutationVersion.get() != savedVersion) {
+                save()
             }
         }
     }
@@ -193,25 +196,18 @@ object AdBlockManager {
     fun isBlocked(hash: Long): Boolean {
         if (hash == 0L) return false
         ensureLoaded()
-        val cachedResult = synchronized(dataLock) {
+        return synchronized(dataLock) {
             refreshMatchCacheLocked()
-            matchCache[hash]
-        }
-        if (cachedResult != null) {
-            return cachedResult
-        }
-        val candidates = synchronized(dataLock) {
+            matchCache[hash]?.let { return@synchronized it }
             if (blockedHashes.contains(hash)) {
                 cacheMatchResultLocked(hash, true)
-                return true
+                return@synchronized true
             }
-            collectCandidateHashesLocked(hash)
+            val candidates = collectCandidateHashesLocked(hash)
+            val blocked = candidates.any { hammingDistance(it, hash) <= 2 }
+            cacheMatchResultLocked(hash, blocked)
+            blocked
         }
-        val isBlocked = candidates.any { hammingDistance(it, hash) <= 2 }
-        synchronized(dataLock) {
-            cacheMatchResultLocked(hash, isBlocked)
-        }
-        return isBlocked
     }
 
     private fun addHashLocked(hash: Long): Boolean {
