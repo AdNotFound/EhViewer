@@ -117,12 +117,12 @@ import com.hippo.yorozuya.LayoutUtils
 import com.hippo.yorozuya.MathUtils
 import com.hippo.yorozuya.SimpleAnimatorListener
 import com.hippo.yorozuya.ViewUtils
+import kotlinx.coroutines.Job
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.todayIn
-import kotlinx.coroutines.Job
 import rikka.core.res.resolveColor
 import kotlin.random.Random
 import kotlin.time.Clock

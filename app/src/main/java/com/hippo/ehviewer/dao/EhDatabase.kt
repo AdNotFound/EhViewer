@@ -38,8 +38,6 @@ abstract class EhDatabase : RoomDatabase() {
     abstract fun quickSearchDao(): QuickSearchDao
 }
 
-fun buildMainDB(context: Context): EhDatabase {
-    return Room.databaseBuilder(context, EhDatabase::class.java, "eh.db")
-        .allowMainThreadQueries()
-        .build()
-}
+fun buildMainDB(context: Context): EhDatabase = Room.databaseBuilder(context, EhDatabase::class.java, "eh.db")
+    .allowMainThreadQueries()
+    .build()

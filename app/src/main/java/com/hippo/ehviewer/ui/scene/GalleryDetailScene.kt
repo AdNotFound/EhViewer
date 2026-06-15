@@ -27,12 +27,12 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
-import android.util.TypedValue
 import android.os.Environment
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -90,11 +90,11 @@ import com.hippo.ehviewer.client.EhUtils
 import com.hippo.ehviewer.client.data.GalleryComment
 import com.hippo.ehviewer.client.data.GalleryCommentList
 import com.hippo.ehviewer.client.data.GalleryDetail
-import com.hippo.ehviewer.client.data.galleryDetailPreviewUpdates
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.GalleryTagGroup
 import com.hippo.ehviewer.client.data.ListUrlBuilder
+import com.hippo.ehviewer.client.data.galleryDetailPreviewUpdates
 import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.ehviewer.client.getImageKey
 import com.hippo.ehviewer.client.getThumbKey
@@ -141,12 +141,12 @@ import com.hippo.yorozuya.IntIdGenerator
 import com.hippo.yorozuya.SimpleHandler
 import com.hippo.yorozuya.ViewUtils
 import com.hippo.yorozuya.collect.IntList
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.coroutines.executeAsync
 import rikka.core.res.resolveBoolean
 import rikka.core.res.resolveColor
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.hypot
 import kotlin.math.max
@@ -1488,15 +1488,14 @@ class GalleryDetailScene :
         }
     }
 
-    private fun buildReaderIntent(context: Context, galleryDetail: GalleryDetail, page: Int? = null): Intent =
-        Intent(context, GalleryActivity::class.java).apply {
-            action = GalleryActivity.ACTION_EH
-            putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail)
-            page?.let { putExtra(GalleryActivity.KEY_PAGE, it) }
-            buildInitialReaderPreviews(galleryDetail)?.takeIf { it.isNotEmpty() }?.let {
-                putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)
-            }
+    private fun buildReaderIntent(context: Context, galleryDetail: GalleryDetail, page: Int? = null): Intent = Intent(context, GalleryActivity::class.java).apply {
+        action = GalleryActivity.ACTION_EH
+        putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail)
+        page?.let { putExtra(GalleryActivity.KEY_PAGE, it) }
+        buildInitialReaderPreviews(galleryDetail)?.takeIf { it.isNotEmpty() }?.let {
+            putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)
         }
+    }
 
     private fun buildInitialReaderPreviews(galleryDetail: GalleryDetail): ArrayList<GalleryPreview>? {
         val previewSet = galleryDetail.previewSet ?: return null
@@ -1910,8 +1909,7 @@ class GalleryDetailScene :
         return true
     }
 
-    private fun isCopyrightUnavailable(error: String?): Boolean =
-        error?.contains("unavailable due to a copyright", ignoreCase = true) == true
+    private fun isCopyrightUnavailable(error: String?): Boolean = error?.contains("unavailable due to a copyright", ignoreCase = true) == true
 
     private fun onRateGallerySuccess(result: RateGalleryParser.Result) {
         if (mGalleryDetail != null) {

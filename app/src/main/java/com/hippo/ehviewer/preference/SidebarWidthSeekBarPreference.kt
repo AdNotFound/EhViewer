@@ -68,12 +68,14 @@ class SidebarWidthSeekBarPreference(context: Context, attrs: AttributeSet?) : Pr
 
     private fun getPersistedWidth(defaultValue: Int): Int {
         val storedValue = sharedPreferences?.all?.get(key)
-        return (when (storedValue) {
-            is Int -> storedValue
-            is Long -> storedValue.toInt()
-            is String -> storedValue.toIntOrNull() ?: defaultValue
-            else -> getPersistedString(defaultValue.toString())?.toIntOrNull() ?: defaultValue
-        }).coerceIn(0, getMaxValue())
+        return (
+            when (storedValue) {
+                is Int -> storedValue
+                is Long -> storedValue.toInt()
+                is String -> storedValue.toIntOrNull() ?: defaultValue
+                else -> getPersistedString(defaultValue.toString())?.toIntOrNull() ?: defaultValue
+            }
+            ).coerceIn(0, getMaxValue())
     }
 
     private fun getDefaultValue(): Int = when (key) {

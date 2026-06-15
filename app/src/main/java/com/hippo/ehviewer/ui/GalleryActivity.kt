@@ -32,18 +32,18 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Typeface
 import android.net.Uri
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.os.ParcelFileDescriptor
 import android.os.ParcelFileDescriptor.MODE_READ_ONLY
 import android.provider.MediaStore
 import android.text.TextUtils
 import android.util.TypedValue
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.MotionEvent
-import android.view.Gravity
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
@@ -120,7 +120,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
-import java.util.BitSet
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -128,6 +127,7 @@ import rikka.core.res.isNight
 import rikka.core.res.resolveColor
 import java.io.File
 import java.io.IOException
+import java.util.BitSet
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
@@ -597,8 +597,7 @@ class GalleryActivity :
         updateReaderSidebarData(forceCenter = true)
     }
 
-    private fun shouldLoadReaderPreviewMetadata(): Boolean =
-        mAction == ACTION_EH && (mReaderSidebarRecyclerView != null || isDoublePageMode)
+    private fun shouldLoadReaderPreviewMetadata(): Boolean = mAction == ACTION_EH && (mReaderSidebarRecyclerView != null || isDoublePageMode)
 
     private fun ensureReaderPreviewMetadata() {
         if (!shouldLoadReaderPreviewMetadata() || mReaderPreviewMetadataRequested) {
@@ -851,20 +850,18 @@ class GalleryActivity :
     }
 
     @Suppress("DEPRECATION")
-    private fun Intent.getGalleryPreviewArrayListExtra(key: String): ArrayList<GalleryPreview>? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            getParcelableArrayListExtra(key, GalleryPreview::class.java)
-        } else {
-            getParcelableArrayListExtra(key)
-        }
+    private fun Intent.getGalleryPreviewArrayListExtra(key: String): ArrayList<GalleryPreview>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        getParcelableArrayListExtra(key, GalleryPreview::class.java)
+    } else {
+        getParcelableArrayListExtra(key)
+    }
 
     @Suppress("DEPRECATION")
-    private fun Bundle.getGalleryPreviewArrayList(key: String): ArrayList<GalleryPreview>? =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            getParcelableArrayList(key, GalleryPreview::class.java)
-        } else {
-            getParcelableArrayList(key)
-        }
+    private fun Bundle.getGalleryPreviewArrayList(key: String): ArrayList<GalleryPreview>? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+        getParcelableArrayList(key, GalleryPreview::class.java)
+    } else {
+        getParcelableArrayList(key)
+    }
 
     private fun updateReaderSidebarData(forceCenter: Boolean = false) {
         val pageStarts = buildReaderSidebarPageStarts()
@@ -1872,12 +1869,11 @@ class GalleryActivity :
         }
     }
 
-    private fun getReaderSidebarToggleRestAlpha(): Float =
-        if (Settings.layoutReaderThumbnailSidebarToggleAutoHide) {
-            READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
-        } else {
-            READER_SIDEBAR_TOGGLE_REST_ALPHA
-        }
+    private fun getReaderSidebarToggleRestAlpha(): Float = if (Settings.layoutReaderThumbnailSidebarToggleAutoHide) {
+        READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
+    } else {
+        READER_SIDEBAR_TOGGLE_REST_ALPHA
+    }
 
     private inner class ReaderSidebarAdapter : RecyclerView.Adapter<ReaderSidebarHolder>() {
         private val inflater: LayoutInflater = layoutInflater
@@ -1937,7 +1933,7 @@ class GalleryActivity :
                 }
             }
             holder.text.text = if (pageEnd - pageStart > 1) {
-                "${pageStart + 1}-${pageEnd}"
+                "${pageStart + 1}-$pageEnd"
             } else {
                 (pageStart + 1).toString()
             }
