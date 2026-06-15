@@ -32,12 +32,22 @@ import okhttp3.Request
 import java.net.URLDecoder
 
 class SniBypassInterface(private val webView: WebView) {
+    companion object {
+        private val ALLOWED_HOSTS = setOf(
+            "e-hentai.org",
+            "exhentai.org",
+            "lofi.e-hentai.org",
+            "forums.e-hentai.org",
+        )
+    }
+
     @OptIn(DelicateCoroutinesApi::class)
     @JavascriptInterface
     fun postForm(url: String, formData: String) {
         launchIO {
             try {
                 val httpUrl = url.toHttpUrl()
+                if (httpUrl.host !in ALLOWED_HOSTS) return@launchIO
 
                 // Sync cookies from WebView to OkHttp
                 val cookieManager = CookieManager.getInstance()
