@@ -77,6 +77,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.app.EditTextDialogBuilder
@@ -238,6 +239,7 @@ class GalleryActivity :
     private var mSidebarUserScrolling = false
     private var mSidebarDataPending = false
     private var mSidebarPendingPageStarts: List<Int>? = null
+    private var mSidebarPendingPreviewUpdate = false
     private var mReaderSidebarToggleDownRawX = 0f
     private var mReaderSidebarToggleDragging = false
     private var mReaderSidebarToggleTouchSlop = 0
@@ -498,7 +500,10 @@ class GalleryActivity :
                                 mReaderSidebarPageStarts = pending
                             }
                             mReaderSidebarAdapter?.flushPendingData(pending)
+                        } else if (mSidebarPendingPreviewUpdate) {
+                            mReaderSidebarAdapter?.flushPendingData(null)
                         }
+                        // Don't forceCenter — flushPendingData already preserves scroll position
                         updateReaderSidebarSelection(forceCenter = false)
                     }
                 }
@@ -949,6 +954,9 @@ class GalleryActivity :
         }
         val galleryInfo = mGalleryInfo ?: return
         val token = galleryInfo.token ?: return
+        // Capture on UI thread to avoid reading mutable fields from IO
+        val snapshotCurrentIndex = mCurrentIndex
+        val snapshotSize = mSize
         mReaderSidebarPreviewJob?.cancel()
         mReaderSidebarPreviewJob = lifecycleScope.launchIO {
             runCatching {
@@ -963,7 +971,7 @@ class GalleryActivity :
                     updateReaderSidebarData()
                 }
                 // Load pages near current index first, then expand outward
-                val currentPage = mCurrentIndex.coerceIn(0, (mSize - 1).coerceAtLeast(0))
+                val currentPage = snapshotCurrentIndex.coerceIn(0, (snapshotSize - 1).coerceAtLeast(0))
                 val currentPagePreviewPage = if (previewPerPage > 0) {
                     (currentPage / previewPerPage).coerceIn(0, totalPreviewPages - 1)
                 } else {
@@ -1989,13 +1997,21 @@ class GalleryActivity :
         @SuppressLint("SetTextI18n")
         override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int, payloads: List<Any>) {
             if (payloads.isNotEmpty()) {
-                // Preview-only update: just rebind images, skip layout/text/alpha
-                val pageStart = pageStarts[position]
-                val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
-                val pageEnd = minOf(pageCount, pageStart + pairSize)
-                bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
-                if (pageEnd - pageStart > 1) {
-                    bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                val hasPreview = payloads.contains(PREVIEW_PAYLOAD)
+                val hasIndex = payloads.contains(INDEX_PAYLOAD)
+                if (hasPreview) {
+                    val pageStart = pageStarts[position]
+                    val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
+                    val pageEnd = minOf(pageCount, pageStart + pairSize)
+                    bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
+                    if (pageEnd - pageStart > 1) {
+                        bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                    }
+                }
+                if (hasIndex) {
+                    val activated = position == currentIndex
+                    holder.indicator.visibility = if (activated) View.VISIBLE else View.GONE
+                    holder.text.setTypeface(null, if (activated) Typeface.BOLD else Typeface.NORMAL)
                 }
             } else {
                 bindSidebarFull(holder, position)
@@ -2059,27 +2075,53 @@ class GalleryActivity :
             this.pageCount = pageCount
             this.previews = previews
             if (oldPageStarts == pageStarts) {
-                // Structure unchanged (only previews loaded) — rebind visible items without full relayout
-                this.pageStarts = pageStarts
-                this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
-                notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
+                if (mSidebarUserScrolling) {
+                    // User is scrolling — defer preview rebind to avoid visual jitter
+                    mSidebarPendingPreviewUpdate = true
+                } else {
+                    notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
+                }
             } else if (mSidebarUserScrolling) {
-                // User is scrolling — defer structural change to avoid resetting scroll position
+                // User is scrolling — defer structural change
                 mSidebarDataPending = true
                 mSidebarPendingPageStarts = pageStarts
-                // Still update preview map so pending flush has latest data
             } else {
-                this.pageStarts = pageStarts
-                this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
-                notifyDataSetChanged()
+                applyDiff(pageStarts)
             }
         }
 
         fun flushPendingData(newPageStarts: List<Int>?) {
-            val pageStarts = newPageStarts ?: return
-            this.pageStarts = pageStarts
-            this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
-            notifyDataSetChanged()
+            if (newPageStarts != null) {
+                applyDiff(newPageStarts)
+            } else if (mSidebarPendingPreviewUpdate) {
+                notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
+            }
+            mSidebarPendingPreviewUpdate = false
+        }
+
+        private fun applyDiff(newPageStarts: List<Int>) {
+            val oldPageStarts = this.pageStarts
+            val oldPreviews = this.previews
+            val oldCurrentIndex = this.currentIndex
+            // Resolve current page's new position before updating state
+            val currentAlignedIndex = mGalleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
+            this.pageStarts = newPageStarts
+            this.pageStartToPosition = newPageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
+            this.currentIndex = pageStartToPosition[currentAlignedIndex] ?: -1
+            val newCurrentIndex = this.currentIndex
+            val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+                override fun getOldListSize() = oldPageStarts.size
+                override fun getNewListSize() = newPageStarts.size
+                override fun areItemsTheSame(oldPos: Int, newPos: Int) = oldPageStarts[oldPos] == newPageStarts[newPos]
+                override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
+                    val pageStart = newPageStarts[newPos]
+                    val previewSame = oldPreviews[pageStart] === previews[pageStart]
+                    val wasActive = oldPos == oldCurrentIndex
+                    val isActive = newPos == newCurrentIndex
+                    return previewSame && wasActive == isActive
+                }
+            }, true)
+            diff.dispatchUpdatesTo(this)
         }
 
         fun updateCurrentIndex(index: Int) {
@@ -2088,10 +2130,10 @@ class GalleryActivity :
             val oldIndex = currentIndex
             currentIndex = newIndex
             if (oldIndex in pageStarts.indices) {
-                notifyItemChanged(oldIndex)
+                notifyItemChanged(oldIndex, INDEX_PAYLOAD)
             }
             if (currentIndex in pageStarts.indices) {
-                notifyItemChanged(currentIndex)
+                notifyItemChanged(currentIndex, INDEX_PAYLOAD)
             }
         }
 
@@ -2112,6 +2154,7 @@ class GalleryActivity :
 
     companion object {
         private const val PREVIEW_PAYLOAD = "preview"
+        private const val INDEX_PAYLOAD = "index"
         private const val SIDEBAR_SCROLL_DEBOUNCE_MS = 80L
         const val ACTION_EH = "eh"
         const val KEY_ACTION = "action"
