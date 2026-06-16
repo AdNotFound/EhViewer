@@ -24,6 +24,7 @@ import android.view.animation.Interpolator;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 
+import java.util.Arrays;
 import java.util.BitSet;
 
 import com.hippo.glview.anim.Animation;
@@ -41,6 +42,8 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
     public static final int MODE_LEFT_TO_RIGHT = 0;
     public static final int MODE_RIGHT_TO_LEFT = 1;
     private static final String TAG = PagerLayoutManager.class.getSimpleName();
+    private static final float SCALE_MIN = 0.1f;
+    private static final float SCALE_MAX = 10.0f;
     private static final Interpolator SMOOTH_SCROLLER_INTERPOLATOR = t -> {
         t -= 1.0f;
         return t * t * t * t * t + 1.0f;
@@ -217,6 +220,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         mDstRectPrimary.setEmpty();
         mDstRectSecondary.setEmpty();
         mPairMatrix.reset();
+        mScaleValue = 1.0f;
     }
 
     // Helper: get the slot number for an index
@@ -568,9 +572,11 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         calculateDoublePageRects(mCurrent, mCurrentSecondary,
                 mMode == MODE_RIGHT_TO_LEFT, mBaseRectPrimary, mBaseRectSecondary);
 
-        // Reset matrix on first load to prevent offset flash from pre-load touch events
-        if (wasBaseEmpty && !mBaseRectPrimary.isEmpty()) {
+        // Reset matrix on first load to prevent offset flash from pre-load touch events.
+        // Skip if a SmoothScaler animation is running — the animation owns the matrix.
+        if (wasBaseEmpty && !mBaseRectPrimary.isEmpty() && !mSmoothScaler.isRunning()) {
             mPairMatrix.reset();
+            mScaleValue = 1.0f;
         }
 
         // Apply Transformation Matrix
@@ -586,6 +592,44 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
         // Apply to Views
         updatePagePairLayouts(mCurrent, mCurrentSecondary);
         primaryView.setCustomPlace(mDstRectPrimary);
+    }
+
+    /**
+     * Adjust double-page content position to stay within screen bounds.
+     * Equivalent to ImageView.adjustPosition() for single-page mode.
+     */
+    private void adjustDoublePagePosition() {
+        if (mBaseRectPrimary.isEmpty()) return;
+
+        mPairMatrix.mapRect(mDstRectPrimary, mBaseRectPrimary);
+        android.graphics.RectF union = mTempRectF;
+        union.set(mDstRectPrimary);
+        if (mBaseRectSecondary.width() > 0) {
+            mPairMatrix.mapRect(mDstRectSecondary, mBaseRectSecondary);
+            union.union(mDstRectSecondary);
+        }
+
+        int width = mGalleryView.getWidth();
+        int height = mGalleryView.getHeight();
+        float fixX = 0, fixY = 0;
+
+        if (union.width() > width) {
+            if (union.left > 0) fixX = -union.left;
+            else if (union.right < width) fixX = width - union.right;
+        } else {
+            fixX = (width - union.width()) / 2f - union.left;
+        }
+        if (union.height() > height) {
+            if (union.top > 0) fixY = -union.top;
+            else if (union.bottom < height) fixY = height - union.bottom;
+        } else {
+            fixY = (height - union.height()) / 2f - union.top;
+        }
+
+        if (fixX != 0 || fixY != 0) {
+            mPairMatrix.postTranslate(fixX, fixY);
+            updateDoublePageLayout();
+        }
     }
 
     private void updatePagePairLayouts(GalleryPageView primary, GalleryPageView secondary) {
@@ -968,6 +1012,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
         if (mDoublePageMode) {
             mPairMatrix.reset();
+            mScaleValue = 1.0f;
             int jump = getPairSize(getPairStart(mIndex - 1));
             mIndex -= jump;
             if (mIndex < 0) {
@@ -1033,6 +1078,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
         if (mDoublePageMode) {
             mPairMatrix.reset();
+            mScaleValue = 1.0f;
             int jump = getPairSize(mIndex);
             mIndex += jump;
             if (mIndex >= size) {
@@ -1462,6 +1508,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
 
         if (mDoublePageMode) {
             mPairMatrix.reset();
+            mScaleValue = 1.0f;
             // Align to start of pair
             index = getPairStart(index);
         }
@@ -1529,16 +1576,56 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
             mPairMatrix.getValues(values);
             float currentScale = values[android.graphics.Matrix.MSCALE_X];
 
-            if (currentScale < 1.5f) { // Zoom In to 2.0x
-                float startTx = values[android.graphics.Matrix.MTRANS_X];
-                float startTy = values[android.graphics.Matrix.MTRANS_Y];
-                mSmoothScaler.startSmoothScaler(x, y, currentScale, 2.0f,
-                        startTx, startTx, startTy, startTy, 300, null);
-            } else { // Zoom Out to fit — reset matrix, let calculateDoublePageRects center the content
-                mPairMatrix.reset();
-                mScaleValue = 1.0f;
-                updateDoublePageLayout();
+            // Guard: base rects must be calculated
+            if (mBaseRectPrimary.isEmpty()) {
+                return;
             }
+
+            // Build scale levels matching single-page behavior:
+            // [1.0, fitWidth, fitHeight, max(fitW,fitH)*2]
+            int width = mGalleryView.getWidth();
+            int height = mGalleryView.getHeight();
+            float totalW = mBaseRectPrimary.width() + mBaseRectSecondary.width();
+            float totalH = mBaseRectPrimary.height();
+            float fitW = totalW > 0 ? (float) width / totalW : 1.0f;
+            float fitH = totalH > 0 ? (float) height / totalH : 1.0f;
+            float maxFit = Math.max(fitW, fitH);
+            // Snap fit values near 1.0 (gap rounding can produce 0.98 etc.)
+            if (Math.abs(fitW - 1.0f) < 0.05f) fitW = 1.0f;
+            if (Math.abs(fitH - 1.0f) < 0.05f) fitH = 1.0f;
+            maxFit = Math.max(fitW, fitH);
+
+            float[] raw = new float[] {
+                    MathUtils.clamp(1.0f, SCALE_MIN, SCALE_MAX),
+                    MathUtils.clamp(fitW, SCALE_MIN, SCALE_MAX),
+                    MathUtils.clamp(fitH, SCALE_MIN, SCALE_MAX),
+                    MathUtils.clamp(maxFit * 2, SCALE_MIN, SCALE_MAX)
+            };
+            Arrays.sort(raw);
+            // Deduplicate near-identical values
+            int count = 1;
+            for (int i = 1; i < 4; i++) {
+                if (raw[i] - raw[count - 1] > 0.01f) {
+                    raw[count++] = raw[i];
+                }
+            }
+            float[] scales = Arrays.copyOf(raw, count);
+
+            // Find next scale level (same logic as single-page)
+            float endScale = scales[0];
+            for (float value : scales) {
+                if (currentScale < value - 0.01f) {
+                    endScale = value;
+                    break;
+                }
+            }
+
+            if (Math.abs(endScale - currentScale) < 0.01f) {
+                return;
+            }
+
+            mSmoothScaler.startSmoothScaler(x, y, currentScale, endScale,
+                    0, 0, 0, 0, 300, null);
             return;
         }
 
@@ -1719,6 +1806,7 @@ class PagerLayoutManager extends GalleryView.LayoutManager implements GalleryPag
                 float dScale = scale / mLastScale;
                 mPairMatrix.postScale(dScale, dScale, mFocusX, mFocusY);
                 updateDoublePageLayout();
+                adjustDoublePagePosition();
                 mLastScale = scale;
                 mScaleValue = scale;
                 return;
