@@ -1818,7 +1818,7 @@ class GalleryActivity :
         loadingView: ProgressBar? = null,
     ) {
         if (preview != null) {
-            view.resetForReuse()
+            if (view.drawable == null) view.resetForReuse()
             view.visibility = View.VISIBLE
             view.setBackgroundResource(0)
             if (preview.hasClipAspect()) {
