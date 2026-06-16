@@ -1857,7 +1857,8 @@ class GalleryActivity :
             } else {
                 view.resetSidebarAspect()
             }
-            loadingView?.visibility = View.VISIBLE
+            // Only show spinner when image hasn't been loaded yet (avoids flash on cached rebind)
+            loadingView?.visibility = if (view.drawable == null) View.VISIBLE else View.GONE
             view.setOnLoadingStateChangeListener { isLoading ->
                 loadingView?.visibility = if (isLoading) View.VISIBLE else View.GONE
             }

@@ -36,8 +36,10 @@ class ReaderSidebarThumb @JvmOverloads constructor(
         if (newHash != lastDrawableHash && drawable != null && pendingFadeIn) {
             lastDrawableHash = newHash
             pendingFadeIn = false
-            super.setImageDrawable(drawable)
             alpha = 0f
+            // Call LoadImageView.setImageDrawable (not ImageView) so clip and loading
+            // state listener are properly handled through the inheritance chain.
+            super.setImageDrawable(drawable)
             animate().alpha(1f).setDuration(FADE_IN_DURATION).start()
         } else {
             lastDrawableHash = newHash
