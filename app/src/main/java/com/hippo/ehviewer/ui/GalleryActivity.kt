@@ -235,6 +235,9 @@ class GalleryActivity :
     private var mReaderSidebarPreviewJob: Job? = null
     private val mSidebarScrollHandler = Handler(Looper.getMainLooper())
     private var mSidebarScrollRunnable: Runnable? = null
+    private var mSidebarUserScrolling = false
+    private var mSidebarDataPending = false
+    private var mSidebarPendingPageStarts: List<Int>? = null
     private var mReaderSidebarToggleDownRawX = 0f
     private var mReaderSidebarToggleDragging = false
     private var mReaderSidebarToggleTouchSlop = 0
@@ -480,6 +483,26 @@ class GalleryActivity :
             mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
             mReaderSidebarOnRight = Settings.layoutReaderThumbnailSidebarOnRight
             mReaderSidebarToggleTouchSlop = ViewConfiguration.get(this).scaledTouchSlop
+            mReaderSidebarRecyclerView!!.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                    if (newState != RecyclerView.SCROLL_STATE_IDLE) {
+                        mSidebarUserScrolling = true
+                    }
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        mSidebarUserScrolling = false
+                        if (mSidebarDataPending) {
+                            mSidebarDataPending = false
+                            val pending = mSidebarPendingPageStarts
+                            mSidebarPendingPageStarts = null
+                            if (pending != null) {
+                                mReaderSidebarPageStarts = pending
+                            }
+                            mReaderSidebarAdapter?.flushPendingData(pending)
+                        }
+                        updateReaderSidebarSelection(forceCenter = false)
+                    }
+                }
+            })
             mReaderSidebarToggle?.setOnClickListener { toggleReaderSidebar() }
             mReaderSidebarToggle?.setOnTouchListener { view, event -> onReaderSidebarToggleTouch(view, event) }
             updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
@@ -870,16 +893,22 @@ class GalleryActivity :
 
     private fun updateReaderSidebarData(forceCenter: Boolean = false) {
         val pageStarts = buildReaderSidebarPageStarts()
-        mReaderSidebarPageStarts = pageStarts
         mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts)
+        // Only update mReaderSidebarPageStarts if adapter actually applied the change
+        // (not deferred due to user scrolling), to keep Activity and adapter state consistent
+        if (!mSidebarDataPending) {
+            mReaderSidebarPageStarts = pageStarts
+        }
         updateReaderSidebarSelection(forceCenter)
     }
 
     private fun refreshReaderSidebarStructure(forceCenter: Boolean = false) {
         val pageStarts = buildReaderSidebarPageStarts()
         if (pageStarts != mReaderSidebarPageStarts) {
-            mReaderSidebarPageStarts = pageStarts
             mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts)
+            if (!mSidebarDataPending) {
+                mReaderSidebarPageStarts = pageStarts
+            }
         }
         updateReaderSidebarSelection(forceCenter)
     }
@@ -889,7 +918,7 @@ class GalleryActivity :
         val galleryView = mGalleryView
         val alignedIndex = galleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
         adapter.updateCurrentIndex(alignedIndex)
-        if (!mReaderSidebarVisible || !forceCenter) {
+        if (!mReaderSidebarVisible || !forceCenter || mSidebarUserScrolling) {
             return
         }
         val targetPosition = adapter.getCurrentAdapterPosition()
@@ -2028,14 +2057,28 @@ class GalleryActivity :
             val oldPageStarts = this.pageStarts
             this.pageCount = pageCount
             this.previews = previews
-            this.pageStarts = pageStarts
-            this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
             if (oldPageStarts == pageStarts) {
                 // Structure unchanged (only previews loaded) — rebind visible items without full relayout
+                this.pageStarts = pageStarts
+                this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
                 notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
+            } else if (mSidebarUserScrolling) {
+                // User is scrolling — defer structural change to avoid resetting scroll position
+                mSidebarDataPending = true
+                mSidebarPendingPageStarts = pageStarts
+                // Still update preview map so pending flush has latest data
             } else {
+                this.pageStarts = pageStarts
+                this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
                 notifyDataSetChanged()
             }
+        }
+
+        fun flushPendingData(newPageStarts: List<Int>?) {
+            val pageStarts = newPageStarts ?: return
+            this.pageStarts = pageStarts
+            this.pageStartToPosition = pageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
+            notifyDataSetChanged()
         }
 
         fun updateCurrentIndex(index: Int) {
