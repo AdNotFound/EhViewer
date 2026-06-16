@@ -39,6 +39,7 @@ class GalleryPreview(
 
     fun load(view: LoadImageView) {
         view.setClip(offsetX, offsetY, clipWidth, clipHeight)
-        view.load(imageKey!!, imageUrl!!, offsetY == Int.MIN_VALUE || isAtLeastQ)
+        // Disable Coil crossfade — sidebar thumbnails use their own alpha fade-in
+        view.load(imageKey!!, imageUrl!!, crossfade = false, hardware = offsetY == Int.MIN_VALUE || isAtLeastQ)
     }
 }
