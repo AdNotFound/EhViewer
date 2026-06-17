@@ -24,19 +24,22 @@ import coil3.request.ImageResult
 import coil3.request.SuccessResult
 import com.hippo.ehviewer.client.isPreviewKey
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 
 object MergeInterceptor : Interceptor {
     private val activeRequests = mutableMapOf<String, Deferred<ImageResult>>()
 
-    override suspend fun intercept(chain: Interceptor.Chain): ImageResult = coroutineScope {
+    override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
         val req = chain.request
-        val key = req.memoryCacheKey?.takeIf { it.isPreviewKey } ?: return@coroutineScope chain.proceed()
+        val key = req.memoryCacheKey?.takeIf { it.isPreviewKey } ?: return chain.proceed()
 
+        // Use GlobalScope so the deferred survives individual request cancellation.
+        // When a ViewHolder is recycled, Coil cancels the request coroutine, but the
+        // shared fetch must continue for other ViewHolders waiting on the same key.
         val deferred = synchronized(activeRequests) {
             activeRequests.getOrPut(key) {
-                async {
+                GlobalScope.async {
                     try {
                         var result: ImageResult
                         var retryCount = 0
@@ -61,7 +64,7 @@ object MergeInterceptor : Interceptor {
         }
 
         val result = deferred.await()
-        when (result) {
+        return when (result) {
             is SuccessResult -> result.copy(
                 request = req,
                 dataSource = if (result.request === req || result.dataSource == DataSource.MEMORY_CACHE) result.dataSource else DataSource.MEMORY,

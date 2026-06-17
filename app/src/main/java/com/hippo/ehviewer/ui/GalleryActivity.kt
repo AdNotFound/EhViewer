@@ -489,6 +489,8 @@ class GalleryActivity :
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     if (newState != RecyclerView.SCROLL_STATE_IDLE) {
                         mSidebarUserScrolling = true
+                        // Cancel any pending auto-center scroll so it doesn't fight with user gesture
+                        mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
                     }
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                         mSidebarUserScrolling = false
@@ -1994,6 +1996,13 @@ class GalleryActivity :
             bindSidebarFull(holder, position)
         }
 
+        override fun onViewRecycled(holder: ReaderSidebarHolder) {
+            // Cancel in-flight Coil requests to prevent stale callbacks from
+            // delivering images after the ViewHolder is rebound to a new position.
+            holder.image.setImageDrawable(null)
+            holder.imageSecondary.setImageDrawable(null)
+        }
+
         @SuppressLint("SetTextI18n")
         override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int, payloads: List<Any>) {
             if (payloads.isNotEmpty()) {
@@ -2101,26 +2110,33 @@ class GalleryActivity :
 
         private fun applyDiff(newPageStarts: List<Int>) {
             val oldPageStarts = this.pageStarts
-            val oldPreviews = this.previews
             val oldCurrentIndex = this.currentIndex
+            val oldPageCount = this.pageCount
             // Resolve current page's new position before updating state
             val currentAlignedIndex = mGalleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
             this.pageStarts = newPageStarts
             this.pageStartToPosition = newPageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
             this.currentIndex = pageStartToPosition[currentAlignedIndex] ?: -1
             val newCurrentIndex = this.currentIndex
-            val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
-                override fun getOldListSize() = oldPageStarts.size
-                override fun getNewListSize() = newPageStarts.size
-                override fun areItemsTheSame(oldPos: Int, newPos: Int) = oldPageStarts[oldPos] == newPageStarts[newPos]
-                override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
-                    val pageStart = newPageStarts[newPos]
-                    val previewSame = oldPreviews[pageStart] === previews[pageStart]
-                    val wasActive = oldPos == oldCurrentIndex
-                    val isActive = newPos == newCurrentIndex
-                    return previewSame && wasActive == isActive
-                }
-            }, true)
+            val diff = DiffUtil.calculateDiff(
+                object : DiffUtil.Callback() {
+                    override fun getOldListSize() = oldPageStarts.size
+                    override fun getNewListSize() = newPageStarts.size
+                    override fun areItemsTheSame(oldPos: Int, newPos: Int) = oldPageStarts[oldPos] == newPageStarts[newPos]
+                    override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
+                        val wasActive = oldPos == oldCurrentIndex
+                        val isActive = newPos == newCurrentIndex
+                        if (wasActive != isActive) return false
+                        // Detect pair-size change: derive from pageStarts structure
+                        val oldStart = oldPageStarts[oldPos]
+                        val newStart = newPageStarts[newPos]
+                        val oldPairSize = if (oldPos + 1 < oldPageStarts.size) oldPageStarts[oldPos + 1] - oldStart else oldPageCount - oldStart
+                        val newPairSize = if (newPos + 1 < newPageStarts.size) newPageStarts[newPos + 1] - newStart else pageCount - newStart
+                        return oldPairSize == newPairSize
+                    }
+                },
+                true,
+            )
             diff.dispatchUpdatesTo(this)
         }
 
