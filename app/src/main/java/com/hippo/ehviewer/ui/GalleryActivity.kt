@@ -1999,6 +1999,10 @@ class GalleryActivity :
             }
             preview.load(view)
         } else {
+            // Cancel any in-flight Coil request BEFORE resetting clip state.
+            // Without this, a stale request from a recycled ViewHolder could deliver
+            // the full sprite sheet after resetClip(), showing the unclipped "合图".
+            view.cancelLoad()
             view.visibility = View.VISIBLE
             view.resetSidebarAspect()
             view.resetClip()
@@ -2080,6 +2084,8 @@ class GalleryActivity :
         override fun onViewRecycled(holder: ReaderSidebarHolder) {
             // Cancel in-flight Coil requests to prevent stale callbacks from
             // delivering images after the ViewHolder is rebound to a new position.
+            holder.image.cancelLoad()
+            holder.imageSecondary.cancelLoad()
             holder.image.setImageDrawable(null)
             holder.imageSecondary.setImageDrawable(null)
         }
