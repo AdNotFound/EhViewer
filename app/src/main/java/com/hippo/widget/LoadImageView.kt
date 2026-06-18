@@ -23,6 +23,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
 import coil3.load
+import coil3.request.Disposable
 import coil3.request.allowHardware
 import coil3.request.crossfade
 import coil3.size.SizeResolver
@@ -44,6 +45,7 @@ open class LoadImageView @JvmOverloads constructor(
     private var mUrl: String? = null
     private var mCrossfade = true
     private var mHardware = true
+    private var mDisposable: Disposable? = null
     private var mOnLoadingStateChangeListener: OnLoadingStateChangeListener? = null
 
     fun interface OnLoadingStateChangeListener {
@@ -105,7 +107,8 @@ open class LoadImageView @JvmOverloads constructor(
             oldUrl?.let { removeFromUrlMap(it, this) }
             addToUrlMap(url, this)
         }
-        load(url) {
+        mDisposable?.dispose()
+        mDisposable = load(url) {
             // https://coil-kt.github.io/coil/recipes/#shared-element-transitions
             allowHardware(hardware)
             placeholderMemoryCacheKey(key)
@@ -135,6 +138,17 @@ open class LoadImageView @JvmOverloads constructor(
                 },
             )
         }
+    }
+
+    /**
+     * Cancel any in-flight Coil request and clear the pending disposable.
+     * Call this when the view is recycled or when the image should be cleared
+     * without starting a new load, to prevent stale results from being delivered
+     * after clip state has been reset.
+     */
+    fun cancelLoad() {
+        mDisposable?.dispose()
+        mDisposable = null
     }
 
     fun load(@DrawableRes id: Int) {
