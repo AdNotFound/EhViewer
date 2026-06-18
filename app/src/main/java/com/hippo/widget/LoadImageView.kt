@@ -46,12 +46,12 @@ open class LoadImageView @JvmOverloads constructor(
     private var mHardware = true
     private var mOnLoadingStateChangeListener: OnLoadingStateChangeListener? = null
 
-    // Snapshot of clip state at the time load() was called.
-    // Used by setImageDrawable() to guard against stale Coil deliveries
-    // (e.g. a recycled ViewHolder receiving an image from a previous binding).
-    // When resetClip() is called, mOffsetX is cleared but mPendingClip* remain;
-    // setImageDrawable() detects the mismatch and skips the clip, preventing
-    // the full sprite sheet from being displayed.
+    // Generation counter for guarding against stale Coil deliveries.
+    // Each load() call increments this. setImageDrawable() only applies the clip
+    // when the generation matches, preventing a recycled ViewHolder from displaying
+    // a sprite sheet from a previous binding (clipped to the wrong position).
+    private var mLoadGeneration = 0L
+    private var mPendingClipGeneration = 0L
     private var mPendingClipOffsetX = Int.MIN_VALUE
     private var mPendingClipOffsetY = Int.MIN_VALUE
     private var mPendingClipWidth = Int.MIN_VALUE
@@ -99,13 +99,17 @@ open class LoadImageView @JvmOverloads constructor(
         mOffsetY = Int.MIN_VALUE
         mClipWidth = Int.MIN_VALUE
         mClipHeight = Int.MIN_VALUE
-        // Also clear the pending clip so that any stale Coil delivery
-        // (from a recycled ViewHolder) will NOT be clipped — the view
-        // will show nothing instead of the full sprite sheet.
         mPendingClipOffsetX = Int.MIN_VALUE
         mPendingClipOffsetY = Int.MIN_VALUE
         mPendingClipWidth = Int.MIN_VALUE
         mPendingClipHeight = Int.MIN_VALUE
+        // Bump only mLoadGeneration (NOT mPendingClipGeneration) so that any
+        // in-flight Coil delivery from a previous load() sees a generation
+        // mismatch and is rejected. Without this, a stale delivery would pass
+        // the mPendingClipGeneration == mLoadGeneration check and display
+        // the sprite sheet unclipped because mPendingClipOffsetX was just
+        // cleared to Int.MIN_VALUE.
+        mLoadGeneration++
     }
 
     fun load(
@@ -123,9 +127,11 @@ open class LoadImageView @JvmOverloads constructor(
             oldUrl?.let { removeFromUrlMap(it, this) }
             addToUrlMap(url, this)
         }
-        // Snapshot the current clip state for this request.
-        // setImageDrawable() will use these values instead of mOffsetX*
-        // to guard against stale deliveries after resetClip().
+        // Snapshot the current clip state and generation for this request.
+        // setImageDrawable() will use these values to guard against stale
+        // Coil deliveries (e.g. from a recycled ViewHolder's previous binding).
+        mLoadGeneration++
+        mPendingClipGeneration = mLoadGeneration
         mPendingClipOffsetX = mOffsetX
         mPendingClipOffsetY = mOffsetY
         mPendingClipWidth = mClipWidth
@@ -174,10 +180,16 @@ open class LoadImageView @JvmOverloads constructor(
     override fun setImageDrawable(drawable: Drawable?) {
         var newDrawable = drawable
         if (newDrawable != null) {
-            // Use the pending clip (snapshot from load()) instead of the live mOffsetX*.
-            // If resetClip() was called after load() — e.g. the ViewHolder was recycled —
-            // mPendingClip* will be Int.MIN_VALUE, and the clip is skipped.
-            // This prevents a stale Coil delivery from showing the full sprite sheet.
+            // Guard against stale Coil deliveries from a previous load() call.
+            // When a ViewHolder is recycled and reused, the old Coil request may
+            // complete after the new load() has started. The old request delivers
+            // a sprite sheet clipped to the NEW position (wrong content).
+            // Detect this via generation mismatch and clear the drawable instead.
+            if (mPendingClipGeneration != mLoadGeneration) {
+                super.setImageDrawable(null)
+                mOnLoadingStateChangeListener?.onLoadingStateChanged(true)
+                return
+            }
             if (Int.MIN_VALUE != mPendingClipOffsetX) {
                 newDrawable =
                     PreciselyClipDrawable(newDrawable, mPendingClipOffsetX, mPendingClipOffsetY, mPendingClipWidth, mPendingClipHeight)

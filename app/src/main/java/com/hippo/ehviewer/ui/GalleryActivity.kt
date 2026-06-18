@@ -21,7 +21,6 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.animation.ValueAnimator.AnimatorUpdateListener
-import android.view.animation.DecelerateInterpolator
 import android.annotation.SuppressLint
 import android.app.assist.AssistContent
 import android.content.ClipData
@@ -54,6 +53,7 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.animation.DecelerateInterpolator
 import android.webkit.MimeTypeMap
 import android.widget.CompoundButton
 import android.widget.FrameLayout
@@ -976,7 +976,11 @@ class GalleryActivity :
             val smoothScroller = object : LinearSmoothScroller(recyclerView.context) {
                 override fun getVerticalSnapPreference() = SNAP_TO_START
                 override fun calculateDtToFit(
-                    viewStart: Int, viewEnd: Int, boxStart: Int, boxEnd: Int, snapPreference: Int,
+                    viewStart: Int,
+                    viewEnd: Int,
+                    boxStart: Int,
+                    boxEnd: Int,
+                    snapPreference: Int,
                 ): Int {
                     val viewMid = (viewStart + viewEnd) / 2
                     val boxMid = (boxStart + boxEnd) / 2
@@ -2024,7 +2028,10 @@ class GalleryActivity :
         loadingView: ProgressBar? = null,
     ) {
         if (preview != null) {
-            if (view.drawable == null) view.resetForReuse()
+            // Always clear stale drawable first to prevent recycled ViewHolders
+            // from briefly showing the previous page's sprite sheet during fast scroll.
+            if (view.drawable != null) view.setImageDrawable(null)
+            view.resetForReuse()
             view.visibility = View.VISIBLE
             view.setBackgroundResource(0)
             if (preview.hasClipAspect()) {
@@ -2040,7 +2047,16 @@ class GalleryActivity :
             view.setOnLoadingStateChangeListener { isLoading ->
                 loadingView?.visibility = if (isLoading) View.VISIBLE else View.GONE
             }
-            preview.load(view)
+            // Only load when clip data is valid. For NormalPreviewSet, multiple pages
+            // share the same sprite sheet URL; clip coordinates select the correct
+            // region. Loading without valid clip would display the full unclipped sheet.
+            if (preview.hasClipAspect()) {
+                preview.load(view)
+            } else {
+                // Clip data not yet available — show placeholder, don't load sprite sheet.
+                view.resetClip()
+                view.setImageDrawable(null)
+            }
         } else {
             view.visibility = View.VISIBLE
             view.resetSidebarAspect()
