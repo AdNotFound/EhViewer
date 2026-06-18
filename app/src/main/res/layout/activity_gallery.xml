@@ -111,6 +111,7 @@
             android:id="@+id/auto_transfer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
+            android:contentDescription="@string/reader_auto_transfer"
             android:padding="8dp"
             app:srcCompat="@drawable/v_play_x24"
             app:tint="?attr/colorPrimary" />

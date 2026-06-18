@@ -763,4 +763,7 @@
         <item quantity="other">years</item>
     </plurals>
     <string name="reader_sidebar_toggle">Toggle reader thumbnail sidebar</string>
+    <string name="reader_sidebar_thumb">Page thumbnail</string>
+    <string name="reader_sidebar_page">Page %d</string>
+    <string name="reader_auto_transfer">Auto page turn</string>
 </resources>

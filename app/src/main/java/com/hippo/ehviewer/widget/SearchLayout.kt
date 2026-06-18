@@ -28,7 +28,7 @@ import android.view.ViewGroup
 import android.widget.CompoundButton
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.Switch
+import androidx.appcompat.widget.SwitchCompat
 import android.widget.TextView
 import androidx.annotation.IntDef
 import androidx.appcompat.app.AlertDialog
@@ -71,8 +71,7 @@ class SearchLayout @JvmOverloads constructor(
     private var mNormalSearchMode: RadioGridGroup? = null
     private var mNormalSearchModeHelp: ImageView? = null
 
-    @SuppressLint("UseSwitchCompatOrMaterialCode")
-    private var mEnableAdvanceSwitch: Switch? = null
+    private var mEnableAdvanceSwitch: SwitchCompat? = null
     private var mAdvanceView: View? = null
     private var mTableAdvanceSearch: AdvanceSearchTable? = null
     private var mImageView: ImageSearchLayout? = null

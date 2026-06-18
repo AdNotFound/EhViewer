@@ -142,38 +142,43 @@
 
         </LinearLayout>
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/keep_screen_on"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_keep_screen_on"
             android:textColor="?android:attr/textColorPrimary" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/show_clock"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_show_clock"
             android:textColor="?android:attr/textColorPrimary" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/show_progress"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_show_progress"
             android:textColor="?android:attr/textColorPrimary" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/show_battery"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_show_battery"
             android:textColor="?android:attr/textColorPrimary" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/show_page_interval"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_show_page_interval"
             android:textColor="?android:attr/textColorPrimary" />
 
@@ -199,25 +204,28 @@
 
         </LinearLayout>
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/double_page_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_double_page_mode"
             android:textColor="?android:attr/textColorPrimary" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/double_page_mode_landscape"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_double_page_mode_landscape"
             android:textColor="?android:attr/textColorPrimary"
             android:visibility="gone" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/double_page_offset"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_double_page_offset"
             android:textColor="?android:attr/textColorPrimary"
             android:visibility="gone" />
@@ -246,10 +254,11 @@
 
         </LinearLayout>
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/volume_page"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_volume_page"
             android:textColor="?android:attr/textColorPrimary" />
 
@@ -275,24 +284,27 @@
 
         </LinearLayout>
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/reverse_volume_page"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_reverse_volume"
             android:textColor="?android:attr/textColorPrimary" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/reading_fullscreen"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_reading_fullscreen"
             android:textColor="?android:attr/textColorPrimary" />
 
-        <Switch
+        <androidx.appcompat.widget.SwitchCompat
             android:id="@+id/custom_screen_lightness"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:minHeight="0dp"
             android:text="@string/settings_read_custom_screen_lightness"
             android:textColor="?android:attr/textColorPrimary" />
 
