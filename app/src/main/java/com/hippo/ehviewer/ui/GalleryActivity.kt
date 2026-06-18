@@ -92,6 +92,8 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
+import com.hippo.ehviewer.coil.loadReaderPreviewCache
+import com.hippo.ehviewer.coil.saveReaderPreviewCache
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.hasAds
@@ -235,6 +237,7 @@ class GalleryActivity :
     private var mInitialReaderPreviews: ArrayList<GalleryPreview>? = null
     private val mSpreadPages = BitSet()
     private var mReaderPreviewMetadataRequested = false
+    private var mReaderPreviewCacheLoaded = false
     private var mReaderSidebarPageStarts: List<Int> = emptyList()
     private var mReaderSidebarVisible = true
     private var mReaderSidebarOnRight = true
@@ -868,8 +871,26 @@ class GalleryActivity :
         mReaderSidebarPreviewMap.clear()
         mSpreadPages.clear()
         mReaderPreviewMetadataRequested = false
+        mReaderPreviewCacheLoaded = false
         mReaderSidebarPageStarts = emptyList()
         mergeInitialReaderPreviews()
+        loadReaderPreviewCacheFromDisk()
+    }
+
+    private fun loadReaderPreviewCacheFromDisk() {
+        val galleryInfo = mGalleryInfo ?: return
+        val token = galleryInfo.token ?: return
+        val cached = loadReaderPreviewCache(galleryInfo.gid, token) ?: return
+        cached.forEach { (_, preview) ->
+            if (preview.position >= 0 && preview.position !in mReaderSidebarPreviewMap) {
+                mReaderSidebarPreviewMap[preview.position] = preview
+                updateSpreadPage(preview)
+            }
+        }
+        mReaderPreviewCacheLoaded = true
+        // Persist merged data so `mInitialReaderPreviews` updates are not lost
+        // on subsequent sessions when disk cache exists.
+        saveReaderPreviewCache(galleryInfo.gid, token, mReaderSidebarPreviewMap)
     }
 
     private fun mergeInitialReaderPreviews() {
@@ -1001,6 +1022,9 @@ class GalleryActivity :
         }
         val galleryInfo = mGalleryInfo ?: return
         val token = galleryInfo.token ?: return
+        if (mReaderPreviewCacheLoaded) {
+            return
+        }
         // Capture on UI thread to avoid reading mutable fields from IO
         val snapshotCurrentIndex = mCurrentIndex
         val snapshotSize = mSize
@@ -1046,6 +1070,7 @@ class GalleryActivity :
                         updateReaderSidebarData()
                     }
                 }
+                saveReaderPreviewCache(galleryInfo.gid, token, mReaderSidebarPreviewMap)
             }.onFailure {
                 it.printStackTrace()
             }
@@ -1310,6 +1335,11 @@ class GalleryActivity :
                         mReaderSidebarDivider?.isVisible = false
                         sidebarContainer.translationX = 0f
                         mReaderSidebarDivider?.alpha = 1f
+                        contentContainer.post {
+                            mGLRootView?.requestLayout()
+                            mGLRootView?.requestLayoutContentPane()
+                            mGalleryView?.requestLayout()
+                        }
                     }
                     mSidebarAnimator = null
                 }
