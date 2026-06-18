@@ -23,7 +23,6 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
 import coil3.load
-import coil3.request.Disposable
 import coil3.request.allowHardware
 import coil3.request.crossfade
 import coil3.size.SizeResolver
@@ -45,8 +44,18 @@ open class LoadImageView @JvmOverloads constructor(
     private var mUrl: String? = null
     private var mCrossfade = true
     private var mHardware = true
-    private var mDisposable: Disposable? = null
     private var mOnLoadingStateChangeListener: OnLoadingStateChangeListener? = null
+
+    // Snapshot of clip state at the time load() was called.
+    // Used by setImageDrawable() to guard against stale Coil deliveries
+    // (e.g. a recycled ViewHolder receiving an image from a previous binding).
+    // When resetClip() is called, mOffsetX is cleared but mPendingClip* remain;
+    // setImageDrawable() detects the mismatch and skips the clip, preventing
+    // the full sprite sheet from being displayed.
+    private var mPendingClipOffsetX = Int.MIN_VALUE
+    private var mPendingClipOffsetY = Int.MIN_VALUE
+    private var mPendingClipWidth = Int.MIN_VALUE
+    private var mPendingClipHeight = Int.MIN_VALUE
 
     fun interface OnLoadingStateChangeListener {
         fun onLoadingStateChanged(isLoading: Boolean)
@@ -90,6 +99,13 @@ open class LoadImageView @JvmOverloads constructor(
         mOffsetY = Int.MIN_VALUE
         mClipWidth = Int.MIN_VALUE
         mClipHeight = Int.MIN_VALUE
+        // Also clear the pending clip so that any stale Coil delivery
+        // (from a recycled ViewHolder) will NOT be clipped — the view
+        // will show nothing instead of the full sprite sheet.
+        mPendingClipOffsetX = Int.MIN_VALUE
+        mPendingClipOffsetY = Int.MIN_VALUE
+        mPendingClipWidth = Int.MIN_VALUE
+        mPendingClipHeight = Int.MIN_VALUE
     }
 
     fun load(
@@ -107,8 +123,14 @@ open class LoadImageView @JvmOverloads constructor(
             oldUrl?.let { removeFromUrlMap(it, this) }
             addToUrlMap(url, this)
         }
-        mDisposable?.dispose()
-        mDisposable = load(url) {
+        // Snapshot the current clip state for this request.
+        // setImageDrawable() will use these values instead of mOffsetX*
+        // to guard against stale deliveries after resetClip().
+        mPendingClipOffsetX = mOffsetX
+        mPendingClipOffsetY = mOffsetY
+        mPendingClipWidth = mClipWidth
+        mPendingClipHeight = mClipHeight
+        load(url) {
             // https://coil-kt.github.io/coil/recipes/#shared-element-transitions
             allowHardware(hardware)
             placeholderMemoryCacheKey(key)
@@ -140,17 +162,6 @@ open class LoadImageView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Cancel any in-flight Coil request and clear the pending disposable.
-     * Call this when the view is recycled or when the image should be cleared
-     * without starting a new load, to prevent stale results from being delivered
-     * after clip state has been reset.
-     */
-    fun cancelLoad() {
-        mDisposable?.dispose()
-        mDisposable = null
-    }
-
     fun load(@DrawableRes id: Int) {
         onPreSetImageResource(id, true)
         setImageResource(id)
@@ -163,9 +174,13 @@ open class LoadImageView @JvmOverloads constructor(
     override fun setImageDrawable(drawable: Drawable?) {
         var newDrawable = drawable
         if (newDrawable != null) {
-            if (Int.MIN_VALUE != mOffsetX) {
+            // Use the pending clip (snapshot from load()) instead of the live mOffsetX*.
+            // If resetClip() was called after load() — e.g. the ViewHolder was recycled —
+            // mPendingClip* will be Int.MIN_VALUE, and the clip is skipped.
+            // This prevents a stale Coil delivery from showing the full sprite sheet.
+            if (Int.MIN_VALUE != mPendingClipOffsetX) {
                 newDrawable =
-                    PreciselyClipDrawable(newDrawable, mOffsetX, mOffsetY, mClipWidth, mClipHeight)
+                    PreciselyClipDrawable(newDrawable, mPendingClipOffsetX, mPendingClipOffsetY, mPendingClipWidth, mPendingClipHeight)
             }
             onPreSetImageDrawable(newDrawable, true)
         }
