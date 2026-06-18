@@ -17,8 +17,11 @@ package com.hippo.ehviewer.ui
 
 import android.Manifest
 import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.animation.ValueAnimator.AnimatorUpdateListener
+import android.view.animation.DecelerateInterpolator
 import android.annotation.SuppressLint
 import android.app.assist.AssistContent
 import android.content.ClipData
@@ -80,6 +83,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.app.EditTextDialogBuilder
 import com.hippo.ehviewer.AppConfig
@@ -240,6 +244,9 @@ class GalleryActivity :
     private var mSidebarDataPending = false
     private var mSidebarPendingPageStarts: List<Int>? = null
     private var mSidebarPendingPreviewUpdate = false
+    private var mSidebarAnimator: ValueAnimator? = null
+    private var mSidebarAnimGeneration = 0
+    private var mSidebarProgrammaticScroll = false
     private var mReaderSidebarToggleDownRawX = 0f
     private var mReaderSidebarToggleDragging = false
     private var mReaderSidebarToggleTouchSlop = 0
@@ -498,12 +505,19 @@ class GalleryActivity :
             mReaderSidebarRecyclerView!!.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     if (newState != RecyclerView.SCROLL_STATE_IDLE) {
-                        mSidebarUserScrolling = true
-                        // Cancel any pending auto-center scroll so it doesn't fight with user gesture
-                        mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
+                        if (mSidebarProgrammaticScroll) {
+                            // Programmatic auto-center scroll — don't mark as user scroll
+                            mSidebarUserScrolling = true
+                        } else {
+                            // User-initiated scroll
+                            mSidebarUserScrolling = true
+                            // Cancel any pending auto-center scroll so it doesn't fight with user gesture
+                            mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
+                        }
                     }
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
                         mSidebarUserScrolling = false
+                        mSidebarProgrammaticScroll = false
                         if (mSidebarDataPending) {
                             mSidebarDataPending = false
                             val pending = mSidebarPendingPageStarts
@@ -945,15 +959,32 @@ class GalleryActivity :
         val recyclerView = mReaderSidebarRecyclerView ?: return
         val layoutManager = recyclerView.layoutManager as? LinearLayoutManager ?: return
 
+        // If the target page is already visible, don't auto-scroll — respect user's scroll position
+        val firstVisible = layoutManager.findFirstVisibleItemPosition()
+        val lastVisible = layoutManager.findLastVisibleItemPosition()
+        if (firstVisible != RecyclerView.NO_POSITION && lastVisible != RecyclerView.NO_POSITION &&
+            targetPosition in firstVisible..lastVisible
+        ) {
+            return
+        }
+
         // Debounce: cancel pending scroll
         mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
 
         val scrollRunnable = Runnable {
-            val childHeight = layoutManager.findViewByPosition(targetPosition)?.height
-                ?: recyclerView.getChildAt(0)?.height
-                ?: 0
-            val offset = ((recyclerView.height - childHeight) / 2).coerceAtLeast(0)
-            layoutManager.scrollToPositionWithOffset(targetPosition, offset)
+            mSidebarProgrammaticScroll = true
+            val smoothScroller = object : LinearSmoothScroller(recyclerView.context) {
+                override fun getVerticalSnapPreference() = SNAP_TO_START
+                override fun calculateDtToFit(
+                    viewStart: Int, viewEnd: Int, boxStart: Int, boxEnd: Int, snapPreference: Int,
+                ): Int {
+                    val viewMid = (viewStart + viewEnd) / 2
+                    val boxMid = (boxStart + boxEnd) / 2
+                    return boxMid - viewMid
+                }
+            }
+            smoothScroller.targetPosition = targetPosition
+            layoutManager.startSmoothScroll(smoothScroller)
         }
 
         mSidebarScrollRunnable = scrollRunnable
@@ -1150,7 +1181,14 @@ class GalleryActivity :
         val contentLayoutParams = contentContainer.layoutParams as? FrameLayout.LayoutParams ?: return
         val dividerWidth = mReaderSidebarDivider?.layoutParams?.width ?: 0
         val sidebarWidth = getReaderSidebarWidth()
-        mReaderSidebarContainer?.layoutParams = (mReaderSidebarContainer?.layoutParams as? FrameLayout.LayoutParams)?.apply {
+
+        // Cancel any running sidebar animation (stale onAnimationEnd is guarded by generation)
+        mSidebarAnimator?.cancel()
+        mSidebarAnimator = null
+        val generation = ++mSidebarAnimGeneration
+
+        // Update sidebar & divider layout params (size, gravity)
+        sidebarContainer.layoutParams = (sidebarContainer.layoutParams as? FrameLayout.LayoutParams)?.apply {
             width = sidebarWidth
             gravity = if (mReaderSidebarOnRight) Gravity.END else Gravity.START
         }
@@ -1159,18 +1197,11 @@ class GalleryActivity :
             marginEnd = if (mReaderSidebarOnRight) sidebarWidth else 0
             marginStart = if (mReaderSidebarOnRight) 0 else sidebarWidth
         }
-        val insetMargin = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
-        val targetStartMargin = if (mReaderSidebarOnRight) 0 else insetMargin
-        val targetEndMargin = if (mReaderSidebarOnRight) insetMargin else 0
-        if (contentLayoutParams.marginStart != targetStartMargin || contentLayoutParams.marginEnd != targetEndMargin) {
-            contentLayoutParams.marginStart = targetStartMargin
-            contentLayoutParams.marginEnd = targetEndMargin
-            contentContainer.layoutParams = contentLayoutParams
-        }
-        mReaderSidebarDivider?.isVisible = mReaderSidebarVisible
-        sidebarContainer.isVisible = mReaderSidebarVisible
+
+        // Toggle positioning (instant)
         val toggleLayoutParams = toggleView.layoutParams as? FrameLayout.LayoutParams ?: return
         toggleLayoutParams.gravity = (if (mReaderSidebarOnRight) Gravity.END else Gravity.START) or Gravity.CENTER_VERTICAL
+        val insetMargin = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
         val targetToggleStartMargin = if (mReaderSidebarOnRight) 0 else insetMargin
         val targetToggleEndMargin = if (mReaderSidebarOnRight) insetMargin else 0
         if (toggleLayoutParams.marginStart != targetToggleStartMargin || toggleLayoutParams.marginEnd != targetToggleEndMargin) {
@@ -1191,15 +1222,97 @@ class GalleryActivity :
             }
         }
         toggleView.bringToFront()
-        contentContainer.post {
-            mGLRootView?.requestLayout()
-            mGLRootView?.requestLayoutContentPane()
-            mGalleryView?.requestLayout()
-            if (mReaderSidebarVisible) {
-                restoreVisibleReaderSidebarPreviews()
-                updateReaderSidebarSelection(forceCenter = true)
-            }
+
+        // Animate sidebar slide + content margin + divider fade
+        // Read current animated state so interrupted animations resume seamlessly
+        val targetInset = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
+        val targetStartMargin = if (mReaderSidebarOnRight) 0 else targetInset
+        val targetEndMargin = if (mReaderSidebarOnRight) targetInset else 0
+        val startStartMargin = contentLayoutParams.marginStart
+        val startEndMargin = contentLayoutParams.marginEnd
+        val slideOffset = if (mReaderSidebarOnRight) sidebarWidth.toFloat() else -sidebarWidth.toFloat()
+
+        // Capture current animated values — when interrupted mid-animation, resume from here
+        val curTranslation = sidebarContainer.translationX
+        val curDividerAlpha = mReaderSidebarDivider?.alpha ?: 1f
+        val startTranslation: Float
+        val endTranslation: Float
+        val startAlpha: Float
+        val endAlpha: Float
+
+        if (mReaderSidebarVisible) {
+            sidebarContainer.isVisible = true
+            mReaderSidebarDivider?.isVisible = true
+            // First show: start from off-screen; interrupted hide: reverse from current pos
+            startTranslation = if (curTranslation == 0f) slideOffset else curTranslation
+            endTranslation = 0f
+            startAlpha = if (curDividerAlpha >= 1f) 0f else curDividerAlpha
+            endAlpha = 1f
+        } else {
+            // Interrupted show: reverse from current pos; first hide: start from resting pos
+            startTranslation = curTranslation
+            endTranslation = slideOffset
+            startAlpha = curDividerAlpha
+            endAlpha = 0f
         }
+
+        var cancelled = false
+        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = SIDEBAR_ANIMATION_DURATION
+            interpolator = DecelerateInterpolator()
+            addUpdateListener { anim ->
+                val fraction = anim.animatedValue as Float
+                // Content margins
+                val newStartMargin = startStartMargin + ((targetStartMargin - startStartMargin) * fraction).toInt()
+                val newEndMargin = startEndMargin + ((targetEndMargin - startEndMargin) * fraction).toInt()
+                if (contentLayoutParams.marginStart != newStartMargin || contentLayoutParams.marginEnd != newEndMargin) {
+                    contentLayoutParams.marginStart = newStartMargin
+                    contentLayoutParams.marginEnd = newEndMargin
+                    contentContainer.layoutParams = contentLayoutParams
+                }
+                // Sidebar slide
+                sidebarContainer.translationX = startTranslation + (endTranslation - startTranslation) * fraction
+                // Divider fade
+                mReaderSidebarDivider?.alpha = startAlpha + (endAlpha - startAlpha) * fraction
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationCancel(animation: Animator) {
+                    // Mark as cancelled — don't modify any view state here.
+                    // The view stays at its last animated position so the next
+                    // animation can resume seamlessly from there.
+                    cancelled = true
+                }
+
+                override fun onAnimationEnd(animation: Animator) {
+                    // Skip if superseded by a newer animation
+                    if (generation != mSidebarAnimGeneration) return
+                    // Skip if cancelled — leave view state as-is for the next animator
+                    if (cancelled) {
+                        mSidebarAnimator = null
+                        return
+                    }
+                    if (mReaderSidebarVisible) {
+                        sidebarContainer.translationX = 0f
+                        mReaderSidebarDivider?.alpha = 1f
+                        contentContainer.post {
+                            mGLRootView?.requestLayout()
+                            mGLRootView?.requestLayoutContentPane()
+                            mGalleryView?.requestLayout()
+                            restoreVisibleReaderSidebarPreviews()
+                            updateReaderSidebarSelection(forceCenter = true)
+                        }
+                    } else {
+                        sidebarContainer.isVisible = false
+                        mReaderSidebarDivider?.isVisible = false
+                        sidebarContainer.translationX = 0f
+                        mReaderSidebarDivider?.alpha = 1f
+                    }
+                    mSidebarAnimator = null
+                }
+            })
+        }
+        mSidebarAnimator = animator
+        animator.start()
     }
 
     @SuppressLint("SetTextI18n")
@@ -2154,6 +2267,7 @@ class GalleryActivity :
         private const val HIDE_SLIDER_DELAY: Long = 3000
         private const val READER_SIDEBAR_TOGGLE_HINT_DELAY: Long = 1500
         private const val READER_SIDEBAR_TOGGLE_FADE_DURATION: Long = 180
+        private const val SIDEBAR_ANIMATION_DURATION: Long = 250
         private const val READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA = 0.82f
         private const val READER_SIDEBAR_TOGGLE_REST_ALPHA = 0.28f
         private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0f
