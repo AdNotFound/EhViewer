@@ -11,7 +11,7 @@
         android:background="?attr/selectableItemBackground"
         android:orientation="vertical"
         android:padding="4dp"
-        android:paddingStart="7dp">
+        android:paddingStart="8dp">
 
         <LinearLayout
             android:id="@+id/image_row"
@@ -38,7 +38,7 @@
                     android:id="@+id/image"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:foreground="?selectableItemBackground"
+                    android:contentDescription="@string/reader_sidebar_thumb"
                     app:alwaysCutAndScale="true"
                     app:aspect="1.0"
                     app:maxAspect="0.8"
@@ -51,6 +51,7 @@
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:layout_gravity="center"
+                    android:importantForAccessibility="no"
                     android:indeterminate="true"
                     android:visibility="gone" />
             </FrameLayout>
@@ -71,7 +72,7 @@
                     android:id="@+id/image_secondary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:foreground="?selectableItemBackground"
+                    android:contentDescription="@string/reader_sidebar_thumb"
                     app:alwaysCutAndScale="true"
                     app:aspect="1.0"
                     app:maxAspect="0.8"
@@ -84,6 +85,7 @@
                     android:layout_width="16dp"
                     android:layout_height="16dp"
                     android:layout_gravity="center"
+                    android:importantForAccessibility="no"
                     android:indeterminate="true"
                     android:visibility="gone" />
             </FrameLayout>
@@ -109,9 +111,10 @@
 
     <View
         android:id="@+id/indicator"
-        android:layout_width="3dp"
+        android:layout_width="4dp"
         android:layout_height="match_parent"
         android:layout_gravity="start|center_vertical"
         android:background="@drawable/bg_reader_sidebar_indicator"
+        android:importantForAccessibility="no"
         android:visibility="gone" />
 </FrameLayout>

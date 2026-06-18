@@ -30,6 +30,7 @@ import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
 import android.os.Build
@@ -59,13 +60,13 @@ import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.Spinner
-import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
@@ -263,6 +264,16 @@ class GalleryActivity :
     private val useReaderThumbnailSidebarLayout: Boolean
         get() = Settings.layoutReaderThumbnailSidebar
 
+    private fun AlertDialog.applyAmoledBlack() {
+        if (Settings.blackDarkTheme) {
+            show()
+            findViewById<View>(com.google.android.material.R.id.parentPanel)
+                ?.setBackgroundColor(Color.BLACK)
+        } else {
+            show()
+        }
+    }
+
     private val galleryDetailUrl: String?
         get() {
             val gid: Long
@@ -302,7 +313,7 @@ class GalleryActivity :
                             withUIContext {
                                 dialogShown = true
                                 dialog.run {
-                                    show()
+                                    applyAmoledBlack()
                                     getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                                         val passwd = builder.text
                                         if (passwd.isEmpty()) {
@@ -1579,7 +1590,7 @@ class GalleryActivity :
             items.add(getString(R.string.page_menu_copy_link))
         }
         pageDialogListener(builder, items.toTypedArray(), page)
-        builder.show()
+        builder.create().applyAmoledBlack()
     }
 
     private fun pageDialogListener(
@@ -1635,29 +1646,29 @@ class GalleryActivity :
         }
     }
 
-    @SuppressLint("InflateParams", "UseSwitchCompatOrMaterialCode")
+    @SuppressLint("InflateParams")
     private inner class GalleryMenuHelper(context: Context?) : DialogInterface.OnClickListener {
         val view: View = LayoutInflater.from(context).inflate(R.layout.dialog_gallery_menu, null)
         private val mScreenRotation: Spinner = view.findViewById(R.id.screen_rotation)
         private val mReadingDirection: Spinner = view.findViewById(R.id.reading_direction)
-        private val mDoublePageMode: Switch = view.findViewById(R.id.double_page_mode)
+        private val mDoublePageMode: SwitchCompat = view.findViewById(R.id.double_page_mode)
         private val mScaleMode: Spinner = view.findViewById(R.id.page_scaling)
         private val mStartPosition: Spinner = view.findViewById(R.id.start_position)
         private val mReadTheme: Spinner = view.findViewById(R.id.read_theme)
-        private val mKeepScreenOn: Switch = view.findViewById(R.id.keep_screen_on)
-        private val mShowClock: Switch = view.findViewById(R.id.show_clock)
-        private val mShowProgress: Switch = view.findViewById(R.id.show_progress)
-        private val mShowBattery: Switch = view.findViewById(R.id.show_battery)
-        private val mShowPageInterval: Switch = view.findViewById(R.id.show_page_interval)
+        private val mKeepScreenOn: SwitchCompat = view.findViewById(R.id.keep_screen_on)
+        private val mShowClock: SwitchCompat = view.findViewById(R.id.show_clock)
+        private val mShowProgress: SwitchCompat = view.findViewById(R.id.show_progress)
+        private val mShowBattery: SwitchCompat = view.findViewById(R.id.show_battery)
+        private val mShowPageInterval: SwitchCompat = view.findViewById(R.id.show_page_interval)
         private val mTurnPageInterval: SeekBar = view.findViewById(R.id.turn_page_interval)
-        private val mVolumePage: Switch = view.findViewById(R.id.volume_page)
+        private val mVolumePage: SwitchCompat = view.findViewById(R.id.volume_page)
         private val mVolumePageInterval: SeekBar = view.findViewById(R.id.volume_page_interval)
-        private val mReverseVolumePage: Switch = view.findViewById(R.id.reverse_volume_page)
-        private val mReadingFullscreen: Switch = view.findViewById(R.id.reading_fullscreen)
-        private val mCustomScreenLightness: Switch = view.findViewById(R.id.custom_screen_lightness)
+        private val mReverseVolumePage: SwitchCompat = view.findViewById(R.id.reverse_volume_page)
+        private val mReadingFullscreen: SwitchCompat = view.findViewById(R.id.reading_fullscreen)
+        private val mCustomScreenLightness: SwitchCompat = view.findViewById(R.id.custom_screen_lightness)
         private val mScreenLightness: SeekBar = view.findViewById(R.id.screen_lightness)
-        private val mDoublePageModeLandscape: Switch = view.findViewById(R.id.double_page_mode_landscape)
-        private val mDoublePageOffset: Switch = view.findViewById(R.id.double_page_offset)
+        private val mDoublePageModeLandscape: SwitchCompat = view.findViewById(R.id.double_page_mode_landscape)
+        private val mDoublePageOffset: SwitchCompat = view.findViewById(R.id.double_page_offset)
         private val mDoublePageGapLayout: ViewGroup = view.findViewById(R.id.double_page_gap_layout)
         private val mDoublePageGap: SeekBar = view.findViewById(R.id.double_page_gap)
 
@@ -1821,7 +1832,7 @@ class GalleryActivity :
                         insetsController?.hide(WindowInsetsCompat.Type.systemBars())
                     }
                 }
-                .show()
+            builder.create().applyAmoledBlack()
         }
 
         private fun onTapSliderArea() {
@@ -1911,8 +1922,9 @@ class GalleryActivity :
             } else {
                 view.resetSidebarAspect()
             }
-            // Only show spinner when image hasn't been loaded yet (avoids flash on cached rebind)
-            loadingView?.visibility = if (view.drawable == null) View.VISIBLE else View.GONE
+            // Don't show spinner eagerly — let the loading listener handle it.
+            // This avoids a flash when Coil delivers from memory cache in the same frame.
+            loadingView?.visibility = View.GONE
             view.setOnLoadingStateChangeListener { isLoading ->
                 loadingView?.visibility = if (isLoading) View.VISIBLE else View.GONE
             }
@@ -2033,6 +2045,7 @@ class GalleryActivity :
             val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
             val pageEnd = minOf(pageCount, pageStart + pairSize)
             bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
+            holder.image.contentDescription = getString(R.string.reader_sidebar_page, pageStart + 1)
             if (pageEnd - pageStart > 1) {
                 holder.imageLeadingSpace.visibility = View.GONE
                 holder.imageTrailingSpace.visibility = View.GONE
@@ -2041,6 +2054,7 @@ class GalleryActivity :
                 holder.imageSecondarySlot.visibility = View.VISIBLE
                 holder.imageGap.visibility = View.VISIBLE
                 bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                holder.imageSecondary.contentDescription = getString(R.string.reader_sidebar_page, pageStart + 2)
             } else {
                 holder.imageSecondary.resetClip()
                 holder.imageSecondary.setImageDrawable(null)
