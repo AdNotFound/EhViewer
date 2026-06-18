@@ -888,23 +888,22 @@ class GalleryActivity :
         if (!isDoublePageMode || pairSize <= 1) {
             return 1
         }
+        // When preview metadata is not yet loaded, trust GalleryView's slot-based
+        // pairing (all pages assumed paired unless doublePageOffset applies).
+        // Once metadata arrives, downgrade to single if either page is a spread.
         val currentPreview = mReaderSidebarPreviewMap[index]
-        if (currentPreview?.hasPreviewAspect() != true) {
-            return 1
-        }
-        if (currentPreview.previewWidth > currentPreview.previewHeight) {
-            return 1
-        }
         val secondIndex = index + 1
         if (secondIndex >= mSize) {
             return 1
         }
-        val secondPreview = mReaderSidebarPreviewMap[secondIndex]
-        if (secondPreview?.hasPreviewAspect() != true) {
-            return 1
-        }
-        if (secondPreview.previewWidth > secondPreview.previewHeight) {
-            return 1
+        if (currentPreview?.hasPreviewAspect() == true) {
+            if (currentPreview.previewWidth > currentPreview.previewHeight) {
+                return 1
+            }
+            val secondPreview = mReaderSidebarPreviewMap[secondIndex]
+            if (secondPreview?.hasPreviewAspect() == true && secondPreview.previewWidth > secondPreview.previewHeight) {
+                return 1
+            }
         }
         return pairSize
     }
@@ -2043,10 +2042,6 @@ class GalleryActivity :
             }
             preview.load(view)
         } else {
-            // Cancel any in-flight Coil request BEFORE resetting clip state.
-            // Without this, a stale request from a recycled ViewHolder could deliver
-            // the full sprite sheet after resetClip(), showing the unclipped "合图".
-            view.cancelLoad()
             view.visibility = View.VISIBLE
             view.resetSidebarAspect()
             view.resetClip()
@@ -2128,8 +2123,6 @@ class GalleryActivity :
         override fun onViewRecycled(holder: ReaderSidebarHolder) {
             // Cancel in-flight Coil requests to prevent stale callbacks from
             // delivering images after the ViewHolder is rebound to a new position.
-            holder.image.cancelLoad()
-            holder.imageSecondary.cancelLoad()
             holder.image.setImageDrawable(null)
             holder.imageSecondary.setImageDrawable(null)
         }
@@ -2235,6 +2228,10 @@ class GalleryActivity :
         fun flushPendingData(newPageStarts: List<Int>?) {
             if (newPageStarts != null) {
                 applyDiff(newPageStarts)
+                // DiffUtil only rebinds structurally changed items. Items that
+                // didn't change structure still have stale preview state from
+                // before the scroll — notify them to refresh their thumbnails.
+                notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
             } else if (mSidebarPendingPreviewUpdate) {
                 notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
             }
