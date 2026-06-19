@@ -77,7 +77,9 @@ class ReaderSidebarAdapter(
 
     override fun onViewRecycled(holder: ReaderSidebarHolder) {
         holder.image.setImageDrawable(null)
+        holder.image.tag = null
         holder.imageSecondary.setImageDrawable(null)
+        holder.imageSecondary.tag = null
     }
 
     @SuppressLint("SetTextI18n")
@@ -274,6 +276,8 @@ class ReaderSidebarAdapter(
         loadingView: ProgressBar? = null,
     ) {
         if (preview != null) {
+            if (view.tag == preview.position && view.drawable != null) return
+            view.tag = preview.position
             if (view.drawable != null) view.setImageDrawable(null)
             view.resetForReuse()
             view.visibility = View.VISIBLE

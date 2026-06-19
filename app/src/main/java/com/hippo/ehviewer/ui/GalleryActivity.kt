@@ -949,10 +949,10 @@ class GalleryActivity :
     private fun updateReaderSidebarData(forceCenter: Boolean = false) {
         val pageStarts = buildReaderSidebarPageStarts()
         val deferred = mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts, mSidebarUserScrolling, mCurrentIndex) ?: false
-        mSidebarDataPending = deferred
         if (deferred) {
+            mSidebarDataPending = true
             mSidebarPendingPageStarts = pageStarts
-        } else {
+        } else if (!mSidebarDataPending) {
             mReaderSidebarPageStarts = pageStarts
         }
         updateReaderSidebarSelection(forceCenter)
@@ -962,10 +962,10 @@ class GalleryActivity :
         val pageStarts = buildReaderSidebarPageStarts()
         if (pageStarts != mReaderSidebarPageStarts) {
             val deferred = mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts, mSidebarUserScrolling, mCurrentIndex) ?: false
-            mSidebarDataPending = deferred
             if (deferred) {
+                mSidebarDataPending = true
                 mSidebarPendingPageStarts = pageStarts
-            } else {
+            } else if (!mSidebarDataPending) {
                 mReaderSidebarPageStarts = pageStarts
             }
         }
@@ -1001,6 +1001,9 @@ class GalleryActivity :
             layoutManager.scrollToPosition(targetPosition)
             return
         }
+
+        // Skip if a smooth scroll is already in progress — prevents two scrollers fighting
+        if (layoutManager.isSmoothScrolling()) return
 
         // Debounce: cancel pending scroll
         mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
@@ -1240,7 +1243,7 @@ class GalleryActivity :
                                 -getReaderSidebarWidth().toFloat()
                             }
                             sidebarContainer?.animate()?.translationX(slideOffset)?.withEndAction {
-                                sidebarContainer?.isVisible = false
+                                sidebarContainer.isVisible = false
                                 mReaderSidebarDivider?.isVisible = false
                             }?.setDuration(160L)?.start()
                             view.animate().translationX(0f).setDuration(160L).start()
