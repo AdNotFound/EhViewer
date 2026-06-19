@@ -1160,7 +1160,13 @@ class GalleryActivity :
             }
 
             MotionEvent.ACTION_MOVE -> {
-                val deltaX = event.rawX - mReaderSidebarToggleDownRawX
+                val rawDeltaX = event.rawX - mReaderSidebarToggleDownRawX
+                // Constrain drag to the direction that triggers a side switch
+                val deltaX = if (mReaderSidebarOnRight) {
+                    rawDeltaX.coerceAtMost(0f)
+                } else {
+                    rawDeltaX.coerceAtLeast(0f)
+                }
                 if (!mReaderSidebarToggleDragging && kotlin.math.abs(deltaX) > mReaderSidebarToggleTouchSlop) {
                     mReaderSidebarToggleDragging = true
                 }
