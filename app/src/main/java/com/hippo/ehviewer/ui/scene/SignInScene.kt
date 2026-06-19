@@ -28,6 +28,7 @@ import android.widget.TextView.OnEditorActionListener
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.textfield.TextInputLayout
+import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.UrlOpener
@@ -116,13 +117,17 @@ class SignInScene :
             mProgress!!.run {
                 alpha = 0.0f
                 visibility = View.VISIBLE
-                animate().alpha(1.0f).setDuration(500).start()
+                animate().alpha(1.0f).setDuration(AnimationConstants.PROGRESS_FADE_DURATION).start()
             }
         }
     }
 
     private fun hideProgress() {
-        mProgress?.visibility = View.GONE
+        mProgress?.run {
+            animate().alpha(0f).setDuration(AnimationConstants.PROGRESS_FADE_DURATION)
+                .withEndAction { visibility = View.GONE }
+                .start()
+        }
     }
 
     override fun onSceneResult(requestCode: Int, resultCode: Int, data: Bundle?) {

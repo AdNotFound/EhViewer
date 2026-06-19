@@ -34,6 +34,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -83,6 +84,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.app.EditTextDialogBuilder
+import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.AppConfig
 import com.hippo.ehviewer.BuildConfig
 import com.hippo.ehviewer.R
@@ -186,7 +188,7 @@ class GalleryActivity :
         mSeekBarPanel?.let { hideSlider(it) }
     }
     private val mHideReaderSidebarToggleRunnable = Runnable {
-        mReaderSidebarToggle?.animate()?.alpha(getReaderSidebarToggleRestAlpha())?.setDuration(READER_SIDEBAR_TOGGLE_FADE_DURATION)?.start()
+        mReaderSidebarToggle?.animate()?.alpha(getReaderSidebarToggleRestAlpha())?.setDuration(AnimationConstants.ALPHA_FADE_DURATION)?.start()
     }
     private val mHideSliderListener: SimpleAnimatorListener = object : SimpleAnimatorListener() {
         override fun onAnimationEnd(animation: Animator) {
@@ -272,12 +274,9 @@ class GalleryActivity :
 
     private fun AlertDialog.applyAmoledBlack() {
         if (Settings.blackDarkTheme && (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
-            show()
-            findViewById<View>(com.google.android.material.R.id.parentPanel)
-                ?.setBackgroundColor(Color.BLACK)
-        } else {
-            show()
+            window?.setBackgroundDrawable(ColorDrawable(Color.BLACK))
         }
+        show()
     }
 
     private val galleryDetailUrl: String?
@@ -1223,11 +1222,11 @@ class GalleryActivity :
                             toggleReaderSidebar()
                         } else {
                             // Bounce sidebar back to visible
-                            sidebarContainer?.animate()?.translationX(0f)?.setDuration(160L)?.start()
+                            sidebarContainer?.animate()?.translationX(0f)?.setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION)?.start()
                             // Try side-switch; if no switch, bounce toggle back
                             view.translationX = 0f
                             if (!maybeSwitchReaderSidebarSide(deltaX)) {
-                                view.animate().translationX(0f).setDuration(160L).start()
+                                view.animate().translationX(0f).setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION).start()
                             }
                         }
                     } else {
@@ -1246,8 +1245,8 @@ class GalleryActivity :
                             sidebarContainer?.animate()?.translationX(slideOffset)?.withEndAction {
                                 sidebarContainer.isVisible = false
                                 mReaderSidebarDivider?.isVisible = false
-                            }?.setDuration(160L)?.start()
-                            view.animate().translationX(0f).setDuration(160L).start()
+                            }?.setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION)?.start()
+                            view.animate().translationX(0f).setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION).start()
                         }
                     }
                 } else if (event.actionMasked == MotionEvent.ACTION_UP) {
@@ -1364,7 +1363,7 @@ class GalleryActivity :
 
         var cancelled = false
         val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = SIDEBAR_ANIMATION_DURATION
+            duration = AnimationConstants.SIDEBAR_SLIDE_DURATION
             interpolator = DecelerateInterpolator()
             addUpdateListener { anim ->
                 val fraction = anim.animatedValue as Float
@@ -1449,7 +1448,7 @@ class GalleryActivity :
     }
 
     override fun onStopTrackingTouch(seekBar: SeekBar) {
-        SimpleHandler.getInstance().postDelayed(mHideSliderRunnable, HIDE_SLIDER_DELAY)
+        SimpleHandler.getInstance().postDelayed(mHideSliderRunnable, AnimationConstants.SLIDER_HIDE_DELAY)
     }
 
     override fun onUpdateCurrentIndex(index: Int) {
@@ -1491,7 +1490,7 @@ class GalleryActivity :
         sliderPanel.translationY = sliderPanel.height.toFloat()
         sliderPanel.visibility = View.VISIBLE
         mSeekBarPanelAnimator = ObjectAnimator.ofFloat(sliderPanel, "translationY", 0.0f)
-        mSeekBarPanelAnimator!!.duration = SLIDER_ANIMATION_DURING
+        mSeekBarPanelAnimator!!.duration = AnimationConstants.SLIDER_ANIM_DURATION
         mSeekBarPanelAnimator!!.interpolator = AnimationUtils.FAST_SLOW_INTERPOLATOR
         mSeekBarPanelAnimator!!.addUpdateListener(mUpdateSliderListener)
         mSeekBarPanelAnimator!!.addListener(mShowSliderListener)
@@ -1506,7 +1505,7 @@ class GalleryActivity :
         }
         mSeekBarPanelAnimator =
             ObjectAnimator.ofFloat(sliderPanel, "translationY", sliderPanel.height.toFloat())
-        mSeekBarPanelAnimator!!.duration = SLIDER_ANIMATION_DURING
+        mSeekBarPanelAnimator!!.duration = AnimationConstants.SLIDER_ANIM_DURATION
         mSeekBarPanelAnimator!!.interpolator = AnimationUtils.SLOW_FAST_INTERPOLATOR
         mSeekBarPanelAnimator!!.addUpdateListener(mUpdateSliderListener)
         mSeekBarPanelAnimator!!.addListener(mHideSliderListener)
@@ -2069,7 +2068,7 @@ class GalleryActivity :
                 hideSlider(mSeekBarPanel!!)
             } else {
                 showSlider(mSeekBarPanel!!)
-                SimpleHandler.getInstance().postDelayed(mHideSliderRunnable, HIDE_SLIDER_DELAY)
+                SimpleHandler.getInstance().postDelayed(mHideSliderRunnable, AnimationConstants.SLIDER_HIDE_DELAY)
             }
         }
 
@@ -2145,11 +2144,7 @@ class GalleryActivity :
         const val KEY_INITIAL_READER_PREVIEWS = "initial_reader_previews"
         const val KEY_PAGE = "page"
         const val KEY_CURRENT_INDEX = "current_index"
-        private const val SLIDER_ANIMATION_DURING: Long = 150
-        private const val HIDE_SLIDER_DELAY: Long = 3000
         private const val READER_SIDEBAR_TOGGLE_HINT_DELAY: Long = 1500
-        private const val READER_SIDEBAR_TOGGLE_FADE_DURATION: Long = 180
-        private const val SIDEBAR_ANIMATION_DURATION: Long = 250
         private const val READER_SIDEBAR_TOGGLE_VISIBLE_ALPHA = 0.82f
         private const val READER_SIDEBAR_TOGGLE_REST_ALPHA = 0.28f
         private const val READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA = 0f
