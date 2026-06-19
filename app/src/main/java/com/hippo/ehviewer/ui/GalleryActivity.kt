@@ -510,7 +510,7 @@ class GalleryActivity :
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     if (newState != RecyclerView.SCROLL_STATE_IDLE) {
                         if (mSidebarProgrammaticScroll) {
-                            // Programmatic auto-center scroll — don't mark as user scroll
+                            // Programmatic auto-center scroll — block concurrent auto-center until idle
                             mSidebarUserScrolling = true
                         } else {
                             // User-initiated scroll
