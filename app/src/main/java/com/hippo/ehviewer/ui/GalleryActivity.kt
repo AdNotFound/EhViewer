@@ -58,8 +58,6 @@ import android.webkit.MimeTypeMap
 import android.widget.CompoundButton
 import android.widget.FrameLayout
 import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.SeekBar.OnSeekBarChangeListener
 import android.widget.Spinner
@@ -81,7 +79,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
@@ -102,7 +99,7 @@ import com.hippo.ehviewer.gallery.EhGalleryProvider
 import com.hippo.ehviewer.gallery.GalleryProvider2
 import com.hippo.ehviewer.widget.GalleryGuideView
 import com.hippo.ehviewer.widget.GalleryHeader
-import com.hippo.ehviewer.widget.ReaderSidebarThumb
+import com.hippo.ehviewer.ui.reader.ReaderSidebarAdapter
 import com.hippo.ehviewer.widget.ReversibleSeekBar
 import com.hippo.glgallery.GalleryProvider
 import com.hippo.glgallery.GalleryView
@@ -247,7 +244,6 @@ class GalleryActivity :
     private var mSidebarUserScrolling = false
     private var mSidebarDataPending = false
     private var mSidebarPendingPageStarts: List<Int>? = null
-    private var mSidebarPendingPreviewUpdate = false
     private var mSidebarAnimator: ValueAnimator? = null
     private var mSidebarAnimGeneration = 0
     private var mSidebarProgrammaticScroll = false
@@ -500,7 +496,13 @@ class GalleryActivity :
         mReaderSidebarToggle = findViewById(R.id.reader_sidebar_toggle)
         mReaderSidebarRecyclerView = findViewById(R.id.reader_sidebar_list)
         if (mReaderSidebarRecyclerView != null) {
-            mReaderSidebarAdapter = ReaderSidebarAdapter()
+            mReaderSidebarAdapter = ReaderSidebarAdapter(
+                this,
+                object : ReaderSidebarAdapter.Callbacks {
+                    override val galleryView: GalleryView? get() = mGalleryView
+                    override val isDoublePageMode: Boolean get() = this@GalleryActivity.isDoublePageMode
+                },
+            )
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
             mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
             mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
@@ -529,9 +531,9 @@ class GalleryActivity :
                             if (pending != null) {
                                 mReaderSidebarPageStarts = pending
                             }
-                            mReaderSidebarAdapter?.flushPendingData(pending)
-                        } else if (mSidebarPendingPreviewUpdate) {
-                            mReaderSidebarAdapter?.flushPendingData(null)
+                            mReaderSidebarAdapter?.flushPendingData(pending, mCurrentIndex)
+                        } else if (mReaderSidebarAdapter?.hasPendingPreviewUpdate() == true) {
+                            mReaderSidebarAdapter?.flushPendingData(null, mCurrentIndex)
                         }
                         // Don't forceCenter — flushPendingData already preserves scroll position
                         updateReaderSidebarSelection(forceCenter = false)
@@ -746,7 +748,9 @@ class GalleryActivity :
     override fun onResume() {
         super.onResume()
         mGLRootView?.onResume()
-        mReaderSidebarRecyclerView?.post { restoreVisibleReaderSidebarPreviews() }
+        mReaderSidebarRecyclerView?.let { rv ->
+            rv.post { mReaderSidebarAdapter?.restoreVisiblePreviews(rv) }
+        }
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
@@ -945,10 +949,11 @@ class GalleryActivity :
 
     private fun updateReaderSidebarData(forceCenter: Boolean = false) {
         val pageStarts = buildReaderSidebarPageStarts()
-        mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts)
-        // Only update mReaderSidebarPageStarts if adapter actually applied the change
-        // (not deferred due to user scrolling), to keep Activity and adapter state consistent
-        if (!mSidebarDataPending) {
+        val deferred = mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts, mSidebarUserScrolling, mCurrentIndex) ?: false
+        mSidebarDataPending = deferred
+        if (deferred) {
+            mSidebarPendingPageStarts = pageStarts
+        } else {
             mReaderSidebarPageStarts = pageStarts
         }
         updateReaderSidebarSelection(forceCenter)
@@ -957,8 +962,11 @@ class GalleryActivity :
     private fun refreshReaderSidebarStructure(forceCenter: Boolean = false) {
         val pageStarts = buildReaderSidebarPageStarts()
         if (pageStarts != mReaderSidebarPageStarts) {
-            mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts)
-            if (!mSidebarDataPending) {
+            val deferred = mReaderSidebarAdapter?.updateData(mSize, mReaderSidebarPreviewMap, pageStarts, mSidebarUserScrolling, mCurrentIndex) ?: false
+            mSidebarDataPending = deferred
+            if (deferred) {
+                mSidebarPendingPageStarts = pageStarts
+            } else {
                 mReaderSidebarPageStarts = pageStarts
             }
         }
@@ -1393,7 +1401,9 @@ class GalleryActivity :
                             mGLRootView?.requestLayout()
                             mGLRootView?.requestLayoutContentPane()
                             mGalleryView?.requestLayout()
-                            restoreVisibleReaderSidebarPreviews()
+                            mReaderSidebarRecyclerView?.let { rv ->
+                                mReaderSidebarAdapter?.restoreVisiblePreviews(rv)
+                            }
                             updateReaderSidebarSelection(forceCenter = true)
                         }
                     } else {
@@ -2104,298 +2114,10 @@ class GalleryActivity :
         }
     }
 
-    private class ReaderSidebarHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val imageLeadingSpace: View = itemView.findViewById(R.id.image_leading_space)
-        val imageSlot: View = itemView.findViewById(R.id.image_slot)
-        val image: ReaderSidebarThumb = itemView.findViewById(R.id.image)
-        val imageLoading: ProgressBar = itemView.findViewById(R.id.image_loading)
-        val imageSecondarySlot: View = itemView.findViewById(R.id.image_secondary_slot)
-        val imageSecondary: ReaderSidebarThumb = itemView.findViewById(R.id.image_secondary)
-        val imageSecondaryLoading: ProgressBar = itemView.findViewById(R.id.image_secondary_loading)
-        val imageGap: View = itemView.findViewById(R.id.image_gap)
-        val imageTrailingSpace: View = itemView.findViewById(R.id.image_trailing_space)
-        val text: TextView = itemView.findViewById(R.id.text)
-        val indicator: View = itemView.findViewById(R.id.indicator)
-    }
-
-    private fun bindSidebarPreview(
-        view: ReaderSidebarThumb,
-        preview: GalleryPreview?,
-        loadingView: ProgressBar? = null,
-    ) {
-        if (preview != null) {
-            // Always clear stale drawable first to prevent recycled ViewHolders
-            // from briefly showing the previous page's sprite sheet during fast scroll.
-            if (view.drawable != null) view.setImageDrawable(null)
-            view.resetForReuse()
-            view.visibility = View.VISIBLE
-            view.setBackgroundResource(0)
-            if (preview.hasClipAspect()) {
-                view.applySidebarAspect(preview.clipWidth, preview.clipHeight)
-            } else if (preview.hasPreviewAspect()) {
-                view.applySidebarAspect(preview.previewWidth, preview.previewHeight)
-            } else {
-                view.resetSidebarAspect()
-            }
-            // Don't show spinner eagerly — let the loading listener handle it.
-            // This avoids a flash when Coil delivers from memory cache in the same frame.
-            loadingView?.visibility = View.GONE
-            view.setOnLoadingStateChangeListener { isLoading ->
-                loadingView?.visibility = if (isLoading) View.VISIBLE else View.GONE
-            }
-            // Only load when clip data is valid. For NormalPreviewSet, multiple pages
-            // share the same sprite sheet URL; clip coordinates select the correct
-            // region. Loading without valid clip would display the full unclipped sheet.
-            if (preview.hasClipAspect()) {
-                preview.load(view)
-            } else {
-                // Clip data not yet available — show placeholder, don't load sprite sheet.
-                view.resetClip()
-                view.setImageDrawable(null)
-            }
-        } else {
-            view.visibility = View.VISIBLE
-            view.resetSidebarAspect()
-            view.resetClip()
-            view.setImageDrawable(null)
-            view.setBackgroundResource(0)
-            loadingView?.visibility = View.GONE
-            view.setOnLoadingStateChangeListener(null)
-        }
-    }
-
-    private fun restoreSidebarPreviewIfNeeded(view: ReaderSidebarThumb, preview: GalleryPreview?) {
-        if (preview == null || view.drawable != null) {
-            return
-        }
-        bindSidebarPreview(view, preview, null)
-    }
-
-    private fun restoreVisibleReaderSidebarPreviews() {
-        val recyclerView = mReaderSidebarRecyclerView ?: return
-        val pageStarts = mReaderSidebarPageStarts
-        if (pageStarts.isEmpty()) {
-            return
-        }
-        for (i in 0 until recyclerView.childCount) {
-            val child = recyclerView.getChildAt(i) ?: continue
-            val holder = recyclerView.getChildViewHolder(child) as? ReaderSidebarHolder ?: continue
-            val position = holder.bindingAdapterPosition
-            if (position == RecyclerView.NO_POSITION || position !in pageStarts.indices) {
-                continue
-            }
-            val pageStart = pageStarts[position]
-            restoreSidebarPreviewIfNeeded(holder.image, mReaderSidebarPreviewMap[pageStart])
-            val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
-            if (pairSize > 1) {
-                restoreSidebarPreviewIfNeeded(holder.imageSecondary, mReaderSidebarPreviewMap[pageStart + 1])
-            }
-        }
-    }
-
     private fun getReaderSidebarToggleRestAlpha(): Float = if (Settings.layoutReaderThumbnailSidebarToggleAutoHide) {
         READER_SIDEBAR_TOGGLE_HIDDEN_ALPHA
     } else {
         READER_SIDEBAR_TOGGLE_REST_ALPHA
-    }
-
-    private inner class ReaderSidebarAdapter : RecyclerView.Adapter<ReaderSidebarHolder>() {
-        private val inflater: LayoutInflater = layoutInflater
-        private var pageCount = 0
-        private var currentIndex = -1
-        private var previews: Map<Int, GalleryPreview> = emptyMap()
-        private var pageStarts: List<Int> = emptyList()
-        private var pageStartToPosition: Map<Int, Int> = emptyMap()
-
-        init {
-            setHasStableIds(true)
-        }
-
-        override fun getItemId(position: Int): Long = pageStarts[position].toLong()
-
-        private fun updateSlotLayout(view: View, width: Int, weight: Float) {
-            val params = view.layoutParams as? LinearLayout.LayoutParams ?: return
-            if (params.width == width && params.weight == weight) {
-                return
-            }
-            params.width = width
-            params.weight = weight
-            view.layoutParams = params
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ReaderSidebarHolder = ReaderSidebarHolder(
-            inflater.inflate(R.layout.item_gallery_sidebar_preview, parent, false),
-        )
-
-        @SuppressLint("SetTextI18n")
-        override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int) {
-            bindSidebarFull(holder, position)
-        }
-
-        override fun onViewRecycled(holder: ReaderSidebarHolder) {
-            // Cancel in-flight Coil requests to prevent stale callbacks from
-            // delivering images after the ViewHolder is rebound to a new position.
-            holder.image.setImageDrawable(null)
-            holder.imageSecondary.setImageDrawable(null)
-        }
-
-        @SuppressLint("SetTextI18n")
-        override fun onBindViewHolder(holder: ReaderSidebarHolder, position: Int, payloads: List<Any>) {
-            if (payloads.isNotEmpty()) {
-                val hasPreview = payloads.contains(PREVIEW_PAYLOAD)
-                val hasIndex = payloads.contains(INDEX_PAYLOAD)
-                if (hasPreview) {
-                    val pageStart = pageStarts[position]
-                    val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
-                    val pageEnd = minOf(pageCount, pageStart + pairSize)
-                    bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
-                    if (pageEnd - pageStart > 1) {
-                        bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
-                    }
-                }
-                if (hasIndex) {
-                    val activated = position == currentIndex
-                    holder.indicator.visibility = if (activated) View.VISIBLE else View.GONE
-                    holder.text.setTypeface(null, if (activated) Typeface.BOLD else Typeface.NORMAL)
-                }
-            } else {
-                bindSidebarFull(holder, position)
-            }
-        }
-
-        @SuppressLint("SetTextI18n")
-        private fun bindSidebarFull(holder: ReaderSidebarHolder, position: Int) {
-            val pageStart = pageStarts[position]
-            val pairSize = (mGalleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
-            val pageEnd = minOf(pageCount, pageStart + pairSize)
-            bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
-            holder.image.contentDescription = getString(R.string.reader_sidebar_page, pageStart + 1)
-            if (pageEnd - pageStart > 1) {
-                holder.imageLeadingSpace.visibility = View.GONE
-                holder.imageTrailingSpace.visibility = View.GONE
-                updateSlotLayout(holder.imageSlot, 0, 1f)
-                updateSlotLayout(holder.imageSecondarySlot, 0, 1f)
-                holder.imageSecondarySlot.visibility = View.VISIBLE
-                holder.imageGap.visibility = View.VISIBLE
-                bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
-                holder.imageSecondary.contentDescription = getString(R.string.reader_sidebar_page, pageStart + 2)
-            } else {
-                holder.imageSecondary.resetClip()
-                holder.imageSecondary.setImageDrawable(null)
-                holder.imageSecondary.setBackgroundResource(0)
-                holder.imageSecondaryLoading.visibility = View.GONE
-                if (isDoublePageMode) {
-                    holder.imageLeadingSpace.visibility = View.VISIBLE
-                    holder.imageTrailingSpace.visibility = View.VISIBLE
-                    updateSlotLayout(holder.imageLeadingSpace, 0, 1f)
-                    updateSlotLayout(holder.imageSlot, 0, 2f)
-                    updateSlotLayout(holder.imageTrailingSpace, 0, 1f)
-                    holder.imageSecondarySlot.visibility = View.GONE
-                    holder.imageGap.visibility = View.GONE
-                } else {
-                    holder.imageLeadingSpace.visibility = View.GONE
-                    holder.imageTrailingSpace.visibility = View.GONE
-                    updateSlotLayout(holder.imageSlot, 0, 1f)
-                    updateSlotLayout(holder.imageSecondarySlot, 0, 1f)
-                    holder.imageSecondarySlot.visibility = View.GONE
-                    holder.imageGap.visibility = View.GONE
-                }
-            }
-            holder.text.text = if (pageEnd - pageStart > 1) {
-                "${pageStart + 1}-$pageEnd"
-            } else {
-                (pageStart + 1).toString()
-            }
-            val activated = position == currentIndex
-            holder.indicator.visibility = if (activated) View.VISIBLE else View.GONE
-            holder.itemView.alpha = 1f
-            holder.text.setTypeface(null, if (activated) Typeface.BOLD else Typeface.NORMAL)
-            holder.itemView.setOnClickListener {
-                mGalleryView?.setCurrentPage(pageStart)
-            }
-        }
-
-        override fun getItemCount(): Int = pageStarts.size
-
-        fun updateData(pageCount: Int, previews: Map<Int, GalleryPreview>, pageStarts: List<Int>) {
-            val oldPageStarts = this.pageStarts
-            this.pageCount = pageCount
-            this.previews = previews
-            if (oldPageStarts == pageStarts) {
-                if (mSidebarUserScrolling) {
-                    // User is scrolling — defer preview rebind to avoid visual jitter
-                    mSidebarPendingPreviewUpdate = true
-                } else {
-                    notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
-                }
-            } else if (mSidebarUserScrolling) {
-                // User is scrolling — defer structural change
-                mSidebarDataPending = true
-                mSidebarPendingPageStarts = pageStarts
-            } else {
-                applyDiff(pageStarts)
-            }
-        }
-
-        fun flushPendingData(newPageStarts: List<Int>?) {
-            if (newPageStarts != null) {
-                applyDiff(newPageStarts)
-                // DiffUtil only rebinds structurally changed items. Items that
-                // didn't change structure still have stale preview state from
-                // before the scroll — notify them to refresh their thumbnails.
-                notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
-            } else if (mSidebarPendingPreviewUpdate) {
-                notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
-            }
-            mSidebarPendingPreviewUpdate = false
-        }
-
-        private fun applyDiff(newPageStarts: List<Int>) {
-            val oldPageStarts = this.pageStarts
-            val oldCurrentIndex = this.currentIndex
-            val oldPageCount = this.pageCount
-            // Resolve current page's new position before updating state
-            val currentAlignedIndex = mGalleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
-            this.pageStarts = newPageStarts
-            this.pageStartToPosition = newPageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
-            this.currentIndex = pageStartToPosition[currentAlignedIndex] ?: -1
-            val newCurrentIndex = this.currentIndex
-            val diff = DiffUtil.calculateDiff(
-                object : DiffUtil.Callback() {
-                    override fun getOldListSize() = oldPageStarts.size
-                    override fun getNewListSize() = newPageStarts.size
-                    override fun areItemsTheSame(oldPos: Int, newPos: Int) = oldPageStarts[oldPos] == newPageStarts[newPos]
-                    override fun areContentsTheSame(oldPos: Int, newPos: Int): Boolean {
-                        val wasActive = oldPos == oldCurrentIndex
-                        val isActive = newPos == newCurrentIndex
-                        if (wasActive != isActive) return false
-                        // Detect pair-size change: derive from pageStarts structure
-                        val oldStart = oldPageStarts[oldPos]
-                        val newStart = newPageStarts[newPos]
-                        val oldPairSize = if (oldPos + 1 < oldPageStarts.size) oldPageStarts[oldPos + 1] - oldStart else oldPageCount - oldStart
-                        val newPairSize = if (newPos + 1 < newPageStarts.size) newPageStarts[newPos + 1] - newStart else pageCount - newStart
-                        return oldPairSize == newPairSize
-                    }
-                },
-                true,
-            )
-            diff.dispatchUpdatesTo(this)
-        }
-
-        fun updateCurrentIndex(index: Int) {
-            val newIndex = pageStartToPosition[index] ?: -1
-            if (currentIndex == newIndex) return
-            val oldIndex = currentIndex
-            currentIndex = newIndex
-            if (oldIndex in pageStarts.indices) {
-                notifyItemChanged(oldIndex, INDEX_PAYLOAD)
-            }
-            if (currentIndex in pageStarts.indices) {
-                notifyItemChanged(currentIndex, INDEX_PAYLOAD)
-            }
-        }
-
-        fun getCurrentAdapterPosition(): Int = currentIndex
     }
 
     private inner class GalleryAdapter(glRootView: GLRootView, provider: GalleryProvider) : SimpleAdapter(glRootView, provider) {
@@ -2411,8 +2133,6 @@ class GalleryActivity :
     }
 
     companion object {
-        private const val PREVIEW_PAYLOAD = "preview"
-        private const val INDEX_PAYLOAD = "index"
         private const val SIDEBAR_SCROLL_DEBOUNCE_MS = 80L
         const val ACTION_EH = "eh"
         const val KEY_ACTION = "action"
