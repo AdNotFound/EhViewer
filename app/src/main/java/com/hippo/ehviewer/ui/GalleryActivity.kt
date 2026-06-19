@@ -989,6 +989,12 @@ class GalleryActivity :
             return
         }
 
+        // RecyclerView hasn't laid out yet — jump directly without animation
+        if (firstVisible == RecyclerView.NO_POSITION) {
+            layoutManager.scrollToPosition(targetPosition)
+            return
+        }
+
         // Debounce: cancel pending scroll
         mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
 
