@@ -1160,29 +1160,83 @@ class GalleryActivity :
 
             MotionEvent.ACTION_MOVE -> {
                 val rawDeltaX = event.rawX - mReaderSidebarToggleDownRawX
-                // Constrain drag to the direction that triggers a side switch
-                val deltaX = if (mReaderSidebarOnRight) {
-                    rawDeltaX.coerceAtMost(0f)
-                } else {
-                    rawDeltaX.coerceAtLeast(0f)
-                }
-                if (!mReaderSidebarToggleDragging && kotlin.math.abs(deltaX) > mReaderSidebarToggleTouchSlop) {
+                if (!mReaderSidebarToggleDragging && kotlin.math.abs(rawDeltaX) > mReaderSidebarToggleTouchSlop) {
                     mReaderSidebarToggleDragging = true
                 }
                 if (mReaderSidebarToggleDragging) {
-                    view.translationX = deltaX
+                    val sidebarContainer = mReaderSidebarContainer
+                    val sidebarWidth = getReaderSidebarWidth()
+                    view.translationX = rawDeltaX
+                    if (mReaderSidebarVisible) {
+                        // Drag toward screen edge = slide sidebar to close; else = just switch
+                        val closeTranslation = if (mReaderSidebarOnRight) {
+                            rawDeltaX.coerceIn(0f, sidebarWidth.toFloat())
+                        } else {
+                            rawDeltaX.coerceIn(-sidebarWidth.toFloat(), 0f)
+                        }
+                        sidebarContainer?.translationX = closeTranslation
+                    } else {
+                        // Drag away from screen edge = reveal sidebar
+                        val isOpenDirection = if (mReaderSidebarOnRight) rawDeltaX < 0 else rawDeltaX > 0
+                        if (isOpenDirection) {
+                            if (sidebarContainer?.isVisible == false) {
+                                sidebarContainer.isVisible = true
+                                mReaderSidebarDivider?.isVisible = true
+                            }
+                            val openTranslation = if (mReaderSidebarOnRight) {
+                                (sidebarWidth.toFloat() + rawDeltaX).coerceAtLeast(0f)
+                            } else {
+                                (-sidebarWidth.toFloat() + rawDeltaX).coerceAtMost(0f)
+                            }
+                            sidebarContainer?.translationX = openTranslation
+                        }
+                    }
                 }
                 return true
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 val deltaX = event.rawX - mReaderSidebarToggleDownRawX
+                val sidebarContainer = mReaderSidebarContainer
                 view.parent?.requestDisallowInterceptTouchEvent(false)
                 if (mReaderSidebarToggleDragging) {
-                    view.animate().cancel()
-                    view.translationX = 0f
-                    if (!maybeSwitchReaderSidebarSide(deltaX)) {
-                        view.animate().translationX(0f).setDuration(160L).start()
+                    val threshold = TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP, 36f, resources.displayMetrics,
+                    )
+                    if (mReaderSidebarVisible) {
+                        val isCloseDirection = if (mReaderSidebarOnRight) deltaX > 0 else deltaX < 0
+                        if (isCloseDirection && kotlin.math.abs(deltaX) > threshold) {
+                            // Commit close — sidebar follows animation from current position
+                            view.translationX = 0f
+                            toggleReaderSidebar()
+                        } else {
+                            // Bounce sidebar back to visible
+                            sidebarContainer?.animate()?.translationX(0f)?.setDuration(160L)?.start()
+                            // Try side-switch; if no switch, bounce toggle back
+                            view.translationX = 0f
+                            if (!maybeSwitchReaderSidebarSide(deltaX)) {
+                                view.animate().translationX(0f).setDuration(160L).start()
+                            }
+                        }
+                    } else {
+                        val isOpenDirection = if (mReaderSidebarOnRight) deltaX < 0 else deltaX > 0
+                        if (isOpenDirection && kotlin.math.abs(deltaX) > threshold) {
+                            // Commit open — sidebar animation picks up from current position
+                            view.translationX = 0f
+                            toggleReaderSidebar()
+                        } else {
+                            // Bounce sidebar back to hidden
+                            val slideOffset = if (mReaderSidebarOnRight) {
+                                getReaderSidebarWidth().toFloat()
+                            } else {
+                                -getReaderSidebarWidth().toFloat()
+                            }
+                            sidebarContainer?.animate()?.translationX(slideOffset)?.withEndAction {
+                                sidebarContainer?.isVisible = false
+                                mReaderSidebarDivider?.isVisible = false
+                            }?.setDuration(160L)?.start()
+                            view.animate().translationX(0f).setDuration(160L).start()
+                        }
                     }
                 } else if (event.actionMasked == MotionEvent.ACTION_UP) {
                     view.performClick()
