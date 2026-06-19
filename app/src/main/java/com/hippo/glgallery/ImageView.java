@@ -40,9 +40,6 @@ class ImageView extends GLView implements ImageTexture.Callback {
     public static final int START_POSITION_BOTTOM_LEFT = 2;
     public static final int START_POSITION_BOTTOM_RIGHT = 3;
     public static final int START_POSITION_CENTER = 4;
-    // TODO adjust scale max and min according to image size and screen size
-    private static final float SCALE_MIN = 1 / 10.0f;
-    private static final float SCALE_MAX = 10.0f;
     private static final long ALPHA_ANIMATION_DURING = 300L;
     private final RectF mDst = new RectF();
     private final RectF mSrcActual = new RectF();
@@ -56,6 +53,8 @@ class ImageView extends GLView implements ImageTexture.Callback {
     private int mStartPosition = START_POSITION_TOP_RIGHT;
     private float mScaleValue = 1.0f;
     private float mScale = 1.0f;
+    private float mScaleMin = 0.1f;
+    private float mScaleMax = 10.0f;
     private boolean mScaleOffsetDirty = true;
     private boolean mPositionInRootDirty = true;
     private boolean mEnableCustomPlace = false;
@@ -121,6 +120,18 @@ class ImageView extends GLView implements ImageTexture.Callback {
     protected void onSizeChanged(int newW, int newH, int oldW, int oldH) {
         mScaleOffsetDirty = true;
         mPositionInRootDirty = true;
+        updateScaleLimits();
+    }
+
+    private void updateScaleLimits() {
+        if (mImageTexture == null) return;
+        int viewW = getWidth();
+        int viewH = getHeight();
+        if (viewW <= 0 || viewH <= 0) return;
+
+        float fitScale = Math.min((float) viewW / mTextureWidth, (float) viewH / mTextureHeight);
+        mScaleMin = Math.min(0.5f * fitScale, 0.2f);
+        mScaleMax = Math.max(4.0f * fitScale, 2.0f);
     }
 
     @Override
@@ -147,10 +158,10 @@ class ImageView extends GLView implements ImageTexture.Callback {
         scaleDefault[2] = (float) getHeight() / mTextureHeight;
         scaleDefault[3] = Math.max(scaleDefault[1], scaleDefault[2]) * 2;
 
-        scaleDefault[0] = MathUtils.clamp(scaleDefault[0], SCALE_MIN, SCALE_MAX);
-        scaleDefault[1] = MathUtils.clamp(scaleDefault[1], SCALE_MIN, SCALE_MAX);
-        scaleDefault[2] = MathUtils.clamp(scaleDefault[2], SCALE_MIN, SCALE_MAX);
-        scaleDefault[3] = MathUtils.clamp(scaleDefault[3], SCALE_MIN, SCALE_MAX);
+        scaleDefault[0] = MathUtils.clamp(scaleDefault[0], mScaleMin, mScaleMax);
+        scaleDefault[1] = MathUtils.clamp(scaleDefault[1], mScaleMin, mScaleMax);
+        scaleDefault[2] = MathUtils.clamp(scaleDefault[2], mScaleMin, mScaleMax);
+        scaleDefault[3] = MathUtils.clamp(scaleDefault[3], mScaleMin, mScaleMax);
 
         Arrays.sort(scaleDefault);
     }
@@ -182,6 +193,7 @@ class ImageView extends GLView implements ImageTexture.Callback {
             if (mTextureHeight <= 0) {
                 mTextureHeight = 1;
             }
+            updateScaleLimits();
 
             // Start alpha animation, do not show animation for image has no valid rect
             getValidRect(mValidRect);
@@ -361,14 +373,14 @@ class ImageView extends GLView implements ImageTexture.Callback {
         }
 
         // adjust scale, not too big, not too small
-        if (mScale < SCALE_MIN) {
-            mScale = SCALE_MIN;
-            targetWidth = textureWidth * SCALE_MIN;
-            targetHeight = textureHeight * SCALE_MIN;
-        } else if (mScale > SCALE_MAX) {
-            mScale = SCALE_MAX;
-            targetWidth = textureWidth * SCALE_MAX;
-            targetHeight = textureHeight * SCALE_MAX;
+        if (mScale < mScaleMin) {
+            mScale = mScaleMin;
+            targetWidth = textureWidth * mScaleMin;
+            targetHeight = textureHeight * mScaleMin;
+        } else if (mScale > mScaleMax) {
+            mScale = mScaleMax;
+            targetWidth = textureWidth * mScaleMax;
+            targetHeight = textureHeight * mScaleMax;
         }
 
         // Set mDst.left and mDst.right
@@ -478,12 +490,12 @@ class ImageView extends GLView implements ImageTexture.Callback {
             return;
         }
 
-        if ((mScale == SCALE_MAX && scale >= 1.0f) || (mScale == SCALE_MIN && scale < 1.0f)) {
+        if ((mScale == mScaleMax && scale >= 1.0f) || (mScale == mScaleMin && scale < 1.0f)) {
             return;
         }
 
         float newScale = mScale * scale;
-        newScale = MathUtils.clamp(newScale, SCALE_MIN, SCALE_MAX);
+        newScale = MathUtils.clamp(newScale, mScaleMin, mScaleMax);
         mScale = newScale;
         RectF dst = mDst;
         float left = (focusX - ((focusX - dst.left) * scale));
