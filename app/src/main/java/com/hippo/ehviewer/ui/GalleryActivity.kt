@@ -274,7 +274,7 @@ class GalleryActivity :
         get() = Settings.layoutReaderThumbnailSidebar
 
     private fun AlertDialog.applyAmoledBlack() {
-        if (Settings.blackDarkTheme) {
+        if (Settings.blackDarkTheme && (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES) {
             show()
             findViewById<View>(com.google.android.material.R.id.parentPanel)
                 ?.setBackgroundColor(Color.BLACK)
