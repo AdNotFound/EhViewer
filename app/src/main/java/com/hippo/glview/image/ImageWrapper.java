@@ -142,6 +142,20 @@ public class ImageWrapper {
     }
 
     /**
+     * @see Image#stop()
+     */
+    public void stop() {
+        mImage.stop();
+    }
+
+    /**
+     * @see Image#setFrameCallback(Runnable)
+     */
+    public void setFrameCallback(Runnable callback) {
+        mImage.setFrameCallback(callback);
+    }
+
+    /**
      * @see Image#getDelay()
      */
     public int getDelay() {

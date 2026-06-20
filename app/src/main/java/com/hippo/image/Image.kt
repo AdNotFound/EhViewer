@@ -22,6 +22,8 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Animatable
+import android.graphics.drawable.Drawable
+import android.util.Log
 import androidx.core.graphics.createBitmap
 import coil3.BitmapImage
 import coil3.DrawableImage
@@ -61,11 +63,20 @@ class Image private constructor(
     val isOpaque get() = false
     val width get() = image.width
     val height get() = image.height
+    var frameCallback: Runnable? = null
+        private set
     var frameUpdateAllowed = true
     var isRecycled = false
         private set
-    var started = false
-        private set
+
+    private val animDrawableCallback = object : Drawable.Callback {
+        override fun invalidateDrawable(d: Drawable) {
+            frameCallback?.run()
+        }
+
+        override fun scheduleDrawable(d: Drawable, what: Runnable, `when`: Long) {}
+        override fun unscheduleDrawable(d: Drawable, what: Runnable) {}
+    }
 
     @Synchronized
     fun recycle() {
@@ -117,10 +128,22 @@ class Image private constructor(
         )
     }
 
+    fun setFrameCallback(callback: Runnable?) {
+        frameCallback = callback
+        if (image is DrawableImage) {
+            image.drawable.callback = if (callback != null) animDrawableCallback else null
+        }
+    }
+
     fun start() {
-        if (!started) {
-            started = true
-            if (image is DrawableImage) (image.drawable as? Animatable)?.start()
+        if (image is DrawableImage) {
+            (image.drawable as? Animatable)?.start()
+        }
+    }
+
+    fun stop() {
+        if (image is DrawableImage) {
+            (image.drawable as? Animatable)?.stop()
         }
     }
 
