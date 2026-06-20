@@ -264,11 +264,13 @@ class ReaderSidebarAdapter(
     }
 
     private fun restoreSidebarPreviewIfNeeded(view: ReaderSidebarThumb, preview: GalleryPreview?) {
-        if (preview == null || view.drawable != null) {
+        if (preview == null || (view.drawable != null && !isErrorState(view))) {
             return
         }
         bindSidebarPreview(view, preview, null)
     }
+
+    private fun isErrorState(view: ReaderSidebarThumb): Boolean = view.isClickable || view.isLongClickable
 
     private fun bindSidebarPreview(
         view: ReaderSidebarThumb,
@@ -276,7 +278,7 @@ class ReaderSidebarAdapter(
         loadingView: ProgressBar? = null,
     ) {
         if (preview != null) {
-            if (view.tag == preview.position && view.drawable != null) return
+            if (view.tag == preview.position && view.drawable != null && !isErrorState(view)) return
             view.tag = preview.position
             if (view.drawable != null) view.setImageDrawable(null)
             view.resetForReuse()
