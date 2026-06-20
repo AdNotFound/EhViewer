@@ -127,6 +127,7 @@ class MainActivity :
             }
         }
     private lateinit var connectivityManager: ConnectivityManager
+    private var mNetworkCallbackRegistered = false
     private val availableNetworks: MutableList<Network> = mutableListOf()
     private var mSnackBar: CoordinatorLayout? = null
     private var mDrawerLayout: DrawerLayout? = null
@@ -325,6 +326,7 @@ class MainActivity :
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_FOREGROUND)
                     .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
                 connectivityManager.registerNetworkCallback(builder.build(), mNetworkCallback)
+                mNetworkCallbackRegistered = true
             }
         }
     }
@@ -417,6 +419,9 @@ class MainActivity :
 
     override fun onDestroy() {
         super.onDestroy()
+        if (mNetworkCallbackRegistered) {
+            connectivityManager.unregisterNetworkCallback(mNetworkCallback)
+        }
         mDrawerLayout = null
         mNavView = null
         mRightDrawer = null
