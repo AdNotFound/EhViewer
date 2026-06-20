@@ -69,6 +69,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.google.android.material.snackbar.Snackbar
 import com.hippo.app.CheckBoxDialogBuilder
 import com.hippo.app.EditTextDialogBuilder
+import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.EhApplication.Companion.galleryDetailCache
 import com.hippo.ehviewer.EhApplication.Companion.imageCache
@@ -861,7 +862,7 @@ class GalleryDetailScene :
             val radiusX = max(abs(x), abs(w - x)).toDouble()
             val radiusY = max(abs(y), abs(h - y)).toDouble()
             val radius = hypot(radiusX, radiusY).toFloat()
-            ViewAnimationUtils.createCircularReveal(mColorBg!!, x, y, 0f, radius).setDuration(300).start()
+            ViewAnimationUtils.createCircularReveal(mColorBg!!, x, y, 0f, radius).setDuration(AnimationConstants.CIRCULAR_REVEAL_DURATION).start()
             true
         } else {
             false
