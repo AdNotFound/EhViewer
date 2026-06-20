@@ -3,12 +3,13 @@
     android:shareInterpolator="false">
 
     <alpha
-        android:duration="250"
+        android:duration="150"
         android:fillAfter="true"
         android:fillBefore="false"
         android:fillEnabled="true"
         android:fromAlpha="1.0"
-        android:interpolator="@anim/decelerate_terz"
+        android:interpolator="@android:interpolator/linear"
+        android:startOffset="100"
         android:toAlpha="0.0" />
 
     <translate
