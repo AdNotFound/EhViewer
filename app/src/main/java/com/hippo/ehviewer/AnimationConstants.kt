@@ -3,6 +3,8 @@ package com.hippo.ehviewer
 object AnimationConstants {
     const val SCENE_TRANSITION_DURATION = 250L
 
+    const val CIRCULAR_REVEAL_DURATION = 300L
+
     const val SIDEBAR_SLIDE_DURATION = 200L
 
     const val ALPHA_FADE_DURATION = 200L

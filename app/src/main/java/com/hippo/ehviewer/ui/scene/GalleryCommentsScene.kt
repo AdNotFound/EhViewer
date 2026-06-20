@@ -61,6 +61,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.hippo.app.EditTextDialogBuilder
 import com.hippo.easyrecyclerview.EasyRecyclerView
 import com.hippo.easyrecyclerview.LinearDividerItemDecoration
+import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.UrlOpener
 import com.hippo.ehviewer.WindowInsetsAnimationHelper
@@ -567,7 +568,7 @@ class GalleryCommentsScene :
         val fabEndY = mEditPanel!!.top + mEditPanel!!.height / 2 - mFab!!.height / 2
         mFab!!.animate().x(fabEndX.toFloat()).y(fabEndY.toFloat()).scaleX(0.0f).scaleY(0.0f)
             .setInterpolator(AnimationUtils.SLOW_FAST_SLOW_INTERPOLATOR)
-            .setDuration(300L).setListener(object : SimpleAnimatorListener() {
+            .setDuration(AnimationConstants.CIRCULAR_REVEAL_DURATION).setListener(object : SimpleAnimatorListener() {
                 override fun onAnimationEnd(animation: Animator) {
                     if (null == mFab || null == mEditPanel) {
                         return
@@ -582,7 +583,7 @@ class GalleryCommentsScene :
                         halfH,
                         0f,
                         hypot(halfW.toDouble(), halfH.toDouble()).toFloat(),
-                    ).setDuration(300L)
+                    ).setDuration(AnimationConstants.CIRCULAR_REVEAL_DURATION)
                     animator.addListener(object : SimpleAnimatorListener() {
                         override fun onAnimationEnd(a: Animator) {
                             mInAnimation = false
@@ -610,7 +611,7 @@ class GalleryCommentsScene :
             halfH,
             hypot(halfW.toDouble(), halfH.toDouble()).toFloat(),
             0.0f,
-        ).setDuration(300L)
+        ).setDuration(AnimationConstants.CIRCULAR_REVEAL_DURATION)
         animator.addListener(object : SimpleAnimatorListener() {
             override fun onAnimationEnd(a: Animator) {
                 if (null == mFab || null == mEditPanel) {
@@ -634,7 +635,7 @@ class GalleryCommentsScene :
                 mFab!!.animate().translationX(0.0f).translationY(0.0f).scaleX(1.0f).scaleY(1.0f)
                     .rotation(0.0f)
                     .setInterpolator(AnimationUtils.SLOW_FAST_SLOW_INTERPOLATOR)
-                    .setDuration(300L).setListener(object : SimpleAnimatorListener() {
+                    .setDuration(AnimationConstants.CIRCULAR_REVEAL_DURATION).setListener(object : SimpleAnimatorListener() {
                         override fun onAnimationEnd(animation: Animator) {
                             mInAnimation = false
                         }
