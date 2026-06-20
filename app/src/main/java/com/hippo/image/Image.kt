@@ -23,6 +23,8 @@ import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.drawable.Animatable
 import android.graphics.drawable.Drawable
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import androidx.core.graphics.createBitmap
 import coil3.BitmapImage
@@ -70,12 +72,19 @@ class Image private constructor(
         private set
 
     private val animDrawableCallback = object : Drawable.Callback {
+        private val handler = Handler(Looper.getMainLooper())
+
         override fun invalidateDrawable(d: Drawable) {
             frameCallback?.run()
         }
 
-        override fun scheduleDrawable(d: Drawable, what: Runnable, `when`: Long) {}
-        override fun unscheduleDrawable(d: Drawable, what: Runnable) {}
+        override fun scheduleDrawable(d: Drawable, what: Runnable, `when`: Long) {
+            handler.postAtTime(what, `when`)
+        }
+
+        override fun unscheduleDrawable(d: Drawable, what: Runnable) {
+            handler.removeCallbacks(what)
+        }
     }
 
     @Synchronized
