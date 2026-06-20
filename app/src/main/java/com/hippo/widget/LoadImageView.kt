@@ -186,8 +186,6 @@ open class LoadImageView @JvmOverloads constructor(
             // a sprite sheet clipped to the NEW position (wrong content).
             // Detect this via generation mismatch and clear the drawable instead.
             if (mPendingClipGeneration != mLoadGeneration) {
-                super.setImageDrawable(null)
-                mOnLoadingStateChangeListener?.onLoadingStateChanged(true)
                 return
             }
             if (Int.MIN_VALUE != mPendingClipOffsetX) {
