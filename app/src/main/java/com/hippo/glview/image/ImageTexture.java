@@ -18,6 +18,8 @@ package com.hippo.glview.image;
 
 import android.graphics.RectF;
 import android.graphics.drawable.Animatable;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 
 import androidx.annotation.IntDef;
@@ -63,6 +65,17 @@ public class ImageTexture implements Texture, Animatable {
     private final AtomicBoolean mRunning = new AtomicBoolean();
     private final AtomicBoolean mFrameDirty = new AtomicBoolean();
     private final AtomicBoolean mReleased = new AtomicBoolean();
+    private final Handler mAnimHandler = new Handler(Looper.getMainLooper());
+    private final Runnable mAnimPoller = new Runnable() {
+        @Override
+        public void run() {
+            if (mRunning.get()) {
+                mFrameDirty.lazySet(true);
+                invalidateSelf();
+                mAnimHandler.postDelayed(this, Math.max(mImage.getDelay(), 16));
+            }
+        }
+    };
     private int mUploadIndex = 0;
     private boolean mImageBusy = false;
 
@@ -223,8 +236,7 @@ public class ImageTexture implements Texture, Animatable {
 
         mRunning.lazySet(true);
 
-        // Instead of polling with AnimateRunnable on a background thread,
-        // set a callback on the drawable so we're notified on actual frame changes.
+        // Primary: event-driven frame notification via Drawable.Callback.
         mImage.setFrameCallback(() -> {
             if (mRunning.get()) {
                 mFrameDirty.lazySet(true);
@@ -232,10 +244,19 @@ public class ImageTexture implements Texture, Animatable {
             }
         });
         mImage.start();
+
+        // Fallback: periodic polling ensures frame updates continue even if
+        // the drawable's scheduleSelf pipeline stalls. AnimatedImageDrawable advances
+        // frames inside draw() via nDraw(); draw() also uses scheduleSelf to chain
+        // the next draw call. Without scheduleSelf the animation loop breaks, so
+        // this poller provides a self-healing heartbeat: each poll calls draw(),
+        // which advances the frame AND re-establishes the scheduleSelf chain.
+        mAnimHandler.postDelayed(mAnimPoller, Math.max(mImage.getDelay(), 16));
     }
 
     @Override
     public void stop() {
+        mAnimHandler.removeCallbacks(mAnimPoller);
         mRunning.lazySet(false);
         mImage.setFrameCallback(null);
         mImage.stop();
@@ -400,6 +421,7 @@ public class ImageTexture implements Texture, Animatable {
     }
 
     public void recycle() {
+        mAnimHandler.removeCallbacks(mAnimPoller);
         mRunning.lazySet(false);
         mImage.setFrameCallback(null);
 
