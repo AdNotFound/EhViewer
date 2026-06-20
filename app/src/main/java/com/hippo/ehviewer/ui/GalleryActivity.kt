@@ -423,6 +423,8 @@ class GalleryActivity :
             window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS)
         }
         super.onCreate(savedInstanceState)
+        @Suppress("DEPRECATION")
+        overridePendingTransition(R.anim.activity_open_enter, R.anim.activity_open_exit)
         if (savedInstanceState == null) {
             onInit()
         } else {
@@ -708,6 +710,12 @@ class GalleryActivity :
         mAutoTransfer?.setImageResource(R.drawable.v_play_x24)
         mAutoTransferJob?.cancel()
         mAutoTransferJob = null
+    }
+
+    override fun finish() {
+        super.finish()
+        @Suppress("DEPRECATION")
+        overridePendingTransition(R.anim.activity_close_enter, R.anim.activity_close_exit)
     }
 
     override fun onDestroy() {
