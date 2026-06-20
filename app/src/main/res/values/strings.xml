@@ -266,6 +266,8 @@
     <string name="key_torrents">Torrents</string>
     <string name="key_torrent_url">Torrent URL</string>
     <string name="copied_to_clipboard">Copied to clipboard</string>
+    <string name="url_not_found">URL not found</string>
+    <string name="add_favorite_failed">Failed to add favorite</string>
     <!-- Gallery Torrents -->
     <string name="torrents">Torrents</string>
     <string name="no_torrents">No torrents</string>

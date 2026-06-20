@@ -92,7 +92,7 @@ object CommonOperations {
             }
 
             else -> {
-                listener.onFailure(Exception()) // TODO Add text
+                listener.onFailure(Exception(activity.getString(R.string.add_favorite_failed)))
             }
         }
     }
