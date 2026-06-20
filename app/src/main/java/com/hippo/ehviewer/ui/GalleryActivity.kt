@@ -2052,6 +2052,7 @@ class GalleryActivity :
         }
 
         override fun run() {
+            if (isFinishing) return
             when (mKey) {
                 NOTIFY_KEY_LAYOUT_MODE -> {
                     mLayoutMode = mValue
