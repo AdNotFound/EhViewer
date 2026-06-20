@@ -29,18 +29,33 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 
 object MergeInterceptor : Interceptor {
-    private val activeRequests = mutableMapOf<String, Deferred<ImageResult>>()
+    private class ActiveRequest(
+        val url: String,
+        val deferred: Deferred<ImageResult>,
+        val generation: Long,
+    )
+
+    private val activeRequests = mutableMapOf<String, ActiveRequest>()
+    private var nextGeneration = 0L
 
     override suspend fun intercept(chain: Interceptor.Chain): ImageResult {
         val req = chain.request
         val key = req.memoryCacheKey?.takeIf { it.isPreviewKey } ?: return chain.proceed()
+        val url = req.data as? String ?: return chain.proceed()
 
         // Use GlobalScope so the deferred survives individual request cancellation.
         // When a ViewHolder is recycled, Coil cancels the request coroutine, but the
         // shared fetch must continue for other ViewHolders waiting on the same key.
-        val deferred = synchronized(activeRequests) {
+        val activeRequest = synchronized(activeRequests) {
+            val existing = activeRequests[key]
+            if (existing != null && existing.url != url) {
+                // URL changed (e.g., stale cached URL vs fresh API URL for same position),
+                // discard the old request and start fresh with the new URL.
+                activeRequests.remove(key)
+            }
+            val gen = nextGeneration++
             activeRequests.getOrPut(key) {
-                GlobalScope.async {
+                ActiveRequest(url, GlobalScope.async {
                     try {
                         var result: ImageResult
                         var retryCount = 0
@@ -60,14 +75,16 @@ object MergeInterceptor : Interceptor {
                         result
                     } finally {
                         synchronized(activeRequests) {
-                            activeRequests.remove(key)
+                            if (activeRequests[key]?.generation == gen) {
+                                activeRequests.remove(key)
+                            }
                         }
                     }
-                }
+                }, gen)
             }
         }
 
-        val result = deferred.await()
+        val result = activeRequest.deferred.await()
         return when (result) {
             is SuccessResult -> result.copy(
                 request = req,
