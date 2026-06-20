@@ -22,7 +22,7 @@ package com.hippo.yorozuya.collect
  * It is particularly efficient for "scan" patterns (like reading pages in order).
  */
 open class SieveCache<K : Any, V : Any>(
-    private val maxSize: Int,
+    var maxSize: Int,
     private val sizeOf: (K, V) -> Int = { _, _ -> 1 },
     private val onEntryRemoved: (K, V, V?, Boolean) -> Unit = { _, _, _, _ -> },
 ) {
@@ -87,6 +87,12 @@ open class SieveCache<K : Any, V : Any>(
     @Synchronized
     fun evictAll() {
         trimToSize(-1)
+    }
+
+    @Synchronized
+    fun resize(newMaxSize: Int) {
+        maxSize = newMaxSize
+        trimToSize(maxSize)
     }
 
     private fun trimToSize(limit: Int) {

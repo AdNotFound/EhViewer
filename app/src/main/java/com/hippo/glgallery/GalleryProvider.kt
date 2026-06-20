@@ -32,13 +32,14 @@ import com.hippo.yorozuya.collect.SieveCache
 
 abstract class GalleryProvider {
     private val mNotifyTaskPool = ConcurrentPool<NotifyTask>(5)
+    private val mImageCacheMaxSize = if (isAtLeastO) {
+        (OSUtils.getTotalMemory() / 8).toInt().coerceIn(MIN_CACHE_SIZE, MAX_CACHE_SIZE)
+    } else {
+        (OSUtils.getAppMaxMemory() / 3 * 2).toInt()
+    }
     private val mImageCache = SieveCache<Int, ImageWrapper>(
-        maxSize = if (isAtLeastO) {
-            (OSUtils.getTotalMemory() / 8).toInt().coerceIn(MIN_CACHE_SIZE, MAX_CACHE_SIZE)
-        } else {
-            (OSUtils.getAppMaxMemory() / 3 * 2).toInt()
-        },
-        sizeOf = { _, v -> v.width * v.height * if (v.animated) 20 else 4 },
+        maxSize = mImageCacheMaxSize,
+        sizeOf = { _, v -> v.width * v.height * if (v.animated) 10 else 4 },
         onEntryRemoved = { _, o, _, _ -> o.release() },
     )
     private val mPreloads = MathUtils.clamp(Settings.preloadImage, 0, 100)
@@ -111,6 +112,14 @@ abstract class GalleryProvider {
 
     fun setListener(listener: Listener?) {
         mListener = listener
+    }
+
+    fun onTrimMemory(level: Int) {
+        when {
+            level >= ComponentCallbacks2.TRIM_MEMORY_COMPLETE -> mImageCache.evictAll()
+            level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE -> mImageCache.resize((mImageCacheMaxSize * 0.25).toInt())
+            level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND -> mImageCache.resize((mImageCacheMaxSize * 0.5).toInt())
+        }
     }
 
     fun notifyDataChanged(index: Int) {
