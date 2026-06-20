@@ -127,7 +127,9 @@ import com.hippo.yorozuya.SimpleAnimatorListener
 import com.hippo.yorozuya.SimpleHandler
 import com.hippo.yorozuya.ViewUtils
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.flow
@@ -1055,9 +1057,8 @@ class GalleryActivity :
         }
         val galleryInfo = mGalleryInfo ?: return
         val token = galleryInfo.token ?: return
-        if (mReaderPreviewCacheLoaded) {
-            return
-        }
+        // Always fetch fresh preview metadata from API, even if disk cache was loaded.
+        // Disk cache URLs have timed tokens that expire, causing stale URL failures.
         // Capture on UI thread to avoid reading mutable fields from IO
         val snapshotCurrentIndex = mCurrentIndex
         val snapshotSize = mSize
@@ -1092,15 +1093,25 @@ class GalleryActivity :
                 for (page in 1 until totalPreviewPages) {
                     if (page !in priorityPages) priorityPages.add(page)
                 }
-                for (page in priorityPages) {
-                    currentCoroutineContext().ensureActive()
-                    val result = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
-                    withUIContext {
-                        val changed = mergeReaderPreviewSet(result.first)
-                        if (changed) {
-                            applySpreadPages()
+                // Fetch pages in parallel batches to speed up fresh URL delivery
+                coroutineScope {
+                    priorityPages.chunked(3).forEach { batch ->
+                        val deferreds = batch.map { page ->
+                            async {
+                                page to EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
+                            }
                         }
-                        updateReaderSidebarData()
+                        deferreds.forEach { deferred ->
+                            val (page, result) = deferred.await()
+                            withUIContext {
+                                currentCoroutineContext().ensureActive()
+                                val changed = mergeReaderPreviewSet(result.first)
+                                if (changed) {
+                                    applySpreadPages()
+                                }
+                                updateReaderSidebarData()
+                            }
+                        }
                     }
                 }
                 saveReaderPreviewCache(galleryInfo.gid, token, mReaderSidebarPreviewMap)
