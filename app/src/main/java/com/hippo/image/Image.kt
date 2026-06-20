@@ -85,6 +85,10 @@ class Image private constructor(
         override fun unscheduleDrawable(d: Drawable, what: Runnable) {
             handler.removeCallbacks(what)
         }
+
+        fun clear() {
+            handler.removeCallbacksAndMessages(null)
+        }
     }
 
     @Synchronized
@@ -93,6 +97,7 @@ class Image private constructor(
         when (image) {
             is DrawableImage -> {
                 (image.drawable as? Animatable)?.stop()
+                animDrawableCallback.clear()
                 image.drawable.callback = null
             }
 
@@ -140,7 +145,12 @@ class Image private constructor(
     fun setFrameCallback(callback: Runnable?) {
         frameCallback = callback
         if (image is DrawableImage) {
-            image.drawable.callback = if (callback != null) animDrawableCallback else null
+            if (callback != null) {
+                image.drawable.callback = animDrawableCallback
+            } else {
+                animDrawableCallback.clear()
+                image.drawable.callback = null
+            }
         }
     }
 
