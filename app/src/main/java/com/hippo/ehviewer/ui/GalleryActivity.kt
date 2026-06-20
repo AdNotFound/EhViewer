@@ -1629,6 +1629,19 @@ class GalleryActivity :
         }
     }
 
+    private fun copyImageLink(page: Int) {
+        val url = mGalleryProvider?.getImageUrl(page)
+        if (url != null) {
+            val clipboardManager = getSystemService(ClipboardManager::class.java)
+            if (clipboardManager != null) {
+                val clipData = ClipData.newPlainText("ehviewer", url)
+                clipboardManager.setPrimaryClip(clipData)
+                Toast.makeText(this, getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(this, getString(R.string.url_not_found), Toast.LENGTH_SHORT).show()
+        }
+    }
     private fun saveImage(page: Int) {
         if (null == mGalleryProvider) {
             return
