@@ -45,6 +45,14 @@ class WebViewSignInScene : SolidScene() {
 
     override fun needShowLeftDrawer(): Boolean = false
 
+    override fun onBackPressed() {
+        if (mWebView?.canGoBack() == true) {
+            mWebView?.goBack()
+        } else {
+            finish()
+        }
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
