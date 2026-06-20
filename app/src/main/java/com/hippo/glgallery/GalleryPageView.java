@@ -44,6 +44,16 @@ public class GalleryPageView extends GLFrameLayout {
 
     private final int mMinHeight;
 
+    public static final int PAGE_STATE_NONE = 0;
+    public static final int PAGE_STATE_WAITING = 1;
+    public static final int PAGE_STATE_DOWNLOADING = 2;
+    public static final int PAGE_STATE_FINISHED = 3;
+    public static final int PAGE_STATE_FAILED = 4;
+
+    private int mPageState = PAGE_STATE_NONE;
+    private String mCurrentNetworkInfo;
+    private float mDownloadPercent;
+
     private int mIndex = INVALID_INDEX;
     private final List<OnLoadedListener> mOnLoadedListeners = new ArrayList<>();
 
@@ -167,6 +177,7 @@ public class GalleryPageView extends GLFrameLayout {
     }
 
     public void setProgress(float progress) {
+        mDownloadPercent = progress;
         if (progress == PROGRESS_GONE) {
             mProgress.setVisibility(GONE);
         } else if (progress == PROGRESS_INDETERMINATE) {
@@ -199,6 +210,25 @@ public class GalleryPageView extends GLFrameLayout {
         }
     }
 
+    public int getPageState() {
+        return mPageState;
+    }
+
+    public void setPageState(int state) {
+        mPageState = state;
+    }
+
+    public String getCurrentNetworkInfo() {
+        return mCurrentNetworkInfo;
+    }
+
+    public float getDownloadPercent() {
+        return mDownloadPercent;
+    }
+
+    public void setNetworkInfo(String info) {
+        mCurrentNetworkInfo = info;
+    }
     ImageView getImageView() {
         return mImage;
     }

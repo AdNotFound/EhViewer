@@ -20,6 +20,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.os.SystemClock;
 import android.view.MotionEvent;
 
 import androidx.annotation.IntDef;
@@ -31,12 +32,14 @@ import com.hippo.glview.glrenderer.GLCanvas;
 import com.hippo.glview.glrenderer.StringTexture;
 import com.hippo.glview.glrenderer.Texture;
 import com.hippo.glview.image.ImageMovableTextTexture;
+import com.hippo.glview.image.ImageTexture;
 import com.hippo.glview.util.GalleryUtils;
 import com.hippo.glview.view.AnimationTime;
 import com.hippo.glview.view.GLRoot;
 import com.hippo.glview.view.GLView;
 import com.hippo.glview.widget.GLTextureView;
 import com.hippo.yorozuya.MathUtils;
+import com.hippo.yorozuya.OSUtils;
 import com.hippo.yorozuya.Pool;
 
 import java.lang.annotation.Retention;
@@ -106,6 +109,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final Typeface mPageTextTypeface;
     private final int mErrorTextSize;
     private final int mErrorTextColor;
+
     private final String mEmptyString;
     private final Rect mLeftArea = new Rect();
     private final Rect mRightArea = new Rect();
@@ -116,6 +120,12 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final List<Integer> mMethodListTemp = new ArrayList<>(5);
     private final List<Object[]> mArgsListTemp = new ArrayList<>(5);
     private final AtomicInteger mCurrentIndex = new AtomicInteger(GalleryPageView.INVALID_INDEX);
+    private DebugHud mDebugHud;
+    private boolean mShowHud;
+    private int mFpsRenderCount;
+    private long mLastFpsTime;
+    private int mFps;
+    private long mLastHudCollectTime;
     private int mCurrentPairSize = 1;
     private boolean mPageStructureChanged = false;
     private BitSet mSpreadPages = new BitSet();
@@ -298,6 +308,29 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' });
         }
         attachLayoutManager();
+        initDebugHud();
+    }
+
+    private void initDebugHud() {
+        if (mDebugHud != null) return;
+        mDebugHud = new DebugHud();
+        mDebugHud.setVisibility(mShowHud ? VISIBLE : GONE);
+        addComponent(mDebugHud);
+        if (mShowHud) {
+            clearStalePageInfo();
+        }
+    }
+
+    private void clearStalePageInfo() {
+        for (int i = 0, n = getComponentCount(); i < n; i++) {
+            GLView child = getComponent(i);
+            if (child instanceof GalleryPageView) {
+                GalleryPageView page = (GalleryPageView) child;
+                if (page.isLoaded()) {
+                    page.setNetworkInfo(null);
+                }
+            }
+        }
     }
 
     private void setPagerIntervalInternal(int interval) {
@@ -517,6 +550,17 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                     (int) (MENU_AREA[2] * width), (int) (MENU_AREA[3] * height));
             mSliderArea.set((int) (SLIDER_AREA[0] * width), (int) (SLIDER_AREA[1] * height),
                     (int) (SLIDER_AREA[2] * width), (int) (SLIDER_AREA[3] * height));
+        }
+        if (mDebugHud != null) {
+            int viewWidth = right - left;
+            int hudWidthSpec = GLView.MeasureSpec.makeMeasureSpec(viewWidth * 85 / 100,
+                    GLView.MeasureSpec.AT_MOST);
+            int hudHeightSpec = GLView.MeasureSpec.makeMeasureSpec(GLView.LayoutParams.WRAP_CONTENT,
+                    GLView.LayoutParams.WRAP_CONTENT);
+            mDebugHud.measure(hudWidthSpec, hudHeightSpec);
+            int hudHeight = mDebugHud.getMeasuredHeight();
+            int viewBottom = bottom - top;
+            mDebugHud.layout(0, viewBottom - hudHeight, mDebugHud.getMeasuredWidth(), viewBottom);
         }
     }
 
@@ -922,6 +966,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
 
     @Override
     public void render(GLCanvas canvas) {
+        mFpsRenderCount++;
         mWillFill = true;
         int oldCurrentIndex = mCurrentIndex.get();
 
@@ -934,6 +979,10 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
 
         fill();
+        if (mDebugHud != null && getComponentCount() > 1
+                && getComponent(getComponentCount() - 1) != mDebugHud) {
+            bringComponentToFront(mDebugHud);
+        }
         mWillFill = false;
 
         super.render(canvas);
@@ -946,6 +995,12 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         }
         mCurrentIndex.lazySet(newCurrentIndex);
 
+        long now = SystemClock.uptimeMillis();
+        if (now - mLastHudCollectTime > 500) {
+            mLastHudCollectTime = now;
+            collectHudData();
+        }
+
         int newPairSize = getPagePairSize(newCurrentIndex);
         boolean pairSizeChanged = (mCurrentPairSize != newPairSize);
         mCurrentPairSize = newPairSize;
@@ -955,6 +1010,101 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         if ((oldCurrentIndex != newCurrentIndex || pairSizeChanged || pageStructureChanged) && mListener != null) {
             mListener.onUpdateCurrentIndex(newCurrentIndex);
         }
+    }
+
+    public void setShowHud(boolean show) {
+        mShowHud = show;
+        if (mDebugHud != null) {
+            mDebugHud.setVisibility(show ? VISIBLE : GONE);
+            if (!show) {
+                mDebugHud.update(null);
+            } else {
+                clearStalePageInfo();
+            }
+        }
+    }
+
+    private void collectHudData() {
+        if (mDebugHud == null || !mShowHud) return;
+
+        List<String> lines = new ArrayList<>(8);
+        int totalTiles = 0;
+
+        // FPS
+        long now = SystemClock.uptimeMillis();
+        if (now - mLastFpsTime >= 1000) {
+            mFps = mFpsRenderCount;
+            mFpsRenderCount = 0;
+            mLastFpsTime = now;
+        }
+
+        // Memory
+        long memMax = OSUtils.getAppMaxMemory();
+        long memUsed = OSUtils.getAppAllocatedMemory();
+
+        lines.add(mFps + " fps │ " + (memUsed / 1048576) + "M/" + (memMax / 1048576) + "M");
+
+        // Collect page data
+        List<GalleryPageView> pages = new ArrayList<>(2);
+        int current = mCurrentIndex.get();
+        if (current != GalleryPageView.INVALID_INDEX) {
+            int start = getPagePairStart(current);
+            GalleryPageView primary = findPageByIndex(start);
+            if (primary != null) pages.add(primary);
+            GalleryPageView secondary = findPageByIndex(start + 1);
+            if (secondary != null) pages.add(secondary);
+        }
+
+        boolean singlePage = pages.size() <= 1;
+        for (int i = 0; i < pages.size(); i++) {
+            GalleryPageView page = pages.get(i);
+            int idx = page.getIndex();
+            int state = page.getPageState();
+            String prefix = singlePage ? "" : (i == 0 ? "L " : "R ");
+
+            if (state == GalleryPageView.PAGE_STATE_FAILED) {
+                lines.add(prefix + "#" + (idx + 1) + " FAILED");
+            } else if (state == GalleryPageView.PAGE_STATE_WAITING) {
+                String netInfo = page.getCurrentNetworkInfo();
+                if (netInfo != null) {
+                    lines.add(prefix + "#" + (idx + 1) + " " + netInfo);
+                } else {
+                    lines.add(prefix + "#" + (idx + 1) + " WAITING");
+                }
+            } else if (state == GalleryPageView.PAGE_STATE_NONE) {
+                lines.add(prefix + "#" + (idx + 1) + " —");
+            } else if (state == GalleryPageView.PAGE_STATE_FINISHED) {
+                lines.add(prefix + "#" + (idx + 1) + " OK");
+            } else {
+                float percent = page.getDownloadPercent();
+                String netInfo = page.getCurrentNetworkInfo();
+                if (netInfo != null) {
+                    lines.add(prefix + "#" + (idx + 1) + " " + netInfo);
+                } else if (percent > 0) {
+                    lines.add(prefix + "#" + (idx + 1) + " " + Math.round(percent * 100) + "%");
+                } else {
+                    lines.add(prefix + "#" + (idx + 1) + " DOWNLOADING");
+                }
+            }
+
+            ImageTexture tex = page.getImageView().getImageTexture();
+            if (tex != null) {
+                totalTiles += tex.getTileCount();
+                if (tex.isRunning()) {
+                    lines.add(prefix + "GIF " + tex.getAnimDebugInfo());
+                }
+            }
+        }
+
+        // Resource stats
+        int texCount = BasicTexture.getTextureCount();
+        lines.add("tex " + texCount + " │ tiles " + totalTiles);
+
+        int w = getWidth();
+        if (w > 0) {
+            mDebugHud.setWidthLimit(w / 2);
+        }
+        mDebugHud.update(lines.toArray(new String[0]));
     }
 
     public GalleryPageView findPageByIndex(int id) {
