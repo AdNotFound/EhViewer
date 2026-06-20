@@ -750,6 +750,11 @@ class GalleryActivity :
         SimpleHandler.getInstance().removeCallbacks(mHideSliderRunnable)
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        mGalleryProvider?.onTrimMemory(level)
+    }
+
     override fun onPause() {
         super.onPause()
         mGLRootView?.onPause()
