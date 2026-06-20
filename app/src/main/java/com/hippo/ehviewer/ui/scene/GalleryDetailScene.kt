@@ -73,6 +73,7 @@ import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.EhApplication.Companion.galleryDetailCache
 import com.hippo.ehviewer.EhApplication.Companion.imageCache
+import com.hippo.ehviewer.EhApplication.Companion.thumbCache
 import com.hippo.ehviewer.EhApplication.Companion.okHttpClient
 import com.hippo.ehviewer.EhDB
 import com.hippo.ehviewer.R
@@ -470,10 +471,13 @@ class GalleryDetailScene :
                             if (mGalleryDetail == null) {
                                 return false
                             }
-                            SpiderQueen.reset(mGalleryDetail!!.gid)
+                            val gid = mGalleryDetail!!.gid
+                            SpiderQueen.reset(gid)
+                            thumbCache.remove(getThumbKey(gid))
                             (0..<mGalleryDetail!!.pages).forEach {
-                                val key = getImageKey(mGalleryDetail!!.gid, it)
+                                val key = getImageKey(gid, it)
                                 imageCache.remove(key)
+                                thumbCache.remove(key)
                             }
                             showTip(R.string.action_image_cache_cleared, LENGTH_LONG)
                             return true

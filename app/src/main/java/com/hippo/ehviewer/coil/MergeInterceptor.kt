@@ -22,6 +22,7 @@ import coil3.intercept.Interceptor
 import coil3.request.ErrorResult
 import coil3.request.ImageResult
 import coil3.request.SuccessResult
+import com.hippo.ehviewer.EhApplication.Companion.thumbCache
 import com.hippo.ehviewer.client.isPreviewKey
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.GlobalScope
@@ -53,6 +54,9 @@ object MergeInterceptor : Interceptor {
                                 break
                             }
                         } while (true)
+                        if (result is ErrorResult) {
+                            thumbCache.remove(key)
+                        }
                         result
                     } finally {
                         synchronized(activeRequests) {
