@@ -231,6 +231,7 @@ class SignInScene :
                 }
             }.onFailure {
                 withUIContext {
+                    hideProgress()
                     showResultErrorDialog(it)
                 }
             }
