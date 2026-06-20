@@ -229,6 +229,10 @@ class SignInScene :
                     Settings.putDisplayName(displayName)
                     Settings.putAvatar(avatar)
                 }
+            }.onFailure {
+                withUIContext {
+                    showResultErrorDialog(it)
+                }
             }
             finishSignIn()
         }
