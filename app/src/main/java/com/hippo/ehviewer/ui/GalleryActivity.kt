@@ -693,6 +693,10 @@ class GalleryActivity :
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 while (true) {
                     delay(mTurnPageIntervalVal.coerceAtLeast(1) * 1000L)
+                    if (mCurrentIndex + 1 >= mSize) {
+                        stopAutoTransfer()
+                        break
+                    }
                     pageTurn(false)
                 }
             }
