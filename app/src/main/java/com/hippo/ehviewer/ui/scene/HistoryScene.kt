@@ -78,14 +78,22 @@ class HistoryScene : ToolbarScene() {
         HistoryAdapter(object : DiffUtil.ItemCallback<HistoryInfo>() {
             override fun areItemsTheSame(oldItem: HistoryInfo, newItem: HistoryInfo): Boolean = oldItem.gid == newItem.gid
 
-            override fun areContentsTheSame(oldItem: HistoryInfo, newItem: HistoryInfo): Boolean = oldItem.gid == newItem.gid
+            override fun areContentsTheSame(oldItem: HistoryInfo, newItem: HistoryInfo): Boolean =
+                oldItem.title == newItem.title &&
+                    oldItem.titleJpn == newItem.titleJpn &&
+                    oldItem.rating == newItem.rating &&
+                    oldItem.posted == newItem.posted &&
+                    oldItem.category == newItem.category &&
+                    oldItem.uploader == newItem.uploader &&
+                    oldItem.simpleLanguage == newItem.simpleLanguage &&
+                    oldItem.favoriteSlot == newItem.favoriteSlot
         })
     }
     private val mDownloadManager = DownloadManager
     private val mDownloadInfoListener: DownloadInfoListener by lazy {
         object : DownloadInfoListener {
             override fun onAdd(info: DownloadInfo, list: List<DownloadInfo>, position: Int) {
-                mAdapter.notifyDataSetChanged()
+                notifyItemDownloadChanged(info.gid)
             }
 
             override fun onUpdate(info: DownloadInfo, list: List<DownloadInfo>) {}
@@ -100,10 +108,18 @@ class HistoryScene : ToolbarScene() {
 
             override fun onRenameLabel(from: String, to: String) {}
             override fun onRemove(info: DownloadInfo, list: List<DownloadInfo>, position: Int) {
-                mAdapter.notifyDataSetChanged()
+                notifyItemDownloadChanged(info.gid)
             }
 
             override fun onUpdateLabels() {}
+        }
+    }
+
+    private fun notifyItemDownloadChanged(gid: Long) {
+        val snapshot = mAdapter.snapshot()
+        val index = snapshot.indexOfFirst { it?.gid == gid }
+        if (index >= 0) {
+            mAdapter.notifyItemChanged(index)
         }
     }
     private val mFavouriteStatusRouter = EhApplication.favouriteStatusRouter

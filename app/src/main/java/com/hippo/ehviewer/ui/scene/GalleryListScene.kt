@@ -142,7 +142,7 @@ class GalleryListScene :
     @SuppressLint("NotifyDataSetChanged")
     private val mDownloadInfoListener: DownloadInfoListener = object : DownloadInfoListener {
         override fun onAdd(info: DownloadInfo, list: List<DownloadInfo>, position: Int) {
-            mAdapter?.notifyDataSetChanged()
+            notifyItemDownloadChanged(info.gid)
         }
         override fun onUpdate(info: DownloadInfo, list: List<DownloadInfo>) {}
         override fun onUpdateAll() {}
@@ -154,9 +154,21 @@ class GalleryListScene :
         }
         override fun onRenameLabel(from: String, to: String) {}
         override fun onRemove(info: DownloadInfo, list: List<DownloadInfo>, position: Int) {
-            mAdapter?.notifyDataSetChanged()
+            notifyItemDownloadChanged(info.gid)
         }
         override fun onUpdateLabels() {}
+    }
+
+    private fun notifyItemDownloadChanged(gid: Long) {
+        val helper = mHelper ?: return
+        val adapter = mAdapter ?: return
+        val size = helper.size()
+        for (i in 0 until size) {
+            if (helper.getDataAtEx(i)?.gid == gid) {
+                adapter.notifyItemChanged(i)
+                return
+            }
+        }
     }
 
     private val mFavouriteStatusRouter: FavouriteStatusRouter = favouriteStatusRouter
