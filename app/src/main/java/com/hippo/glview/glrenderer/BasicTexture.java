@@ -73,6 +73,12 @@ public abstract class BasicTexture implements Texture {
         }
     }
 
+    public static int getTextureCount() {
+        synchronized (sAllTextures) {
+            return sAllTextures.size();
+        }
+    }
+
     public static void invalidateAllTextures() {
         synchronized (sAllTextures) {
             for (BasicTexture t : sAllTextures.keySet()) {

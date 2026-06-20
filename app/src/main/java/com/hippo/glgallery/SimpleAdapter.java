@@ -43,7 +43,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
         view.setPage(index + 1);
         view.setProgress(GalleryPageView.PROGRESS_INDETERMINATE);
         view.setError(null, null);
-        view.setNetworkInfo(null, null);
+        view.setNetworkInfo(null);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
         mProvider.cancelRequest(index);
         view.setImage(null);
         view.setError(null, null);
-        view.setNetworkInfo(null, null);
+        view.setNetworkInfo(null);
     }
 
     @Override
@@ -73,6 +73,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
             page.setPage(index + 1);
             page.setProgress(GalleryPageView.PROGRESS_INDETERMINATE);
             page.setError(null, null);
+            page.setPageState(GalleryPageView.PAGE_STATE_WAITING);
         }
     }
 
@@ -85,6 +86,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
             page.setPage(index + 1);
             page.setProgress(percent);
             page.setError(null, null);
+            page.setPageState(GalleryPageView.PAGE_STATE_DOWNLOADING);
         }
     }
 
@@ -100,6 +102,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
                 page.setPage(index + 1);
                 page.setProgress(GalleryPageView.PROGRESS_GONE);
                 page.setError(null, null);
+                page.setPageState(GalleryPageView.PAGE_STATE_FINISHED);
             } else {
                 // The image is recycled, request again.
                 // TODO request loop ?
@@ -117,6 +120,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
             page.setPage(index + 1);
             page.setProgress(GalleryPageView.PROGRESS_GONE);
             page.setError(error, mGalleryView);
+            page.setPageState(GalleryPageView.PAGE_STATE_FAILED);
         }
     }
 
@@ -124,7 +128,7 @@ public class SimpleAdapter extends GalleryView.Adapter implements GalleryProvide
     public void onPageNetworkInfo(int index, String info) {
         GalleryPageView page = findPageByIndex(index);
         if (page != null) {
-            page.setNetworkInfo(info, mGalleryView);
+            page.setNetworkInfo(info);
         }
     }
 

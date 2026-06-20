@@ -40,10 +40,19 @@ public class GalleryPageView extends GLFrameLayout {
     private final GLLinearLayout mInfo;
     private final GLImageMovableTextView mPage;
     private final GLTextureView mError;
-    private final GLTextureView mNetworkInfo;
     private final GLProgressView mProgress;
 
     private final int mMinHeight;
+
+    public static final int PAGE_STATE_NONE = 0;
+    public static final int PAGE_STATE_WAITING = 1;
+    public static final int PAGE_STATE_DOWNLOADING = 2;
+    public static final int PAGE_STATE_FINISHED = 3;
+    public static final int PAGE_STATE_FAILED = 4;
+
+    private int mPageState = PAGE_STATE_NONE;
+    private String mCurrentNetworkInfo;
+    private float mDownloadPercent;
 
     private int mIndex = INVALID_INDEX;
     private final List<OnLoadedListener> mOnLoadedListeners = new ArrayList<>();
@@ -112,13 +121,6 @@ public class GalleryPageView extends GLFrameLayout {
         lp.gravity = Gravity.CENTER_HORIZONTAL;
         mInfo.addComponent(mProgress, lp);
 
-        // Add network info
-        mNetworkInfo = new GLTextureView();
-        lp = new GLLinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.CENTER_HORIZONTAL;
-        mInfo.addComponent(mNetworkInfo, lp);
-
         mMinHeight = minHeight;
     }
 
@@ -175,6 +177,7 @@ public class GalleryPageView extends GLFrameLayout {
     }
 
     public void setProgress(float progress) {
+        mDownloadPercent = progress;
         if (progress == PROGRESS_GONE) {
             mProgress.setVisibility(GONE);
         } else if (progress == PROGRESS_INDETERMINATE) {
@@ -207,24 +210,24 @@ public class GalleryPageView extends GLFrameLayout {
         }
     }
 
-    private void unbindNetworkInfo() {
-        Texture texture = mNetworkInfo.getTexture();
-        if (texture != null) {
-            mNetworkInfo.setTexture(null);
-            if (texture instanceof BasicTexture) {
-                ((BasicTexture) texture).recycle();
-            }
-        }
+    public int getPageState() {
+        return mPageState;
     }
 
-    public void setNetworkInfo(String info, GalleryView galleryView) {
-        unbindNetworkInfo();
-        if (info == null) {
-            mNetworkInfo.setVisibility(GONE);
-        } else {
-            mNetworkInfo.setVisibility(VISIBLE);
-            galleryView.bindNetworkInfoView(mNetworkInfo, info);
-        }
+    public void setPageState(int state) {
+        mPageState = state;
+    }
+
+    public String getCurrentNetworkInfo() {
+        return mCurrentNetworkInfo;
+    }
+
+    public float getDownloadPercent() {
+        return mDownloadPercent;
+    }
+
+    public void setNetworkInfo(String info) {
+        mCurrentNetworkInfo = info;
     }
 
     ImageView getImageView() {

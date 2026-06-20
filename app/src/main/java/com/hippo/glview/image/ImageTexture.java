@@ -70,6 +70,7 @@ public class ImageTexture implements Texture, Animatable {
         @Override
         public void run() {
             if (mRunning.get()) {
+                mPollerCount++;
                 mFrameDirty.lazySet(true);
                 invalidateSelf();
                 mAnimHandler.postDelayed(this, Math.max(mImage.getDelay(), 16));
@@ -78,6 +79,12 @@ public class ImageTexture implements Texture, Animatable {
     };
     private int mUploadIndex = 0;
     private boolean mImageBusy = false;
+    private int mCbCount = 0;
+    private int mPollerCount = 0;
+    private int mDrawCount = 0;
+    private int mFpsCount = 0;
+    private int mFps = 0;
+    private long mLastFpsTime = 0;
 
     private WeakReference<Callback> mCallback;
 
@@ -235,10 +242,17 @@ public class ImageTexture implements Texture, Animatable {
         }
 
         mRunning.lazySet(true);
+        mCbCount = 0;
+        mPollerCount = 0;
+        mDrawCount = 0;
+        mFpsCount = 0;
+        mFps = 0;
+        mLastFpsTime = 0;
 
         // Primary: event-driven frame notification via Drawable.Callback.
         mImage.setFrameCallback(() -> {
             if (mRunning.get()) {
+                mCbCount++;
                 mFrameDirty.lazySet(true);
                 invalidateSelf();
             }
@@ -301,6 +315,16 @@ public class ImageTexture implements Texture, Animatable {
 
     private void syncFrame() {
         if (mFrameDirty.getAndSet(false)) {
+            mDrawCount++;
+            mFpsCount++;
+            long now = SystemClock.uptimeMillis();
+            if (mLastFpsTime == 0) {
+                mLastFpsTime = now;
+            } else if (now - mLastFpsTime >= 1000) {
+                mFps = mFpsCount;
+                mFpsCount = 0;
+                mLastFpsTime = now;
+            }
             // invalid tiles
             for (Tile tile : mTiles) {
                 tile.invalidateContent();
@@ -442,6 +466,18 @@ public class ImageTexture implements Texture, Animatable {
 
     public interface Callback {
         void invalidateImageTexture(ImageTexture who);
+    }
+
+    public String getAnimDebugInfo() {
+        return mFps + "fps cb=" + mCbCount + " poll=" + mPollerCount + " draw=" + mDrawCount;
+    }
+
+    public int getAnimDelay() {
+        return mImage.getDelay();
+    }
+
+    public int getTileCount() {
+        return mTiles.length;
     }
 
     public static class Uploader implements GLRoot.OnGLIdleListener {

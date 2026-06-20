@@ -641,6 +641,7 @@ class GalleryActivity :
             .setErrorTextSize(resources.getDimensionPixelOffset(R.dimen.gallery_error_text_size))
             .setEmptyString(resources.getString(R.string.error_empty))
             .build()
+        mGalleryView!!.setShowHud(Settings.developerMode)
         mGLRootView!!.setContentPane(mGalleryView)
         mGalleryProvider!!.setListener(mGalleryAdapter)
         mGalleryProvider!!.setGLRoot(mGLRootView!!)
