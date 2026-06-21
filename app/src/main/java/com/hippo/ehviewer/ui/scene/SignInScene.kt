@@ -151,10 +151,11 @@ class SignInScene :
     }
 
     override fun onClick(v: View) {
-        val activity = mainActivity ?: return
         when (v.id) {
-            R.id.register ->
+            R.id.register -> {
+                val activity = mainActivity ?: return
                 UrlOpener.openUrl(activity, EhUrl.URL_REGISTER, false)
+            }
 
             R.id.sign_in ->
                 signIn()
@@ -173,7 +174,7 @@ class SignInScene :
             }
 
             R.id.btn_settings ->
-                activity.startActivity(Intent(activity, SettingsActivity::class.java))
+                startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
     }
 
