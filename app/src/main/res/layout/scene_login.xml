@@ -166,6 +166,15 @@
         </LinearLayout>
     </ScrollView>
 
+    <ImageButton
+        android:id="@+id/btn_settings"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/settings"
+        app:srcCompat="@drawable/v_settings_black_x24" />
+
     <FrameLayout
         android:id="@+id/progress"
         android:layout_width="match_parent"
