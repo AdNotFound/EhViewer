@@ -152,30 +152,28 @@ class SignInScene :
 
     override fun onClick(v: View) {
         val activity = mainActivity ?: return
-        when (v) {
-            mRegister ->
+        when (v.id) {
+            R.id.register ->
                 UrlOpener.openUrl(activity, EhUrl.URL_REGISTER, false)
 
-            mSignIn ->
+            R.id.sign_in ->
                 signIn()
 
-            mSignInViaCookies ->
+            R.id.sign_in_via_cookies ->
                 startScene(Announcer(CookieSignInScene::class.java).setRequestCode(this, REQUEST_CODE_COOKIE))
 
-            mSignInViaWebView ->
+            R.id.sign_in_via_webview ->
                 startScene(Announcer(WebViewSignInScene::class.java).setRequestCode(this, REQUEST_CODE_WEBVIEW))
 
-            mSkipSigningIn -> {
+            R.id.tourist_mode -> {
                 // Set gallery size SITE_E if skip sign in
                 Settings.putGallerySite(EhUrl.SITE_E)
                 Settings.putSelectSite(false)
                 finishSignIn(false)
             }
 
-            mSettingsButton -> {
-                val intent = Intent(activity, SettingsActivity::class.java)
-                activity.startActivity(intent)
-            }
+            R.id.btn_settings ->
+                activity.startActivity(Intent(activity, SettingsActivity::class.java))
         }
     }
 
