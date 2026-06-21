@@ -12,7 +12,7 @@ import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-abstract class WebViewInterceptor(private val context: Context) : Interceptor {
+abstract class WebViewInterceptor(protected val context: Context) : Interceptor {
     /**
      * When this is called, it initializes the WebView if it wasn't already. We use this to avoid
      * blocking the main thread too much. If used too often we could consider moving it to the
@@ -54,7 +54,7 @@ abstract class WebViewInterceptor(private val context: Context) : Interceptor {
         await(30, TimeUnit.SECONDS)
     }
 
-    fun createWebView(): WebView = WebView(context).apply {
+    open fun createWebView(): WebView = WebView(context).apply {
         setDefaultSettings()
     }
 }
