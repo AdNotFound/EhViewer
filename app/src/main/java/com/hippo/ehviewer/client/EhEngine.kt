@@ -554,7 +554,7 @@ object EhEngine {
         val url = EhUrl.URL_NEWS
         val referer = EhUrl.REFERER_E
         Log.d(TAG, url)
-        return EhRequestBuilder(url, referer).executeAndParsingWith {
+        return EhRequestBuilder(url, referer, ua = UAPresets.WEBVIEW_ANDROID).executeAndParsingWith {
             if (parse) EventPaneParser.parse(this) else null
         }
     }
@@ -564,21 +564,21 @@ object EhEngine {
         referer: String,
     ): ProfileParser.Result {
         Log.d(TAG, url)
-        return EhRequestBuilder(url, referer).executeAndParsingWith(ProfileParser::parse)
+        return EhRequestBuilder(url, referer, ua = UAPresets.WEBVIEW_ANDROID).executeAndParsingWith(ProfileParser::parse)
     }
 
     suspend fun getProfile(): ProfileParser.Result {
         val url = EhUrl.URL_FORUMS
         Log.d(TAG, url)
         return getProfileInternal(
-            EhRequestBuilder(url).executeAndParsingWith(ForumsParser::parse),
+            EhRequestBuilder(url, ua = UAPresets.WEBVIEW_ANDROID).executeAndParsingWith(ForumsParser::parse),
             url,
         )
     }
 
     private suspend fun getUConfigInternal(url: String) {
         Log.d(TAG, url)
-        EhRequestBuilder(url).executeAndParsingWith(UserConfigParser::parse)
+        EhRequestBuilder(url, ua = UAPresets.WEBVIEW_ANDROID).executeAndParsingWith(UserConfigParser::parse)
     }
 
     suspend fun getUConfig(url: String = EhUrl.uConfigUrl) {
