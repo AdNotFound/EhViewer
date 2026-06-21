@@ -24,7 +24,6 @@ public class DebugHud extends GLView {
     private final StringTexture[] mTextures = new StringTexture[MAX_LINES];
     private int mLineCount;
     private int mWidthLimit;
-    private int mMaxBgWidth;
     private final RectF mSrc = new RectF();
     private final RectF mDst = new RectF();
 
@@ -34,7 +33,6 @@ public class DebugHud extends GLView {
 
     public void setWidthLimit(int limit) {
         mWidthLimit = limit;
-        mMaxBgWidth = limit + PADDING_H * 2;
     }
 
     public void update(String[] lines) {
@@ -104,7 +102,11 @@ public class DebugHud extends GLView {
             }
         }
         int measuredW = PADDING_H * 2 + maxW;
-        if (mMaxBgWidth > 0 && measuredW > mMaxBgWidth) measuredW = mMaxBgWidth;
+        int specMode = GLView.MeasureSpec.getMode(widthSpec);
+        int specSize = GLView.MeasureSpec.getSize(widthSpec);
+        if (specMode == GLView.MeasureSpec.AT_MOST && measuredW > specSize) {
+            measuredW = specSize;
+        }
         setMeasuredSize(measuredW, totalH);
     }
 
