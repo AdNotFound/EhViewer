@@ -315,7 +315,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     fun preloadPages(pages: List<Int>, pair: Pair<Int, Int>) {
-        mWorkerScope.updateRAList(pages, pair)
+        mWorkerScope.updateRAList(pages, pair, preload = true)
     }
 
     private fun request(index: Int, force: Boolean) {
@@ -327,6 +327,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             // Update state to none at once
             updatePageState(index, STATE_NONE)
         }
+        mWorkerScope.cancelAllWaitingPreloads()
         mWorkerScope.launch(index, force)
     }
 
@@ -521,6 +522,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     private val mWorkerScope = object {
         private val mFetcherJobMap = hashMapOf<Int, Job>()
         private val mSemaphore = Semaphore(Settings.downloadThreadCount)
+        private val mPendingPreloads = mutableListOf<Job>()
         private val pTokenLock = Mutex()
         private var showKey: String? = null
         private val showKeyLock = Mutex()
@@ -533,6 +535,11 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             decoder.cancel(index)
         }
 
+        fun cancelAllWaitingPreloads() {
+            val jobs = synchronized(mPendingPreloads) { mPendingPreloads.toList() }
+            jobs.forEach { it.cancel(CancellationException(PREEMPTED_BY_FOREGROUND)) }
+        }
+
         @Synchronized
         fun enterDownloadMode() {
             if (isDownloadMode) return
@@ -540,7 +547,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             isDownloadMode = true
         }
 
-        fun updateRAList(list: List<Int>, cancelBounds: Pair<Int, Int> = 0 to Int.MAX_VALUE) {
+        fun updateRAList(list: List<Int>, cancelBounds: Pair<Int, Int> = 0 to Int.MAX_VALUE, preload: Boolean = false) {
             if (isDownloadMode) return
             synchronized(mFetcherJobMap) {
                 mFetcherJobMap.forEach { (i, job) ->
@@ -550,7 +557,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 }
                 list.forEach {
                     if (mFetcherJobMap[it]?.isActive != true) {
-                        doLaunchDownloadJob(it, false)
+                        doLaunchDownloadJob(it, false, preload)
                     }
                 }
             }
@@ -565,7 +572,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             }
         }
 
-        private fun doLaunchDownloadJob(index: Int, force: Boolean) {
+        private fun doLaunchDownloadJob(index: Int, force: Boolean, preload: Boolean = false) {
             val state = mPageStateArray[index]
             if (!force && state == STATE_FINISHED) return
             val currentJob = mFetcherJobMap[index]
@@ -574,12 +581,27 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             if (currentJob?.isActive != true) {
                 mFetcherJobMap[index] = launch {
                     runCatching {
-                        mSemaphore.withPermit {
+                        if (preload) {
+                            try {
+                                synchronized(mPendingPreloads) { mPendingPreloads.add(coroutineContext[Job]!!) }
+                                while (!mSemaphore.tryAcquire()) {
+                                    ensureActive()
+                                    delay(100)
+                                }
+                            } finally {
+                                synchronized(mPendingPreloads) { mPendingPreloads.remove(coroutineContext[Job]!!) }
+                            }
+                        } else {
+                            mSemaphore.acquire()
+                        }
+                        try {
                             doInJob(index, force, skipHath)
+                        } finally {
+                            mSemaphore.release()
                         }
                     }.onFailure {
                         if (it is CancellationException) {
-                            if (mReadReference > 0) {
+                            if (mReadReference > 0 && it.message != PREEMPTED_BY_FOREGROUND) {
                                 Log.d(WORKER_DEBUG_TAG, "Download image $index cancelled")
                                 if (it.message != FORCE_RETRY) {
                                     updatePageState(index, STATE_FAILED, "Cancelled")
@@ -715,7 +737,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                             val watchdog = launch {
                                 var lastReceived = 0L
                                 var lastCheck = System.nanoTime()
-                                var lowSpeedCounter = 0
+                                var prevBytesDelta = 0L
                                 delay(2000) // Initial grace period
                                 while (isActive) {
                                     delay(1000)
@@ -723,20 +745,17 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                     val now = System.nanoTime()
                                     val interval = now - lastCheck
                                     if (interval >= 1_000_000_000) {
-                                        val bytesDelta = currentReceived - lastReceived
-                                        val speed = bytesDelta * 1_000_000_000 / interval
+                                        val currentBytesDelta = currentReceived - lastReceived
+                                        val windowBytes = prevBytesDelta + currentBytesDelta
+                                        val windowSeconds = (interval + 1_000_000_000).coerceAtMost(2_000_000_000) / 1_000_000_000.0
+                                        val speed = (windowBytes / windowSeconds).toLong()
                                         val minSpeed = Settings.timeoutSpeed.toLong() * 1024
-
                                         if (speed < minSpeed && currentReceived > 0) {
-                                            lowSpeedCounter++
-                                            if (lowSpeedCounter >= 3) {
-                                                val msg = "Speed: ${speed / 1024} KB/s < ${minSpeed / 1024} KB/s"
-                                                Log.d(WORKER_DEBUG_TAG, "Download image $index: $msg")
-                                                throw LowSpeedException(targetImageUrl, speed)
-                                            }
-                                        } else {
-                                            lowSpeedCounter = 0
+                                            val msg = "Speed: ${speed / 1024} KB/s < ${minSpeed / 1024} KB/s"
+                                            Log.d(WORKER_DEBUG_TAG, "Download image $index: $msg")
+                                            throw LowSpeedException(targetImageUrl, speed)
                                         }
+                                        prevBytesDelta = currentBytesDelta
                                         lastReceived = currentReceived
                                         lastCheck = now
                                     }
@@ -776,7 +795,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 }
             }.onFailure {
                 if (it is CancellationException) {
-                    if (mReadReference > 0) {
+                    if (mReadReference > 0 && it.message != PREEMPTED_BY_FOREGROUND) {
                         Log.d(WORKER_DEBUG_TAG, "Download image $index cancelled")
                         if (it.message != FORCE_RETRY) {
                             updatePageState(index, STATE_FAILED, "Cancelled")
@@ -862,6 +881,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         private val DECODE_ERROR = GetText.getString(R.string.error_decoding_failed)
         private val URL_509_PATTERN = Regex("\\.org/.+/509s?\\.gif")
         private const val FORCE_RETRY = "Force retry"
+        private const val PREEMPTED_BY_FOREGROUND = "Preempted by foreground request"
         private const val WORKER_DEBUG_TAG = "SpiderQueenWorker"
 
         fun reset(gid: Long) {
