@@ -15,6 +15,7 @@
  */
 package com.hippo.ehviewer.ui.scene
 
+import android.content.Intent
 import android.graphics.Paint
 import android.os.Bundle
 import android.view.KeyEvent
@@ -32,6 +33,7 @@ import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.UrlOpener
+import com.hippo.ehviewer.ui.SettingsActivity
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
@@ -58,6 +60,7 @@ class SignInScene :
     private var mSignInViaWebView: TextView? = null
     private var mSignInViaCookies: TextView? = null
     private var mSkipSigningIn: TextView? = null
+    private var mSettingsButton: View? = null
     private var mSignInJob: Job? = null
 
     override fun needShowLeftDrawer(): Boolean = false
@@ -79,6 +82,7 @@ class SignInScene :
         mSignInViaWebView = ViewUtils.`$$`(loginForm, R.id.sign_in_via_webview) as TextView
         mSignInViaCookies = ViewUtils.`$$`(loginForm, R.id.sign_in_via_cookies) as TextView
         mSkipSigningIn = ViewUtils.`$$`(loginForm, R.id.tourist_mode) as TextView
+        mSettingsButton = ViewUtils.`$$`(view, R.id.btn_settings)
         mSignInViaWebView!!.run {
             paintFlags = paintFlags or Paint.UNDERLINE_TEXT_FLAG or Paint.ANTI_ALIAS_FLAG
         }
@@ -94,6 +98,7 @@ class SignInScene :
         mSignInViaWebView!!.setOnClickListener(this)
         mSignInViaCookies!!.setOnClickListener(this)
         mSkipSigningIn!!.setOnClickListener(this)
+        mSettingsButton!!.setOnClickListener(this)
         return view
     }
 
@@ -109,6 +114,7 @@ class SignInScene :
         mSignInViaWebView = null
         mSignInViaCookies = null
         mSkipSigningIn = null
+        mSettingsButton = null
         mSignInJob = null
     }
 
@@ -164,6 +170,11 @@ class SignInScene :
                 Settings.putGallerySite(EhUrl.SITE_E)
                 Settings.putSelectSite(false)
                 finishSignIn(false)
+            }
+
+            mSettingsButton -> {
+                val intent = Intent(activity, SettingsActivity::class.java)
+                activity.startActivity(intent)
             }
         }
     }
