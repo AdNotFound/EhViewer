@@ -23,6 +23,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.util.setDefaultSettings
+import com.hippo.okhttp.UAPresets
 
 class WebViewActivity : EhActivity() {
     private var webView: WebView? = null
@@ -31,7 +32,7 @@ class WebViewActivity : EhActivity() {
         super.onCreate(savedInstanceState)
         val url = intent.extras?.getString(KEY_URL) ?: return
         webView = WebView(applicationContext).apply {
-            setDefaultSettings()
+            setDefaultSettings(UAPresets.WEBVIEW_ANDROID)
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView, url: String) {
                     val cloudflareBypassed = EhCookieStore.saveFromWebView(url) {

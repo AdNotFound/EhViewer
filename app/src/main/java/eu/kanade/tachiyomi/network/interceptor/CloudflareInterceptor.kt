@@ -8,6 +8,8 @@ import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.exception.CloudflareBypassException
+import com.hippo.ehviewer.util.setDefaultSettings
+import com.hippo.okhttp.UAPresets
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
@@ -16,6 +18,10 @@ import java.util.concurrent.CountDownLatch
 
 class CloudflareInterceptor(context: Context) : WebViewInterceptor(context) {
     private val executor = ContextCompat.getMainExecutor(context)
+
+    override fun createWebView(): WebView = WebView(context).apply {
+        setDefaultSettings(UAPresets.WEBVIEW_ANDROID)
+    }
 
     override fun shouldIntercept(response: Response): Boolean = response.header(HEADER_NAME) == HEADER_VALUE
 
@@ -45,7 +51,7 @@ class CloudflareInterceptor(context: Context) : WebViewInterceptor(context) {
         var cloudflareBypassed = false
 
         val origRequestUrl = originalRequest.url.toString()
-        val headers = parseHeaders(originalRequest.headers)
+        val headers = parseHeaders(originalRequest.headers) - "User-Agent"
         EhCookieStore.loadForWebView(origRequestUrl) {
             it.name != EhCookieStore.KEY_CLOUDFLARE
         }
