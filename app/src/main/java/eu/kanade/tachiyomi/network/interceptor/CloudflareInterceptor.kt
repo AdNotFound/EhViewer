@@ -67,11 +67,15 @@ class CloudflareInterceptor(context: Context) : WebViewInterceptor(context) {
 
                     if (cloudflareBypassed) {
                         latch.countDown()
-                    }
-
-                    if (url == origRequestUrl && !challengeFound) {
-                        // The first request didn't return the challenge, abort.
-                        latch.countDown()
+                    } else if (url == origRequestUrl) {
+                        // onReceivedHttpError may fire before or after onPageFinished
+                        // depending on WebView implementation. Delay the "no challenge"
+                        // check to give onReceivedHttpError time to set challengeFound.
+                        view.postDelayed({
+                            if (!challengeFound) {
+                                latch.countDown()
+                            }
+                        }, 500)
                     }
                 }
 
