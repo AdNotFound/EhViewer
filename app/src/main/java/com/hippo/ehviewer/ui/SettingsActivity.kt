@@ -34,9 +34,19 @@ class SettingsActivity : EhActivity() {
         get() = findViewById<View?>(R.id.fragment_detail) != null
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+        // When layout configuration changes (single-pane vs two-pane), we need to
+        // prevent FragmentManager from restoring fragments to old container IDs.
+        // Save the new layout state and clear savedInstanceState if layout changed.
+        val newIsTwoPane = Settings.layoutEnabled && Settings.layoutSettingsTwoPane && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val effectiveSavedInstanceState = if (savedInstanceState != null) {
+            val oldIsTwoPane = savedInstanceState.getBoolean(KEY_IS_TWO_PANE, false)
+            if (oldIsTwoPane != newIsTwoPane) null else savedInstanceState
+        } else {
+            null
+        }
+        super.onCreate(effectiveSavedInstanceState)
         setContentView(
-            if (Settings.layoutEnabled && Settings.layoutSettingsTwoPane && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            if (newIsTwoPane) {
                 R.layout.activity_preference_large
             } else {
                 R.layout.activity_preference
@@ -45,7 +55,7 @@ class SettingsActivity : EhActivity() {
         setSupportActionBar(findViewById(R.id.toolbar))
         val bar = supportActionBar
         bar?.setDisplayHomeAsUpEnabled(true)
-        if (savedInstanceState == null) {
+        if (effectiveSavedInstanceState == null) {
             val transaction = supportFragmentManager
                 .beginTransaction()
                 .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_MATCH_ACTIVITY_OPEN)
@@ -58,6 +68,11 @@ class SettingsActivity : EhActivity() {
             }
             transaction.commitAllowingStateLoss()
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(KEY_IS_TWO_PANE, isTwoPaneLayout)
     }
 
     fun showTip(@StringRes id: Int, length: Int) {
@@ -83,6 +98,7 @@ class SettingsActivity : EhActivity() {
 
     companion object {
         const val EXTRA_RECREATE_MAIN_ACTIVITY = "recreate_main_activity"
+        private const val KEY_IS_TWO_PANE = "is_two_pane"
 
         fun recreateMainActivityResult() = Intent().putExtra(EXTRA_RECREATE_MAIN_ACTIVITY, true)
     }
