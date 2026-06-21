@@ -20,6 +20,8 @@ import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.view.MotionEvent;
 
@@ -120,8 +122,11 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     private final List<Integer> mMethodListTemp = new ArrayList<>(5);
     private final List<Object[]> mArgsListTemp = new ArrayList<>(5);
     private final AtomicInteger mCurrentIndex = new AtomicInteger(GalleryPageView.INVALID_INDEX);
+    private final Handler mHudHandler = new Handler(Looper.getMainLooper());
+    private final Runnable mHudTick = this::invalidate;
     private DebugHud mDebugHud;
     private boolean mShowHud;
+    private boolean mHudNeedsLayout;
     private int mFpsRenderCount;
     private long mLastFpsTime;
     private int mFps;
@@ -356,6 +361,7 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
     @Override
     public void onDetachFromRoot() {
         // When detached, render() will not be called. So do it here
+        mHudHandler.removeCallbacks(mHudTick);
         detachLayoutManager();
         if (null != mPageTextTexture) {
             mPageTextTexture.recycle();
@@ -551,17 +557,21 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
             mSliderArea.set((int) (SLIDER_AREA[0] * width), (int) (SLIDER_AREA[1] * height),
                     (int) (SLIDER_AREA[2] * width), (int) (SLIDER_AREA[3] * height));
         }
-        if (mDebugHud != null) {
-            int viewWidth = right - left;
-            int hudWidthSpec = GLView.MeasureSpec.makeMeasureSpec(viewWidth * 85 / 100,
-                    GLView.MeasureSpec.AT_MOST);
-            int hudHeightSpec = GLView.MeasureSpec.makeMeasureSpec(GLView.LayoutParams.WRAP_CONTENT,
-                    GLView.LayoutParams.WRAP_CONTENT);
-            mDebugHud.measure(hudWidthSpec, hudHeightSpec);
-            int hudHeight = mDebugHud.getMeasuredHeight();
-            int viewBottom = bottom - top;
-            mDebugHud.layout(0, viewBottom - hudHeight, mDebugHud.getMeasuredWidth(), viewBottom);
-        }
+        layoutHud();
+    }
+
+    private void layoutHud() {
+        if (mDebugHud == null) return;
+        int vw = getWidth();
+        int vh = getHeight();
+        if (vw <= 0 || vh <= 0) return;
+        int hudWidthSpec = GLView.MeasureSpec.makeMeasureSpec(vw * 85 / 100,
+                GLView.MeasureSpec.AT_MOST);
+        int hudHeightSpec = GLView.MeasureSpec.makeMeasureSpec(0,
+                GLView.MeasureSpec.UNSPECIFIED);
+        mDebugHud.measure(hudWidthSpec, hudHeightSpec);
+        int hudHeight = mDebugHud.getMeasuredHeight();
+        mDebugHud.layout(0, vh - hudHeight, mDebugHud.getMeasuredWidth(), vh);
     }
 
     public void onDataChanged() {
@@ -983,6 +993,10 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
                 && getComponent(getComponentCount() - 1) != mDebugHud) {
             bringComponentToFront(mDebugHud);
         }
+        if (mHudNeedsLayout) {
+            mHudNeedsLayout = false;
+            layoutHud();
+        }
         mWillFill = false;
 
         super.render(canvas);
@@ -994,18 +1008,20 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
             newCurrentIndex = GalleryPageView.INVALID_INDEX;
         }
         mCurrentIndex.lazySet(newCurrentIndex);
-
-        long now = SystemClock.uptimeMillis();
-        if (now - mLastHudCollectTime > 500) {
-            mLastHudCollectTime = now;
-            collectHudData();
-        }
-
         int newPairSize = getPagePairSize(newCurrentIndex);
         boolean pairSizeChanged = (mCurrentPairSize != newPairSize);
         mCurrentPairSize = newPairSize;
         boolean pageStructureChanged = mPageStructureChanged;
         mPageStructureChanged = false;
+
+        if (oldCurrentIndex != newCurrentIndex || pairSizeChanged || pageStructureChanged) {
+            mLastHudCollectTime = 0;
+        }
+        long now = SystemClock.uptimeMillis();
+        if (now - mLastHudCollectTime > 500) {
+            mLastHudCollectTime = now;
+            collectHudData();
+        }
 
         if ((oldCurrentIndex != newCurrentIndex || pairSizeChanged || pageStructureChanged) && mListener != null) {
             mListener.onUpdateCurrentIndex(newCurrentIndex);
@@ -1018,8 +1034,10 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
             mDebugHud.setVisibility(show ? VISIBLE : GONE);
             if (!show) {
                 mDebugHud.update(null);
+                mHudHandler.removeCallbacks(mHudTick);
             } else {
                 clearStalePageInfo();
+                mHudNeedsLayout = true;
             }
         }
     }
@@ -1049,18 +1067,21 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
         int current = mCurrentIndex.get();
         if (current != GalleryPageView.INVALID_INDEX) {
             int start = getPagePairStart(current);
+            int pairSize = getPagePairSize(current);
             GalleryPageView primary = findPageByIndex(start);
             if (primary != null) pages.add(primary);
-            GalleryPageView secondary = findPageByIndex(start + 1);
-            if (secondary != null) pages.add(secondary);
+            if (pairSize > 1) {
+                GalleryPageView secondary = findPageByIndex(start + 1);
+                if (secondary != null) pages.add(secondary);
+            }
         }
 
-        boolean singlePage = pages.size() <= 1;
+        boolean isDoublePage = getPagePairSize(current) > 1;
         for (int i = 0; i < pages.size(); i++) {
             GalleryPageView page = pages.get(i);
             int idx = page.getIndex();
             int state = page.getPageState();
-            String prefix = singlePage ? "" : (i == 0 ? "L " : "R ");
+            String prefix = isDoublePage ? (i == 0 ? "L " : "R ") : "";
 
             if (state == GalleryPageView.PAGE_STATE_FAILED) {
                 lines.add(prefix + "#" + (idx + 1) + " FAILED");
@@ -1102,9 +1123,12 @@ public final class GalleryView extends GLView implements GestureRecognizer.Liste
 
         int w = getWidth();
         if (w > 0) {
-            mDebugHud.setWidthLimit(w / 2);
+            mDebugHud.setWidthLimit(w * 80 / 100);
         }
         mDebugHud.update(lines.toArray(new String[0]));
+        mHudNeedsLayout = true;
+        mHudHandler.removeCallbacks(mHudTick);
+        mHudHandler.postDelayed(mHudTick, 500);
     }
 
     public GalleryPageView findPageByIndex(int id) {
