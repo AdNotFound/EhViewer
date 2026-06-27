@@ -101,6 +101,8 @@ object EhDns : Dns {
             Pair("37.48.92.161", false),
             Pair("212.7.200.104", false),
             Pair("212.7.202.51", false),
+            Pair("95.211.79.44", false),
+            Pair("89.149.222.80", false),
         )
         put(
             "ehgt.org",
