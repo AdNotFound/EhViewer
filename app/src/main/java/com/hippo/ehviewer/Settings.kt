@@ -213,6 +213,8 @@ object Settings {
     private const val DEFAULT_SAVE_PARSE_ERROR_BODY = true
     private const val KEY_SAVE_CRASH_LOG = "save_crash_log"
     private const val DEFAULT_SAVE_CRASH_LOG = true
+    const val KEY_DEVELOPER_MODE = "developer_mode"
+    private const val DEFAULT_DEVELOPER_MODE = false
     private const val KEY_READ_CACHE_SIZE = "read_cache_size"
     private const val DEFAULT_READ_CACHE_SIZE = 320
     const val KEY_APP_LANGUAGE = "app_language"
@@ -926,6 +928,12 @@ object Settings {
 
     val saveCrashLog: Boolean
         get() = getBoolean(KEY_SAVE_CRASH_LOG, DEFAULT_SAVE_CRASH_LOG)
+
+    val developerMode: Boolean
+        get() = getBoolean(KEY_DEVELOPER_MODE, DEFAULT_DEVELOPER_MODE)
+    fun putDeveloperMode(value: Boolean) {
+        putBoolean(KEY_DEVELOPER_MODE, value)
+    }
 
     val readCacheSize: Int
         get() = getIntFromStr(KEY_READ_CACHE_SIZE, DEFAULT_READ_CACHE_SIZE)

@@ -599,6 +599,8 @@
     <string name="settings_advanced_domain_fronting_summary">Bypass SNI blocking</string>
     <string name="settings_advanced_bypass_vpn_title">Bypass VPN</string>
     <string name="settings_advanced_bypass_vpn_summary">Try to bypass VPN when domain fronting is enabled</string>
+    <string name="settings_advanced_developer_mode">Developer mode</string>
+    <string name="settings_advanced_developer_mode_summary">Show network info and debug HUD</string>
     <string name="settings_advanced_backup_favorite">Backup favorite list</string>
     <string name="settings_advanced_backup_favorite_summary">Backup remote favorite list to local</string>
     <string name="settings_advanced_backup_favorite_start">Backing up favorite list %s</string>
