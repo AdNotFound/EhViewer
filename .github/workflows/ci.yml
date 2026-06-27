@@ -31,37 +31,37 @@ jobs:
         run: ./gradlew assembleRelease
 
       - name: Upload Universal
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: universal-${{ github.sha }}
           path: app/build/outputs/apk/release/app-universal-release.apk
 
       - name: Upload ARM64
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: arm64-v8a-${{ github.sha }}
           path: app/build/outputs/apk/release/app-arm64-v8a-release.apk
 
       - name: Upload ARM32
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: armeabi-v7a-${{ github.sha }}
           path: app/build/outputs/apk/release/app-armeabi-v7a-release.apk
 
       - name: Upload x86_64
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: x86_64-${{ github.sha }}
           path: app/build/outputs/apk/release/app-x86_64-release.apk
 
       - name: Upload mapping
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: mapping-${{ github.sha }}
           path: app/build/outputs/mapping/release/mapping.txt
 
       - name: Upload native debug symbols
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: native-debug-symbols-${{ github.sha }}
           path: app/build/outputs/native-debug-symbols/release/native-debug-symbols.zip
