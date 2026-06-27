@@ -55,6 +55,7 @@ import com.hippo.ehviewer.client.parser.UserConfigParser
 import com.hippo.ehviewer.client.parser.VoteCommentParser
 import com.hippo.ehviewer.client.parser.VoteTagParser
 import com.hippo.network.StatusCodeException
+import com.hippo.okhttp.UAPresets
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope

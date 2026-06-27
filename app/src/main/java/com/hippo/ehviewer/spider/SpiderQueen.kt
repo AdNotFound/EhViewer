@@ -80,6 +80,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     private var mOldHashMap: MutableMap<String, Int>? = null
     private var mReadReference = 0
     private var mDownloadReference = 0
+    private val mImageUrls = hashMapOf<Long, String>()
 
     fun addOnSpiderListener(listener: OnSpiderListener) {
         synchronized(mSpiderListeners) { mSpiderListeners.add(listener) }
@@ -291,6 +292,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     val size
         get() = mPageStateArray.size
+
+    fun getImageUrl(index: Int): String? = synchronized(mImageUrls) {
+        return mImageUrls[index.toLong()]
+    }
 
     fun forceRequest(index: Int) {
         request(index, true)
@@ -729,6 +734,9 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                         referer = null
                     }
                     checkNotNull(targetImageUrl)
+                    synchronized(mImageUrls) {
+                        mImageUrls[index.toLong()] = targetImageUrl
+                    }
 
                     runCatching {
                         Log.d(WORKER_DEBUG_TAG, "Start download image $index attempt #$retries")

@@ -16,6 +16,7 @@
 package com.hippo.ehviewer.client
 
 import com.hippo.ehviewer.EhApplication.Companion.noRedirectOkHttpClient
+import com.hippo.ehviewer.Settings
 import com.hippo.okhttp.ChromeRequestBuilder
 import okhttp3.Request
 import okhttp3.Response
@@ -25,7 +26,8 @@ class EhRequestBuilder(
     url: String,
     referer: String? = null,
     origin: String? = null,
-) : ChromeRequestBuilder(url) {
+    ua: String? = null,
+) : ChromeRequestBuilder(url, ua ?: Settings.userAgent) {
     init {
         referer?.let { addHeader("Referer", it) }
         origin?.let { addHeader("Origin", it) }

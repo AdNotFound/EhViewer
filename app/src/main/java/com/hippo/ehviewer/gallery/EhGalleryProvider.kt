@@ -88,6 +88,8 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
     override val size: Int
         get() = mSpiderQueen.size
 
+    override fun getImageUrl(index: Int): String? = mSpiderQueen.getImageUrl(index)
+
     override fun onRequest(index: Int) {
         notifyPageWait(index)
         mSpiderQueen.request(index)
