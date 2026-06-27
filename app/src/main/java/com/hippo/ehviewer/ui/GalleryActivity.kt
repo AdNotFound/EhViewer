@@ -504,6 +504,7 @@ class GalleryActivity :
                 object : ReaderSidebarAdapter.Callbacks {
                     override val galleryView: GalleryView? get() = mGalleryView
                     override val isDoublePageMode: Boolean get() = this@GalleryActivity.isDoublePageMode
+                    override val isRTL: Boolean get() = mLayoutMode == GalleryView.LAYOUT_RIGHT_TO_LEFT
                 },
             )
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)

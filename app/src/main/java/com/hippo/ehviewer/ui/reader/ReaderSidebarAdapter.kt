@@ -52,6 +52,7 @@ class ReaderSidebarAdapter(
     interface Callbacks {
         val galleryView: GalleryView?
         val isDoublePageMode: Boolean
+        val isRTL: Boolean
     }
 
     override fun getItemId(position: Int): Long = pageStarts[position].toLong()
@@ -91,9 +92,14 @@ class ReaderSidebarAdapter(
                 val pageStart = pageStarts[position]
                 val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
                 val pageEnd = minOf(pageCount, pageStart + pairSize)
-                bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
-                if (pageEnd - pageStart > 1) {
-                    bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                if (pageEnd - pageStart > 1 && callbacks.isRTL) {
+                    bindSidebarPreview(holder.image, previews[pageStart + 1], holder.imageLoading)
+                    bindSidebarPreview(holder.imageSecondary, previews[pageStart], holder.imageSecondaryLoading)
+                } else {
+                    bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
+                    if (pageEnd - pageStart > 1) {
+                        bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                    }
                 }
             }
             if (hasIndex) {
@@ -111,8 +117,13 @@ class ReaderSidebarAdapter(
         val pageStart = pageStarts[position]
         val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
         val pageEnd = minOf(pageCount, pageStart + pairSize)
-        bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
-        holder.image.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 1)
+        if (pageEnd - pageStart > 1 && callbacks.isRTL) {
+            bindSidebarPreview(holder.image, previews[pageStart + 1], holder.imageLoading)
+            holder.image.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 2)
+        } else {
+            bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
+            holder.image.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 1)
+        }
         if (pageEnd - pageStart > 1) {
             holder.imageLeadingSpace.visibility = View.GONE
             holder.imageTrailingSpace.visibility = View.GONE
@@ -120,8 +131,13 @@ class ReaderSidebarAdapter(
             updateSlotLayout(holder.imageSecondarySlot, 0, 1f)
             holder.imageSecondarySlot.visibility = View.VISIBLE
             holder.imageGap.visibility = View.VISIBLE
-            bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
-            holder.imageSecondary.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 2)
+            if (callbacks.isRTL) {
+                bindSidebarPreview(holder.imageSecondary, previews[pageStart], holder.imageSecondaryLoading)
+                holder.imageSecondary.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 1)
+            } else {
+                bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                holder.imageSecondary.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 2)
+            }
         } else {
             holder.imageSecondary.resetClip()
             holder.imageSecondary.setImageDrawable(null)
@@ -255,10 +271,15 @@ class ReaderSidebarAdapter(
                 continue
             }
             val pageStart = pageStarts[position]
-            restoreSidebarPreviewIfNeeded(holder.image, previews[pageStart])
             val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
-            if (pairSize > 1) {
-                restoreSidebarPreviewIfNeeded(holder.imageSecondary, previews[pageStart + 1])
+            if (pairSize > 1 && callbacks.isRTL) {
+                restoreSidebarPreviewIfNeeded(holder.image, previews[pageStart + 1])
+                restoreSidebarPreviewIfNeeded(holder.imageSecondary, previews[pageStart])
+            } else {
+                restoreSidebarPreviewIfNeeded(holder.image, previews[pageStart])
+                if (pairSize > 1) {
+                    restoreSidebarPreviewIfNeeded(holder.imageSecondary, previews[pageStart + 1])
+                }
             }
         }
     }
