@@ -23,14 +23,14 @@ import okhttp3.Dns
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
-import java.io.File
+import okio.FileSystem
 import java.net.InetAddress
 import java.net.UnknownHostException
 
 object EhDns : Dns {
     private val hosts = EhApplication.hosts
     private val builtInHosts: MutableMap<String, List<InetAddress>> = mutableMapOf()
-    private val appCache = Cache(File("cacheDir", "okhttpcache"), 5 * 1024 * 1024)
+    private val appCache = Cache(FileSystem.SYSTEM, EhApplication.cacheDir / "dns_cache", 5L * 1024 * 1024)
     private val bootstrapClient = OkHttpClient.Builder().cache(appCache)
         .hostnameVerifier { _, _ -> true }
         .build()
