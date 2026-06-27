@@ -56,16 +56,12 @@
         app:showSeekBarValue="true"
         app:singleLineTitle="false" />
 
-    <SeekBarPreference
+    <com.hippo.ehviewer.preference.SpeedSeekBarPreference
         android:defaultValue="64"
         android:key="timeout_speed"
-        android:max="1024"
         android:summary="@string/settings_download_timeout_speed_summary"
         android:title="@string/settings_download_timeout_speed"
-        app:iconSpaceReserved="false"
-        app:min="0"
-        app:showSeekBarValue="true"
-        app:singleLineTitle="false" />
+        app:iconSpaceReserved="false" />
 
     <rikka.preference.SimpleMenuPreference
         android:defaultValue="5"
