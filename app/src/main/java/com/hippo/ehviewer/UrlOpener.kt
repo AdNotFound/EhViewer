@@ -50,7 +50,7 @@ object UrlOpener {
                     if (result.gid == it.gid) {
                         intent = Intent(context, GalleryActivity::class.java)
                         intent.action = GalleryActivity.ACTION_EH
-                        intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, it)
+                        intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, it.galleryInfo)
                         intent.putExtra(GalleryActivity.KEY_PAGE, result.page)
                         context.startActivity(intent)
                         return
@@ -59,7 +59,7 @@ object UrlOpener {
                     try {
                         intent = Intent(context, GalleryActivity::class.java)
                         intent.action = GalleryActivity.ACTION_EH
-                        intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, it)
+                        intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, it.galleryInfo)
                         intent.putExtra(GalleryActivity.KEY_PAGE, url.replace("#c", "").toInt() - 1)
                         context.startActivity(intent)
                         return

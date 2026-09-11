@@ -91,11 +91,12 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
-import com.hippo.ehviewer.coil.loadReaderPreviewCache
-import com.hippo.ehviewer.coil.saveReaderPreviewCache
+import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.hasAds
+import com.hippo.ehviewer.coil.loadReaderPreviewCache
+import com.hippo.ehviewer.coil.saveReaderPreviewCache
 import com.hippo.ehviewer.gallery.ArchiveGalleryProvider
 import com.hippo.ehviewer.gallery.EhGalleryProvider
 import com.hippo.ehviewer.gallery.GalleryProvider2
@@ -401,7 +402,12 @@ class GalleryActivity :
         outState.putString(KEY_FILENAME, mFilename)
         outState.putParcelable(KEY_URI, mUri)
         if (mGalleryInfo != null) {
-            outState.putParcelable(KEY_GALLERY_INFO, mGalleryInfo)
+            val info = mGalleryInfo
+            if (info is GalleryDetail) {
+                outState.putParcelable(KEY_GALLERY_INFO, info.galleryInfo)
+            } else {
+                outState.putParcelable(KEY_GALLERY_INFO, info)
+            }
         }
         if (!mInitialReaderPreviews.isNullOrEmpty()) {
             outState.putParcelableArrayList(KEY_INITIAL_READER_PREVIEWS, mInitialReaderPreviews)

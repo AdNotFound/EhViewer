@@ -414,14 +414,16 @@ class GalleryDetailScene :
             outState.putString(KEY_ACTION, mAction)
         }
         if (mGalleryInfo != null) {
-            outState.putParcelable(KEY_GALLERY_INFO, mGalleryInfo)
+            val info = mGalleryInfo
+            if (info is GalleryDetail) {
+                outState.putParcelable(KEY_GALLERY_INFO, info.galleryInfo)
+            } else {
+                outState.putParcelable(KEY_GALLERY_INFO, info)
+            }
         }
         outState.putLong(KEY_GID, mGid)
         if (mToken != null) {
             outState.putString(KEY_TOKEN, mToken)
-        }
-        if (mGalleryDetail != null) {
-            outState.putParcelable(KEY_GALLERY_DETAIL, mGalleryDetail)
         }
         outState.putInt(KEY_REQUEST_ID, mRequestId)
         outState.putBoolean(KEY_BASIC_INFO_ONLY, mBasicInfoOnly)
@@ -1337,7 +1339,8 @@ class GalleryDetailScene :
 
             mInfo -> {
                 val args = Bundle()
-                args.putParcelable(GalleryInfoScene.KEY_GALLERY_DETAIL, galleryDetail)
+                galleryDetailCache.put(galleryDetail.gid, galleryDetail)
+                args.putLong(GalleryInfoScene.KEY_GID, galleryDetail.gid)
                 if (mUseLargeTwoPaneLayout) {
                     showDetailOverlay(GalleryInfoScene().apply { arguments = args }, "detail_overlay_info")
                 } else {
@@ -1441,12 +1444,9 @@ class GalleryDetailScene :
 
             mComments -> {
                 val args = Bundle()
-                args.putLong(GalleryCommentsScene.KEY_API_UID, galleryDetail.apiUid)
-                args.putString(GalleryCommentsScene.KEY_API_KEY, galleryDetail.apiKey)
+                galleryDetailCache.put(galleryDetail.gid, galleryDetail)
                 args.putLong(GalleryCommentsScene.KEY_GID, galleryDetail.gid)
                 args.putString(GalleryCommentsScene.KEY_TOKEN, galleryDetail.token)
-                args.putParcelable(GalleryCommentsScene.KEY_COMMENT_LIST, galleryDetail.comments)
-                args.putParcelable(GalleryCommentsScene.KEY_GALLERY_DETAIL, galleryDetail)
                 if (mUseLargeTwoPaneLayout) {
                     showDetailOverlay(GalleryCommentsScene().apply { arguments = args }, "detail_overlay_comments")
                 } else {
@@ -1467,7 +1467,9 @@ class GalleryDetailScene :
                     scrollTo = -1
                 }
                 val args = Bundle()
-                args.putParcelable(GalleryPreviewsScene.KEY_GALLERY_INFO, galleryDetail)
+                galleryDetailCache.put(galleryDetail.gid, galleryDetail)
+                args.putLong(GalleryPreviewsScene.KEY_GID, galleryDetail.gid)
+                args.putString(GalleryPreviewsScene.KEY_TOKEN, galleryDetail.token)
                 args.putInt(GalleryPreviewsScene.KEY_SCROLL_TO, scrollTo)
                 if (mUseLargeTwoPaneLayout) {
                     showDetailOverlay(GalleryPreviewsScene().apply { arguments = args }, "detail_overlay_previews")
@@ -1495,7 +1497,7 @@ class GalleryDetailScene :
 
     private fun buildReaderIntent(context: Context, galleryDetail: GalleryDetail, page: Int? = null): Intent = Intent(context, GalleryActivity::class.java).apply {
         action = GalleryActivity.ACTION_EH
-        putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail)
+        putExtra(GalleryActivity.KEY_GALLERY_INFO, galleryDetail.galleryInfo)
         page?.let { putExtra(GalleryActivity.KEY_PAGE, it) }
         buildInitialReaderPreviews(galleryDetail)?.takeIf { it.isNotEmpty() }?.let {
             putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)

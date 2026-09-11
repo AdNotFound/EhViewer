@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.easyrecyclerview.EasyRecyclerView
 import com.hippo.easyrecyclerview.LinearDividerItemDecoration
+import com.hippo.ehviewer.EhApplication.Companion.galleryDetailCache
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.UrlOpener
@@ -52,52 +53,67 @@ class GalleryInfoScene : ToolbarScene() {
     }
 
     private fun handlerArgs(args: Bundle?) {
-        args?.getParcelableCompat<GalleryDetail>(KEY_GALLERY_DETAIL)?.let {
-            mKeys.add(getString(R.string.header_key))
-            mValues.add(getString(R.string.header_value))
-            mKeys.add(getString(R.string.key_gid))
-            mValues.add(it.gid.toString())
-            mKeys.add(getString(R.string.key_token))
-            mValues.add(it.token)
-            mKeys.add(getString(R.string.key_url))
-            mValues.add(EhUrl.getGalleryDetailUrl(it.gid, it.token))
-            mKeys.add(getString(R.string.key_title))
-            mValues.add(it.title)
-            mKeys.add(getString(R.string.key_title_jpn))
-            mValues.add(it.titleJpn)
-            mKeys.add(getString(R.string.key_thumb))
-            mValues.add(it.thumbUrl!!)
-            mKeys.add(getString(R.string.key_category))
-            mValues.add(EhUtils.getCategory(it.category))
-            mKeys.add(getString(R.string.key_uploader))
-            mValues.add(it.uploader)
-            mKeys.add(getString(R.string.key_posted))
-            mValues.add(it.posted)
-            mKeys.add(getString(R.string.key_parent))
-            mValues.add(it.parent)
-            mKeys.add(getString(R.string.key_visible))
-            mValues.add(it.visible)
-            mKeys.add(getString(R.string.key_language))
-            mValues.add(it.language)
-            mKeys.add(getString(R.string.key_pages))
-            mValues.add(it.pages.toString())
-            mKeys.add(getString(R.string.key_size))
-            mValues.add(it.size)
-            mKeys.add(getString(R.string.key_favorite_count))
-            mValues.add(it.favoriteCount.toString())
-            mKeys.add(getString(R.string.key_favorited))
-            mValues.add(java.lang.Boolean.toString(it.isFavorited))
-            mKeys.add(getString(R.string.key_favorite_name))
-            mValues.add(it.favoriteName)
-            mKeys.add(getString(R.string.key_rating_count))
-            mValues.add(it.ratingCount.toString())
-            mKeys.add(getString(R.string.key_rating))
-            mValues.add(it.rating.toString())
-            mKeys.add(getString(R.string.key_torrents))
-            mValues.add(it.torrentCount.toString())
-            mKeys.add(getString(R.string.key_torrent_url))
-            mValues.add(it.torrentUrl)
+        if (args == null) return
+        var detail: GalleryDetail? = null
+        if (args.containsKey(KEY_GID)) {
+            val gid = args.getLong(KEY_GID, -1L)
+            if (gid != -1L) {
+                detail = galleryDetailCache[gid]
+            }
         }
+        if (detail == null) {
+            detail = args.getParcelableCompat(KEY_GALLERY_DETAIL)
+        }
+        detail?.let {
+            fillKeysValues(it)
+        }
+    }
+
+    private fun fillKeysValues(it: GalleryDetail) {
+        mKeys.add(getString(R.string.header_key))
+        mValues.add(getString(R.string.header_value))
+        mKeys.add(getString(R.string.key_gid))
+        mValues.add(it.gid.toString())
+        mKeys.add(getString(R.string.key_token))
+        mValues.add(it.token)
+        mKeys.add(getString(R.string.key_url))
+        mValues.add(EhUrl.getGalleryDetailUrl(it.gid, it.token))
+        mKeys.add(getString(R.string.key_title))
+        mValues.add(it.title)
+        mKeys.add(getString(R.string.key_title_jpn))
+        mValues.add(it.titleJpn)
+        mKeys.add(getString(R.string.key_thumb))
+        mValues.add(it.thumbUrl!!)
+        mKeys.add(getString(R.string.key_category))
+        mValues.add(EhUtils.getCategory(it.category))
+        mKeys.add(getString(R.string.key_uploader))
+        mValues.add(it.uploader)
+        mKeys.add(getString(R.string.key_posted))
+        mValues.add(it.posted)
+        mKeys.add(getString(R.string.key_parent))
+        mValues.add(it.parent)
+        mKeys.add(getString(R.string.key_visible))
+        mValues.add(it.visible)
+        mKeys.add(getString(R.string.key_language))
+        mValues.add(it.language)
+        mKeys.add(getString(R.string.key_pages))
+        mValues.add(it.pages.toString())
+        mKeys.add(getString(R.string.key_size))
+        mValues.add(it.size)
+        mKeys.add(getString(R.string.key_favorite_count))
+        mValues.add(it.favoriteCount.toString())
+        mKeys.add(getString(R.string.key_favorited))
+        mValues.add(java.lang.Boolean.toString(it.isFavorited))
+        mKeys.add(getString(R.string.key_favorite_name))
+        mValues.add(it.favoriteName)
+        mKeys.add(getString(R.string.key_rating_count))
+        mValues.add(it.ratingCount.toString())
+        mKeys.add(getString(R.string.key_rating))
+        mValues.add(it.rating.toString())
+        mKeys.add(getString(R.string.key_torrents))
+        mValues.add(it.torrentCount.toString())
+        mKeys.add(getString(R.string.key_torrent_url))
+        mValues.add(it.torrentUrl)
     }
 
     private fun onInit() {
@@ -209,6 +225,7 @@ class GalleryInfoScene : ToolbarScene() {
 
     companion object {
         const val KEY_GALLERY_DETAIL = "gallery_detail"
+        const val KEY_GID = "gid"
         const val KEY_KEYS = "keys"
         const val KEY_VALUES = "values"
         private const val INDEX_URL = 3
