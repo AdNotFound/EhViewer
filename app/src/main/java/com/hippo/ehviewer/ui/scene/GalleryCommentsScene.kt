@@ -62,6 +62,7 @@ import com.hippo.app.EditTextDialogBuilder
 import com.hippo.easyrecyclerview.EasyRecyclerView
 import com.hippo.easyrecyclerview.LinearDividerItemDecoration
 import com.hippo.ehviewer.AnimationConstants
+import com.hippo.ehviewer.EhApplication.Companion.galleryDetailCache
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.UrlOpener
 import com.hippo.ehviewer.WindowInsetsAnimationHelper
@@ -102,6 +103,8 @@ class GalleryCommentsScene :
     View.OnClickListener,
     OnRefreshListener {
     private var mGalleryDetail: GalleryDetail? = null
+    private var mGid: Long = -1L
+    private var mToken: String? = null
     private var mRecyclerView: EasyRecyclerView? = null
     private var mFabLayout: FabLayout? = null
     private var mFab: FloatingActionButton? = null
@@ -131,8 +134,23 @@ class GalleryCommentsScene :
         if (args == null) {
             return
         }
-        mGalleryDetail = args.getParcelableCompat(KEY_GALLERY_DETAIL)
-        mShowAllComments = mGalleryDetail != null && mGalleryDetail!!.comments != null && !mGalleryDetail!!.comments!!.hasMore
+        var detail = args.getParcelableCompat<GalleryDetail>(KEY_GALLERY_DETAIL)
+        if (detail == null) {
+            val gid = args.getLong(KEY_GID, -1L)
+            if (gid != -1L) {
+                detail = galleryDetailCache[gid]
+            }
+            if (detail == null && gid != -1L) {
+                mGid = gid
+                mToken = args.getString(KEY_TOKEN)
+            }
+        }
+        if (detail != null) {
+            mGalleryDetail = detail
+            mGid = detail.gid
+            mToken = detail.token
+        }
+        updateShowAllComments()
     }
 
     private fun onInit() {
@@ -140,13 +158,59 @@ class GalleryCommentsScene :
     }
 
     private fun onRestore(savedInstanceState: Bundle) {
-        mGalleryDetail = savedInstanceState.getParcelableCompat(KEY_GALLERY_DETAIL)
-        mShowAllComments = mGalleryDetail != null && mGalleryDetail!!.comments != null && !mGalleryDetail!!.comments!!.hasMore
+        var detail: GalleryDetail? = null
+        val gid = savedInstanceState.getLong(KEY_GID, -1L)
+        if (gid != -1L) {
+            detail = galleryDetailCache[gid]
+            if (detail == null) {
+                mGid = gid
+                mToken = savedInstanceState.getString(KEY_TOKEN)
+            }
+        }
+        if (detail == null) {
+            detail = savedInstanceState.getParcelableCompat(KEY_GALLERY_DETAIL)
+        }
+        if (detail == null) {
+            val args = arguments
+            if (args != null) {
+                detail = args.getParcelableCompat(KEY_GALLERY_DETAIL)
+                if (detail == null) {
+                    val argsGid = args.getLong(KEY_GID, -1L)
+                    if (argsGid != -1L) {
+                        detail = galleryDetailCache[argsGid]
+                        if (detail == null) {
+                            mGid = argsGid
+                            mToken = args.getString(KEY_TOKEN)
+                        }
+                    }
+                }
+            }
+        }
+        if (detail != null) {
+            mGalleryDetail = detail
+            mGid = detail.gid
+            mToken = detail.token
+        }
+        updateShowAllComments()
+    }
+
+    private fun updateShowAllComments() {
+        val detail = mGalleryDetail
+        mShowAllComments = detail != null && detail.comments != null && !detail.comments!!.hasMore
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putParcelable(KEY_GALLERY_DETAIL, mGalleryDetail)
+        val detail = mGalleryDetail
+        if (detail != null) {
+            outState.putLong(KEY_GID, detail.gid)
+            detail.token?.let { outState.putString(KEY_TOKEN, it) }
+        } else {
+            if (mGid != -1L) {
+                outState.putLong(KEY_GID, mGid)
+                mToken?.let { outState.putString(KEY_TOKEN, it) }
+            }
+        }
     }
 
     override fun onCreateViewWithToolbar(
@@ -325,6 +389,9 @@ class GalleryCommentsScene :
         super.onViewCreated(view, savedInstanceState)
         setTitle(R.string.gallery_comments)
         setNavigationIcon(R.drawable.v_arrow_left_dark_x24)
+        if (mGalleryDetail == null && mGid != -1L) {
+            view.post { if (isAdded) onRefresh() }
+        }
     }
 
     override fun onNavigationClick() {
@@ -651,15 +718,25 @@ class GalleryCommentsScene :
     }
 
     private val galleryDetailUrl: String?
-        get() = if (mGalleryDetail != null && mGalleryDetail!!.gid != -1L && mGalleryDetail!!.token != null) {
-            EhUrl.getGalleryDetailUrl(
-                mGalleryDetail!!.gid,
-                mGalleryDetail!!.token,
-                0,
-                mShowAllComments,
-            )
-        } else {
-            null
+        get() {
+            val detail = mGalleryDetail
+            if (detail != null && detail.gid != -1L && detail.token != null) {
+                return EhUrl.getGalleryDetailUrl(
+                    detail.gid,
+                    detail.token,
+                    0,
+                    mShowAllComments,
+                )
+            }
+            if (mGid != -1L && mToken != null) {
+                return EhUrl.getGalleryDetailUrl(
+                    mGid,
+                    mToken,
+                    0,
+                    mShowAllComments,
+                )
+            }
+            return null
         }
 
     override fun onClick(v: View) {
@@ -709,17 +786,29 @@ class GalleryCommentsScene :
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    private fun onRefreshGallerySuccess(result: GalleryCommentList?) {
-        if (mGalleryDetail == null || mAdapter == null) {
+    private fun onRefreshGallerySuccess(result: GalleryDetail) {
+        var detail = mGalleryDetail
+        if (detail == null) {
+            detail = result
+            mGalleryDetail = detail
+            mGid = detail.gid
+            mToken = detail.token
+            galleryDetailCache.put(detail.gid, detail)
+        } else {
+            detail.comments = result.comments
+            detail.apiUid = result.apiUid
+            detail.apiKey = result.apiKey
+        }
+        if (mAdapter == null) {
             return
         }
         mRefreshLayout!!.isRefreshing = false
         mRefreshingComments = false
-        mGalleryDetail!!.comments = result
+        updateShowAllComments()
         mAdapter!!.notifyDataSetChanged()
         updateView(true)
 
-        dispatchCommentListResult(result)
+        dispatchCommentListResult(detail.comments)
     }
 
     private fun onRefreshGalleryFailure() {
@@ -788,15 +877,17 @@ class GalleryCommentsScene :
     override fun onRefresh() {
         if (!mRefreshingComments && mAdapter != null) {
             val activity = requireActivity() as MainActivity
-            mRefreshingComments = true
             val url = galleryDetailUrl
             if (url != null) {
+                mRefreshingComments = true
                 // Request
                 val request = EhRequest()
                     .setMethod(EhClient.METHOD_GET_GALLERY_DETAIL)
                     .setArgs(url)
                     .setCallback(RefreshCommentListener(activity))
                 request.enqueue(this)
+            } else {
+                mRefreshLayout?.isRefreshing = false
             }
         }
     }
@@ -804,7 +895,7 @@ class GalleryCommentsScene :
     private inner class RefreshCommentListener(context: Context) : EhCallback<GalleryCommentsScene?, GalleryDetail>(context) {
         override fun onSuccess(result: GalleryDetail) {
             val scene = this@GalleryCommentsScene
-            scene.onRefreshGallerySuccess(result.comments)
+            scene.onRefreshGallerySuccess(result)
         }
 
         override fun onFailure(e: Exception) {

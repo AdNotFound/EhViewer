@@ -30,11 +30,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.easyrecyclerview.EasyRecyclerView
 import com.hippo.easyrecyclerview.MarginItemDecoration
+import com.hippo.ehviewer.EhApplication.Companion.galleryDetailCache
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhClient
 import com.hippo.ehviewer.client.EhRequest
 import com.hippo.ehviewer.client.EhUrl
+import com.hippo.ehviewer.client.data.BaseGalleryInfo
 import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
@@ -70,12 +72,50 @@ class GalleryPreviewsScene : ToolbarScene() {
 
     private fun onInit() {
         val args = arguments ?: return
-        mGalleryInfo = args.getParcelableCompat(KEY_GALLERY_INFO)
+        var info: GalleryInfo? = null
+        if (args.containsKey(KEY_GID)) {
+            val gid = args.getLong(KEY_GID, -1L)
+            if (gid != -1L) {
+                info = galleryDetailCache[gid]
+            }
+        }
+        if (info == null) {
+            info = args.getParcelableCompat(KEY_GALLERY_INFO)
+        }
+        mGalleryInfo = info
         mScrollTo = args.getInt(KEY_SCROLL_TO)
     }
 
     private fun onRestore(savedInstanceState: Bundle) {
-        mGalleryInfo = savedInstanceState.getParcelableCompat(KEY_GALLERY_INFO)
+        var info: GalleryInfo? = null
+        val gid = savedInstanceState.getLong(KEY_GID, -1L)
+        if (gid != -1L) {
+            info = galleryDetailCache[gid]
+            if (info == null) {
+                val token = savedInstanceState.getString(KEY_TOKEN)
+                if (token != null) {
+                    info = BaseGalleryInfo(gid = gid, token = token)
+                }
+            }
+        }
+        if (info == null) {
+            info = savedInstanceState.getParcelableCompat(KEY_GALLERY_INFO)
+        }
+        if (info == null) {
+            val args = arguments
+            if (args != null) {
+                if (args.containsKey(KEY_GID)) {
+                    val argsGid = args.getLong(KEY_GID, -1L)
+                    if (argsGid != -1L) {
+                        info = galleryDetailCache[argsGid]
+                    }
+                }
+                if (info == null) {
+                    info = args.getParcelableCompat(KEY_GALLERY_INFO)
+                }
+            }
+        }
+        mGalleryInfo = info
         mHasFirstRefresh = savedInstanceState.getBoolean(KEY_HAS_FIRST_REFRESH)
     }
 
@@ -87,7 +127,10 @@ class GalleryPreviewsScene : ToolbarScene() {
             mHasFirstRefresh
         }
         outState.putBoolean(KEY_HAS_FIRST_REFRESH, hasFirstRefresh)
-        outState.putParcelable(KEY_GALLERY_INFO, mGalleryInfo)
+        mGalleryInfo?.let {
+            outState.putLong(KEY_GID, it.gid)
+            it.token?.let { token -> outState.putString(KEY_TOKEN, token) }
+        }
     }
 
     override fun onCreateViewWithToolbar(
@@ -149,7 +192,7 @@ class GalleryPreviewsScene : ToolbarScene() {
         setNavigationIcon(R.drawable.v_arrow_left_dark_x24)
     }
 
-    override fun getMenuResId(): Int = if ((mGalleryInfo as GalleryDetail).previewPages > 1) R.menu.scene_gallery_previews else 0
+    override fun getMenuResId(): Int = if ((mGalleryInfo as? GalleryDetail)?.previewPages?.let { it > 1 } == true) R.menu.scene_gallery_previews else 0
 
     override fun onMenuItemClick(item: MenuItem): Boolean {
         val context = context ?: return false
@@ -184,7 +227,12 @@ class GalleryPreviewsScene : ToolbarScene() {
             if (p != null) {
                 val intent = Intent(context, GalleryActivity::class.java)
                 intent.action = GalleryActivity.ACTION_EH
-                intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, mGalleryInfo)
+                val info = mGalleryInfo!!
+                if (info is GalleryDetail) {
+                    intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, info.galleryInfo)
+                } else {
+                    intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, info)
+                }
                 ArrayList(mHelper!!.data).takeIf { it.isNotEmpty() }?.let {
                     intent.putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)
                 }
@@ -362,6 +410,8 @@ class GalleryPreviewsScene : ToolbarScene() {
 
     companion object {
         const val KEY_GALLERY_INFO = "gallery_info"
+        const val KEY_GID = "gid"
+        const val KEY_TOKEN = "token"
         const val KEY_SCROLL_TO = "scroll_to"
         private const val KEY_HAS_FIRST_REFRESH = "has_first_refresh"
     }
