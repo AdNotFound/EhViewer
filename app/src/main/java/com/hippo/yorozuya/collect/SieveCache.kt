@@ -87,6 +87,11 @@ open class SieveCache<K : Any, V : Any>(
     @Synchronized
     fun evictAll() {
         trimToSize(-1)
+        head = null
+        tail = null
+        hand = null
+        size = 0
+        map.clear()
     }
 
     @Synchronized
@@ -130,9 +135,6 @@ open class SieveCache<K : Any, V : Any>(
     }
 
     private fun removeFromList(node: Node<K, V>) {
-        if (hand == node) {
-            hand = node.prev ?: tail
-        }
         val prev = node.prev
         val next = node.next
         if (prev != null) {
@@ -144,6 +146,9 @@ open class SieveCache<K : Any, V : Any>(
             next.prev = prev
         } else {
             tail = prev
+        }
+        if (hand == node) {
+            hand = prev ?: tail
         }
         node.prev = null
         node.next = null
