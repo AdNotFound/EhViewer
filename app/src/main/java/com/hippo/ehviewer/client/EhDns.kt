@@ -35,21 +35,35 @@ object EhDns : Dns {
         .hostnameVerifier { _, _ -> true }
         .build()
 
-    private val doh: DnsOverHttps? = if (Settings.dOH) {
-        try {
-            val doHServer = Settings.doHServer
-            if (!doHServer.isNullOrEmpty() && doHServer.startsWith("https://")) {
-                DnsOverHttps.Builder().client(bootstrapClient)
-                    .url(doHServer.toHttpUrl())
+    @Volatile
+    private var cachedDoh: DnsOverHttps? = null
+    @Volatile
+    private var cachedServerUrl: String? = null
+
+    private fun getDoh(): DnsOverHttps? {
+        if (!Settings.dOH) return null
+        val currentServer = Settings.doHServer
+        if (currentServer.isNullOrEmpty() || !currentServer.startsWith("https://")) {
+            return null
+        }
+        if (cachedServerUrl == currentServer && cachedDoh != null) {
+            return cachedDoh
+        }
+        synchronized(this) {
+            if (cachedServerUrl == currentServer && cachedDoh != null) {
+                return cachedDoh
+            }
+            return try {
+                val newDoh = DnsOverHttps.Builder().client(bootstrapClient)
+                    .url(currentServer.toHttpUrl())
                     .build()
-            } else {
+                cachedServerUrl = currentServer
+                cachedDoh = newDoh
+                newDoh
+            } catch (e: Exception) {
                 null
             }
-        } catch (e: Exception) {
-            null
         }
-    } else {
-        null
     }
 
     init {
@@ -160,7 +174,7 @@ object EhDns : Dns {
 
     @Throws(UnknownHostException::class)
     override fun lookup(hostname: String): List<InetAddress> {
-        val dns = if (Settings.dOH && doh != null) doh else Dns.SYSTEM
+        val dns = getDoh() ?: Dns.SYSTEM
 
         return hosts[hostname] ?: builtInHosts[hostname].takeIf { Settings.builtInHosts }
             ?: dns.lookup(hostname)
