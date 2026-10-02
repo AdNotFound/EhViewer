@@ -178,6 +178,8 @@ dependencies {
     implementation(libs.re2j)
 
     coreLibraryDesugaring(libs.desugar)
+
+    testImplementation(libs.junit4)
 }
 
 kotlin {
