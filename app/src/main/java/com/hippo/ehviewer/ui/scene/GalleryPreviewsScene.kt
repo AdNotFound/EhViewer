@@ -42,6 +42,7 @@ import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.PreviewSet
 import com.hippo.ehviewer.client.exception.EhException
+import com.hippo.ehviewer.coil.saveReaderPreviewCache
 import com.hippo.ehviewer.ui.GalleryActivity
 import com.hippo.util.getParcelableCompat
 import com.hippo.widget.ContentLayout
@@ -233,7 +234,17 @@ class GalleryPreviewsScene : ToolbarScene() {
                 } else {
                     intent.putExtra(GalleryActivity.KEY_GALLERY_INFO, info)
                 }
-                ArrayList(mHelper!!.data).takeIf { it.isNotEmpty() }?.let {
+                val data = mHelper!!.data
+                val token = info.token
+                if (token != null && data.isNotEmpty()) {
+                    saveReaderPreviewCache(info.gid, token, data.associateBy { it.position })
+                }
+                val initialPreviews = if (data.isNotEmpty()) {
+                    val start = maxOf(0, position - 20)
+                    val end = minOf(data.size, position + 60)
+                    ArrayList(data.subList(start, end))
+                } else null
+                initialPreviews?.let {
                     intent.putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)
                 }
                 intent.putExtra(GalleryActivity.KEY_PAGE, p.position)
