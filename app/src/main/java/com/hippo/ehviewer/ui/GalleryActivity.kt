@@ -100,9 +100,9 @@ import com.hippo.ehviewer.coil.saveReaderPreviewCache
 import com.hippo.ehviewer.gallery.ArchiveGalleryProvider
 import com.hippo.ehviewer.gallery.EhGalleryProvider
 import com.hippo.ehviewer.gallery.GalleryProvider2
+import com.hippo.ehviewer.ui.reader.ReaderSidebarAdapter
 import com.hippo.ehviewer.widget.GalleryGuideView
 import com.hippo.ehviewer.widget.GalleryHeader
-import com.hippo.ehviewer.ui.reader.ReaderSidebarAdapter
 import com.hippo.ehviewer.widget.ReversibleSeekBar
 import com.hippo.glgallery.GalleryProvider
 import com.hippo.glgallery.GalleryView
@@ -129,8 +129,8 @@ import com.hippo.yorozuya.SimpleHandler
 import com.hippo.yorozuya.ViewUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.flow
@@ -1245,7 +1245,9 @@ class GalleryActivity :
                 view.parent?.requestDisallowInterceptTouchEvent(false)
                 if (mReaderSidebarToggleDragging) {
                     val threshold = TypedValue.applyDimension(
-                        TypedValue.COMPLEX_UNIT_DIP, 36f, resources.displayMetrics,
+                        TypedValue.COMPLEX_UNIT_DIP,
+                        36f,
+                        resources.displayMetrics,
                     )
                     if (mReaderSidebarVisible) {
                         val isCloseDirection = if (mReaderSidebarOnRight) deltaX > 0 else deltaX < 0
