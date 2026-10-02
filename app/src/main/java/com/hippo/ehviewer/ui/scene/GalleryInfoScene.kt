@@ -83,7 +83,7 @@ class GalleryInfoScene : ToolbarScene() {
         mKeys.add(getString(R.string.key_title_jpn))
         mValues.add(it.titleJpn)
         mKeys.add(getString(R.string.key_thumb))
-        mValues.add(it.thumbUrl!!)
+        mValues.add(it.thumbUrl)
         mKeys.add(getString(R.string.key_category))
         mValues.add(EhUtils.getCategory(it.category))
         mKeys.add(getString(R.string.key_uploader))
@@ -121,8 +121,11 @@ class GalleryInfoScene : ToolbarScene() {
     }
 
     private fun onRestore(savedInstanceState: Bundle) {
-        mKeys = savedInstanceState.getStringArrayList(KEY_KEYS) as ArrayList<String>
-        mValues = savedInstanceState.getStringArrayList(KEY_VALUES) as ArrayList<String?>
+        mKeys = savedInstanceState.getStringArrayList(KEY_KEYS) ?: ArrayList()
+        mValues = savedInstanceState.getStringArrayList(KEY_VALUES) ?: ArrayList()
+        if (mKeys.isEmpty()) {
+            handlerArgs(arguments)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
