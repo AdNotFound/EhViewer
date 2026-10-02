@@ -408,9 +408,6 @@ class GalleryActivity :
                 outState.putParcelable(KEY_GALLERY_INFO, info)
             }
         }
-        if (!mInitialReaderPreviews.isNullOrEmpty()) {
-            outState.putParcelableArrayList(KEY_INITIAL_READER_PREVIEWS, mInitialReaderPreviews)
-        }
         outState.putInt(KEY_PAGE, mPage)
         outState.putInt(KEY_CURRENT_INDEX, mCurrentIndex)
     }
