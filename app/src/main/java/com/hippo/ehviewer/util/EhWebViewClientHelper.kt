@@ -52,6 +52,8 @@ object EhWebViewClientHelper {
                             body.byteStream(),
                         )
                     }
+                } else {
+                    response.close()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
