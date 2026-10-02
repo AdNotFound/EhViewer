@@ -85,7 +85,12 @@ class CloudflareInterceptor(context: Context) : WebViewInterceptor(context) {
                     errorResponse: WebResourceResponse,
                 ) {
                     if (request.isForMainFrame) {
-                        if (errorResponse.responseHeaders[HEADER_NAME] == HEADER_VALUE) {
+                        val hasChallengeHeader = errorResponse.responseHeaders?.entries?.any {
+                            it.key.equals(HEADER_NAME, ignoreCase = true) &&
+                                it.value.equals(HEADER_VALUE, ignoreCase = true)
+                        } == true
+                        val isPotentialChallengeStatus = errorResponse.statusCode == 403 || errorResponse.statusCode == 503
+                        if (hasChallengeHeader || isPotentialChallengeStatus) {
                             // Found the Cloudflare challenge page.
                             challengeFound = true
                         } else {
