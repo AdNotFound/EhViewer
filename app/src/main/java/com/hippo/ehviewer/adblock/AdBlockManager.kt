@@ -80,10 +80,11 @@ object AdBlockManager {
             if (isLoaded) {
                 return
             }
-            if (file.exists()) {
+            val targetFile = if (file.exists()) file else File(file.parentFile, "${file.name}.tmp").takeIf { it.exists() }
+            if (targetFile != null && targetFile.exists()) {
                 runCatching {
                     val loadedHashes = ArrayList<Long>()
-                    FileInputStream(file).use { input ->
+                    FileInputStream(targetFile).use { input ->
                         input.bufferedReader().useLines { lines ->
                             lines.forEach { line ->
                                 line.toLongOrNull()?.let(loadedHashes::add)
@@ -113,13 +114,21 @@ object AdBlockManager {
                         blockedHashes.toList()
                     }
                     file.parentFile?.mkdirs()
-                    FileOutputStream(file).use { output ->
+                    val tempFile = File(file.parentFile, "${file.name}.tmp")
+                    FileOutputStream(tempFile).use { output ->
                         output.bufferedWriter().use { writer ->
                             currentHashes.forEach { hash ->
                                 writer.write(hash.toString())
                                 writer.newLine()
                             }
                         }
+                    }
+                    if (file.exists()) {
+                        file.delete()
+                    }
+                    if (!tempFile.renameTo(file)) {
+                        tempFile.copyTo(file, overwrite = true)
+                        tempFile.delete()
                     }
                     savedVersion = version
                     if (mutationVersion.get() == version) {
