@@ -746,6 +746,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                 var lastReceived = 0L
                                 var lastCheck = System.nanoTime()
                                 var prevBytesDelta = 0L
+                                var lowSpeedCounter = 0
                                 delay(2000) // Initial grace period
                                 while (isActive) {
                                     delay(1000)
@@ -758,10 +759,15 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                         val windowSeconds = (interval + 1_000_000_000).coerceAtMost(2_000_000_000) / 1_000_000_000.0
                                         val speed = (windowBytes / windowSeconds).toLong()
                                         val minSpeed = Settings.timeoutSpeed.toLong() * 1024
-                                        if (speed < minSpeed && currentReceived > 0) {
-                                            val msg = "Speed: ${speed / 1024} KB/s < ${minSpeed / 1024} KB/s"
-                                            Log.d(WORKER_DEBUG_TAG, "Download image $index: $msg")
-                                            throw LowSpeedException(targetImageUrl, speed)
+                                        if (minSpeed > 0 && speed < minSpeed && currentReceived > 0) {
+                                            lowSpeedCounter++
+                                            if (lowSpeedCounter >= 3) {
+                                                val msg = "Speed: ${speed / 1024} KB/s < ${minSpeed / 1024} KB/s"
+                                                Log.d(WORKER_DEBUG_TAG, "Download image $index: $msg")
+                                                throw LowSpeedException(targetImageUrl, speed)
+                                            }
+                                        } else {
+                                            lowSpeedCounter = 0
                                         }
                                         prevBytesDelta = currentBytesDelta
                                         lastReceived = currentReceived
