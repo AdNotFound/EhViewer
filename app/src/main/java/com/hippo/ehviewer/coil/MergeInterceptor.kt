@@ -55,32 +55,36 @@ object MergeInterceptor : Interceptor {
             }
             val gen = nextGeneration++
             activeRequests.getOrPut(key) {
-                ActiveRequest(url, GlobalScope.async {
-                    try {
-                        var result: ImageResult
-                        var retryCount = 0
-                        val maxRetries = 3
-                        do {
-                            result = chain.proceed()
-                            if (result is SuccessResult) break
-                            if (result is ErrorResult && retryCount < maxRetries) {
-                                retryCount++
-                            } else {
-                                break
+                ActiveRequest(
+                    url,
+                    GlobalScope.async {
+                        try {
+                            var result: ImageResult
+                            var retryCount = 0
+                            val maxRetries = 3
+                            do {
+                                result = chain.proceed()
+                                if (result is SuccessResult) break
+                                if (result is ErrorResult && retryCount < maxRetries) {
+                                    retryCount++
+                                } else {
+                                    break
+                                }
+                            } while (true)
+                            if (result is ErrorResult) {
+                                thumbCache.remove(key)
                             }
-                        } while (true)
-                        if (result is ErrorResult) {
-                            thumbCache.remove(key)
-                        }
-                        result
-                    } finally {
-                        synchronized(activeRequests) {
-                            if (activeRequests[key]?.generation == gen) {
-                                activeRequests.remove(key)
+                            result
+                        } finally {
+                            synchronized(activeRequests) {
+                                if (activeRequests[key]?.generation == gen) {
+                                    activeRequests.remove(key)
+                                }
                             }
                         }
-                    }
-                }, gen)
+                    },
+                    gen,
+                )
             }
         }
 

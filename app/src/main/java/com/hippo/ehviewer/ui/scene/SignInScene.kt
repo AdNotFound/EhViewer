@@ -33,11 +33,11 @@ import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.UrlOpener
-import com.hippo.ehviewer.ui.SettingsActivity
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils
+import com.hippo.ehviewer.ui.SettingsActivity
 import com.hippo.scene.Announcer
 import com.hippo.util.ExceptionUtils
 import com.hippo.util.launchIO

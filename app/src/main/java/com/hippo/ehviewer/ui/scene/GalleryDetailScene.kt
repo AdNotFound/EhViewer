@@ -73,8 +73,8 @@ import com.hippo.ehviewer.AnimationConstants
 import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.EhApplication.Companion.galleryDetailCache
 import com.hippo.ehviewer.EhApplication.Companion.imageCache
-import com.hippo.ehviewer.EhApplication.Companion.thumbCache
 import com.hippo.ehviewer.EhApplication.Companion.okHttpClient
+import com.hippo.ehviewer.EhApplication.Companion.thumbCache
 import com.hippo.ehviewer.EhDB
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings

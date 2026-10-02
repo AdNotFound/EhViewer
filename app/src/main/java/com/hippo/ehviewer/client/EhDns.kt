@@ -37,6 +37,7 @@ object EhDns : Dns {
 
     @Volatile
     private var cachedDoh: DnsOverHttps? = null
+
     @Volatile
     private var cachedServerUrl: String? = null
 

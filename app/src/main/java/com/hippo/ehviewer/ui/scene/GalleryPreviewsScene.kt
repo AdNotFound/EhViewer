@@ -243,7 +243,9 @@ class GalleryPreviewsScene : ToolbarScene() {
                     val start = maxOf(0, position - 20)
                     val end = minOf(data.size, position + 60)
                     ArrayList(data.subList(start, end))
-                } else null
+                } else {
+                    null
+                }
                 initialPreviews?.let {
                     intent.putParcelableArrayListExtra(GalleryActivity.KEY_INITIAL_READER_PREVIEWS, it)
                 }

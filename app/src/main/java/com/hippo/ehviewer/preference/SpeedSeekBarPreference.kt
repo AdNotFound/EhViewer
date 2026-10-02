@@ -63,8 +63,6 @@ class SpeedSeekBarPreference(context: Context, attrs: AttributeSet?) : Preferenc
             return if (idx >= 0) idx else 7
         }
 
-        private fun progressToValue(progress: Int): Int {
-            return VALUES[progress.coerceIn(0, VALUES.size - 1)]
-        }
+        private fun progressToValue(progress: Int): Int = VALUES[progress.coerceIn(0, VALUES.size - 1)]
     }
 }

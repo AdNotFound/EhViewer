@@ -78,15 +78,14 @@ class HistoryScene : ToolbarScene() {
         HistoryAdapter(object : DiffUtil.ItemCallback<HistoryInfo>() {
             override fun areItemsTheSame(oldItem: HistoryInfo, newItem: HistoryInfo): Boolean = oldItem.gid == newItem.gid
 
-            override fun areContentsTheSame(oldItem: HistoryInfo, newItem: HistoryInfo): Boolean =
-                oldItem.title == newItem.title &&
-                    oldItem.titleJpn == newItem.titleJpn &&
-                    oldItem.rating == newItem.rating &&
-                    oldItem.posted == newItem.posted &&
-                    oldItem.category == newItem.category &&
-                    oldItem.uploader == newItem.uploader &&
-                    oldItem.simpleLanguage == newItem.simpleLanguage &&
-                    oldItem.favoriteSlot == newItem.favoriteSlot
+            override fun areContentsTheSame(oldItem: HistoryInfo, newItem: HistoryInfo): Boolean = oldItem.title == newItem.title &&
+                oldItem.titleJpn == newItem.titleJpn &&
+                oldItem.rating == newItem.rating &&
+                oldItem.posted == newItem.posted &&
+                oldItem.category == newItem.category &&
+                oldItem.uploader == newItem.uploader &&
+                oldItem.simpleLanguage == newItem.simpleLanguage &&
+                oldItem.favoriteSlot == newItem.favoriteSlot
         })
     }
     private val mDownloadManager = DownloadManager
