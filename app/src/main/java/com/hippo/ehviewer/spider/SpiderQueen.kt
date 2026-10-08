@@ -858,17 +858,19 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                         }
                         return
                     }
-                    val image = mSemaphore.withPermit { Image.decode(src) }
-                    try {
-                        currentCoroutineContext().ensureActive()
-                    } catch (e: CancellationException) {
-                        image?.recycle()
-                        throw e
-                    }
-                    if (image == null) {
-                        notifyGetImageFailure(index, DECODE_ERROR)
-                    } else {
-                        notifyGetImageSuccess(index, image)
+                    src.use {
+                        val image = mSemaphore.withPermit { Image.decode(it) }
+                        try {
+                            currentCoroutineContext().ensureActive()
+                        } catch (e: CancellationException) {
+                            image?.recycle()
+                            throw e
+                        }
+                        if (image == null) {
+                            notifyGetImageFailure(index, DECODE_ERROR)
+                        } else {
+                            notifyGetImageSuccess(index, image)
+                        }
                     }
                 }.onFailure {
                     if (it is CancellationException) throw it
