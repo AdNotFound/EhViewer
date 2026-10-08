@@ -952,28 +952,30 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                         }
                         return
                     }
-                    val totalPages = mPageStateArray.size
-                    val mayBeAd = index >= totalPages - 10
-                    val hasAdsTag = galleryInfo.hasAds
-                    val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
-                    val image = try {
-                        val blockOnQr = analyzeFeatures && hasAdsTag
-                        mSemaphore.withPermit { Image.decode(src, analyzeFeatures = analyzeFeatures, blockOnQr = blockOnQr) }
-                    } catch (e: AdDetectedException) {
-                        mBlockedAdPages.add(index)
-                        notifyGetImageFailure(index, AD_DETECTED_ERROR)
-                        return
-                    }
-                    try {
-                        currentCoroutineContext().ensureActive()
-                    } catch (e: CancellationException) {
-                        image?.recycle()
-                        throw e
-                    }
-                    if (image == null) {
-                        notifyGetImageFailure(index, DECODE_ERROR)
-                    } else {
-                        notifyGetImageSuccess(index, image)
+                    src.use {
+                        val totalPages = mPageStateArray.size
+                        val mayBeAd = index >= totalPages - 10
+                        val hasAdsTag = galleryInfo.hasAds
+                        val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
+                        val image = try {
+                            val blockOnQr = analyzeFeatures && hasAdsTag
+                            mSemaphore.withPermit { Image.decode(it, analyzeFeatures = analyzeFeatures, blockOnQr = blockOnQr) }
+                        } catch (e: AdDetectedException) {
+                            mBlockedAdPages.add(index)
+                            notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                            return
+                        }
+                        try {
+                            currentCoroutineContext().ensureActive()
+                        } catch (e: CancellationException) {
+                            image?.recycle()
+                            throw e
+                        }
+                        if (image == null) {
+                            notifyGetImageFailure(index, DECODE_ERROR)
+                        } else {
+                            notifyGetImageSuccess(index, image)
+                        }
                     }
                 }.onFailure {
                     if (it is CancellationException) throw it
