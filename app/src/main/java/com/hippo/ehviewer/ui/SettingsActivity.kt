@@ -18,6 +18,7 @@ package com.hippo.ehviewer.ui
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.MenuItem
 import android.view.View
 import androidx.annotation.StringRes
@@ -28,6 +29,7 @@ import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.ui.fragment.EhFragment
 import com.hippo.ehviewer.ui.fragment.SettingsFragment
 import com.hippo.ehviewer.ui.scene.BaseScene
+import com.hippo.ehviewer.util.WindowSizeUtils
 
 class SettingsActivity : EhActivity() {
     val isTwoPaneLayout: Boolean
@@ -37,7 +39,7 @@ class SettingsActivity : EhActivity() {
         // When layout configuration changes (single-pane vs two-pane), we need to
         // prevent FragmentManager from restoring fragments to old container IDs.
         // Save the new layout state and clear savedInstanceState if layout changed.
-        val newIsTwoPane = Settings.layoutEnabled && Settings.layoutSettingsTwoPane && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val newIsTwoPane = Settings.layoutEnabled && Settings.layoutSettingsTwoPane && WindowSizeUtils.isLargeScreen(resources.configuration)
         val effectiveSavedInstanceState = if (savedInstanceState != null) {
             val oldIsTwoPane = savedInstanceState.getBoolean(KEY_IS_TWO_PANE, false)
             if (oldIsTwoPane != newIsTwoPane) null else savedInstanceState
@@ -52,6 +54,21 @@ class SettingsActivity : EhActivity() {
                 R.layout.activity_preference
             },
         )
+        if (isTwoPaneLayout) {
+            findViewById<View>(R.id.fragment_list)?.let { fragmentList ->
+                val displayMetrics = resources.displayMetrics
+                val screenWidthPx = displayMetrics.widthPixels
+                val maxListWidth = (screenWidthPx * 0.4f).toInt()
+                val minListWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 260f, displayMetrics).toInt()
+                val defaultListWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 320f, displayMetrics).toInt()
+                val targetListWidth = defaultListWidth.coerceIn(minListWidth.coerceAtMost(maxListWidth), maxListWidth.coerceAtLeast(minListWidth))
+                if (fragmentList.layoutParams.width != targetListWidth) {
+                    fragmentList.layoutParams = fragmentList.layoutParams.apply {
+                        width = targetListWidth
+                    }
+                }
+            }
+        }
         setSupportActionBar(findViewById(R.id.toolbar))
         val bar = supportActionBar
         bar?.setDisplayHomeAsUpEnabled(true)
@@ -73,6 +90,14 @@ class SettingsActivity : EhActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_IS_TWO_PANE, isTwoPaneLayout)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val shouldBeTwoPane = Settings.layoutEnabled && Settings.layoutSettingsTwoPane && WindowSizeUtils.isLargeScreen(newConfig)
+        if (shouldBeTwoPane != isTwoPaneLayout) {
+            recreate()
+        }
     }
 
     fun showTip(@StringRes id: Int, length: Int) {

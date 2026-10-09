@@ -2,6 +2,7 @@
   ~ Copyright 2016 Hippo Seven
   -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/below_header"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -9,7 +10,8 @@
     android:dividerPadding="@dimen/keyline_margin"
     android:orientation="vertical"
     android:padding="@dimen/keyline_margin"
-    android:showDividers="middle">
+    android:showDividers="middle"
+    app:fitsSystemWindowsInsets="top">
 
     <include layout="@layout/gallery_detail_tags" />
 
