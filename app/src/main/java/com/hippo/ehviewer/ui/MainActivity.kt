@@ -76,6 +76,7 @@ import com.hippo.ehviewer.ui.scene.SelectSiteScene
 import com.hippo.ehviewer.ui.scene.SignInScene
 import com.hippo.ehviewer.ui.scene.SolidScene
 import com.hippo.ehviewer.ui.scene.WebViewSignInScene
+import com.hippo.ehviewer.util.WindowSizeUtils
 import com.hippo.ehviewer.widget.EhStageLayout
 import com.hippo.scene.Announcer
 import com.hippo.scene.SceneFragment
@@ -257,7 +258,7 @@ class MainActivity :
         if (Settings.dF && Settings.bypassVpn) {
             bypassVpn()
         }
-        setContentView(if (Settings.layoutEnabled && Settings.layoutMainPersistentNav && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) R.layout.activity_main_large else R.layout.activity_main)
+        setContentView(if (Settings.layoutEnabled && Settings.layoutMainPersistentNav && WindowSizeUtils.isLargeScreen(resources.configuration)) R.layout.activity_main_large else R.layout.activity_main)
         mSnackBar = ViewUtils.`$$`(this, R.id.snackbar) as CoordinatorLayout
         mStageLayout = ViewUtils.`$$`(this, R.id.fragment_container) as EhStageLayout
         mDrawerLayout = ViewUtils.`$$`(this, R.id.draw_view) as DrawerLayout
@@ -570,10 +571,23 @@ class MainActivity :
         mStageLayout?.removeAboveSnackView(view)
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        val shouldBeLarge = Settings.layoutEnabled && Settings.layoutMainPersistentNav && WindowSizeUtils.isLargeScreen(newConfig)
+        if (shouldBeLarge != mUsePersistentNavigationLayout) {
+            recreate()
+        } else if (mUsePersistentNavigationLayout) {
+            updatePersistentNavigationLayout()
+        }
+    }
+
     private fun getPersistentNavigationWidth(): Int {
         val ratio = PERSISTENT_NAV_WIDTH_RATIOS[Settings.layoutMainPersistentNavWidth]
         val baseWidth = getPersistentNavigationAvailableWidth()
-        val navWidthPx = (baseWidth * ratio).toInt().coerceAtLeast(0)
+        val minNavWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 220f, resources.displayMetrics).toInt()
+        val maxNavWidthPx = (baseWidth * 0.45f).toInt()
+        val calculatedNavWidth = (baseWidth * ratio).toInt()
+        val navWidthPx = calculatedNavWidth.coerceIn(minNavWidthPx.coerceAtMost(maxNavWidthPx), maxNavWidthPx.coerceAtLeast(0))
         val dividerWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, resources.displayMetrics).toInt()
         return navWidthPx + dividerWidthPx
     }
@@ -590,6 +604,14 @@ class MainActivity :
         val windowWidth = window.decorView.width
         if (windowWidth > 0) {
             return windowWidth
+        }
+        val configWidthDp = resources.configuration.screenWidthDp
+        if (configWidthDp > 0) {
+            return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                configWidthDp.toFloat(),
+                resources.displayMetrics,
+            ).toInt()
         }
         return resources.displayMetrics.widthPixels
     }

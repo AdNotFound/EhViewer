@@ -119,6 +119,7 @@ import com.hippo.ehviewer.spider.SpiderQueen.Companion.SPIDER_INFO_FILENAME
 import com.hippo.ehviewer.spider.saveToUniFile
 import com.hippo.ehviewer.ui.CommonOperations
 import com.hippo.ehviewer.ui.GalleryActivity
+import com.hippo.ehviewer.util.WindowSizeUtils
 import com.hippo.ehviewer.widget.GalleryRatingBar
 import com.hippo.ehviewer.widget.GalleryRatingBar.OnUserRateListener
 import com.hippo.scene.Announcer
@@ -512,7 +513,7 @@ class GalleryDetailScene :
         } else {
             DownloadInfo.STATE_INVALID
         }
-        mUseLargeTwoPaneLayout = Settings.layoutEnabled && Settings.layoutDetailTwoPane && resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        mUseLargeTwoPaneLayout = Settings.layoutEnabled && Settings.layoutDetailTwoPane && WindowSizeUtils.isLargeScreen(resources.configuration)
         val view = inflater.inflate(
             if (mUseLargeTwoPaneLayout) {
                 R.layout.scene_gallery_detail_large
@@ -530,7 +531,7 @@ class GalleryDetailScene :
         mRightScrollView = mainView
         mRightOverlayContainer = view.findViewById(R.id.right_overlay_container)
         mainView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            if (mActionGroup != null && mHeader != null) {
+            if (!mUseLargeTwoPaneLayout && mActionGroup != null && mHeader != null) {
                 setLightStatusBar(
                     (
                         mActionGroup!!.y - mHeader!!.findViewById<View>(R.id.header_content)
@@ -1125,6 +1126,27 @@ class GalleryDetailScene :
     }
 
     @SuppressLint("SetTextI18n")
+    private fun getTargetPreviewCount(): Int {
+        val previewNum = Settings.previewNum
+        if (!mUseLargeTwoPaneLayout) {
+            return previewNum
+        }
+        val rootView = view ?: mRightScrollView
+        val totalWidth = if (rootView != null) getLargeDetailAvailableWidth(rootView) else 0
+        val leftWidth = if (rootView != null) getLargeDetailLeftWidth(rootView) else 0
+        val rightWidth = (totalWidth - leftWidth).coerceAtLeast(0)
+        val columnSize = Settings.previewSize
+        val spanCount = if (rightWidth > 0 && columnSize > 0) {
+            SimpleGridAutoSpanLayout.getSpanCountForSuitableSize(rightWidth, columnSize)
+        } else {
+            3
+        }
+        val targetRows = 3
+        val minPreviews = max(previewNum, spanCount * targetRows)
+        val remainder = minPreviews % spanCount
+        return if (remainder == 0) minPreviews else minPreviews + (spanCount - remainder)
+    }
+
     private fun bindPreviews(gd: GalleryDetail) {
         val inflater = layoutInflater
         val resources = resourcesOrNull
@@ -1133,22 +1155,17 @@ class GalleryDetailScene :
         }
         mGridLayout!!.removeAllViews()
         val previewSet = gd.previewSet
-        val previewNum = Settings.previewNum
+        val previewCount = getTargetPreviewCount()
         if (gd.previewPages <= 0 || previewSet == null || previewSet.size() == 0) {
             mPreviewText!!.setText(R.string.no_previews)
             return
-        } else if (gd.previewPages == 1 && previewSet.size() <= if (mUseLargeTwoPaneLayout) max(previewNum, 12) else previewNum) {
+        } else if (gd.previewPages == 1 && previewSet.size() <= previewCount) {
             mPreviewText!!.setText(R.string.no_more_previews)
         } else {
             mPreviewText!!.setText(R.string.more_previews)
         }
         mGridLayout!!.setColumnSize(Settings.previewSize)
         mGridLayout!!.setStrategy(SimpleGridAutoSpanLayout.STRATEGY_SUITABLE_SIZE)
-        val previewCount = if (mUseLargeTwoPaneLayout) {
-            max(previewNum, 12)
-        } else {
-            previewNum
-        }
         val size = previewCount.coerceAtMost(previewSet.size())
         for (i in 0 until size) {
             val view = inflater.inflate(R.layout.item_gallery_preview, mGridLayout, false)
@@ -1165,7 +1182,11 @@ class GalleryDetailScene :
     private fun getLargeDetailLeftWidth(root: View): Int {
         val ratio = DETAIL_LEFT_WIDTH_RATIOS[Settings.layoutDetailLeftWidth]
         val baseWidth = getLargeDetailAvailableWidth(root)
-        return (baseWidth * ratio).toInt().coerceAtLeast(0)
+        val minLeftWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 280f, resources.displayMetrics).toInt()
+        val minRightWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 300f, resources.displayMetrics).toInt()
+        val maxLeftWidthPx = (baseWidth - minRightWidthPx).coerceAtLeast(minLeftWidthPx)
+        val calculatedWidth = (baseWidth * ratio).toInt()
+        return calculatedWidth.coerceIn(minLeftWidthPx.coerceAtMost(maxLeftWidthPx), maxLeftWidthPx)
     }
 
     private fun getLargeDetailAvailableWidth(root: View): Int {
@@ -1180,6 +1201,14 @@ class GalleryDetailScene :
         val windowWidth = activity?.window?.decorView?.width ?: 0
         if (windowWidth > 0) {
             return windowWidth
+        }
+        val configWidthDp = resources.configuration.screenWidthDp
+        if (configWidthDp > 0) {
+            return TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                configWidthDp.toFloat(),
+                resources.displayMetrics,
+            ).toInt()
         }
         return resources.displayMetrics.widthPixels
     }
