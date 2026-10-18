@@ -388,7 +388,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             val startIndex = maxOf(0, totalPages - 10)
             val targetIndices = (startIndex until totalPages).filter {
                 it !in mBlockedAdPages && !mBypassQrCheckPages.contains(it)
-            }
+            }.reversed()
             Log.d("AdBlockDebug", "launchThumbnailAdScan: targetIndices=$targetIndices, totalPages=$totalPages")
             if (targetIndices.isEmpty()) return@launchIO
 
@@ -435,8 +435,9 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     previewMap[index] = preview
                     if (::mSpiderInfo.isInitialized) {
                         mSpiderInfo.blockedAdPages.add(index)
-                        launchIO { mSpiderInfo.saveToCache() }
+                        mSpiderInfo.saveToCache()
                     }
+                    saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
                     Log.d("AdBlockDebug", "Thumbnail ad detected for page $index, auto-blocked")
                     notifyGetImageFailure(index, AD_DETECTED_ERROR)
                 }

@@ -42,6 +42,7 @@ import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.PreviewSet
 import com.hippo.ehviewer.client.exception.EhException
+import com.hippo.ehviewer.coil.loadReaderPreviewCache
 import com.hippo.ehviewer.coil.saveReaderPreviewCache
 import com.hippo.ehviewer.spider.readFromCache
 import com.hippo.ehviewer.ui.GalleryActivity
@@ -62,16 +63,17 @@ class GalleryPreviewsScene : ToolbarScene() {
     private var mHelper: GalleryPreviewHelper? = null
     private var mHasFirstRefresh = false
     private var mScrollTo = 0
-    private var mBlockedPages: Set<Int>? = null
 
-    private fun getBlockedPages(): Set<Int> = mBlockedPages ?: run {
-        val pages = if (Settings.stripExtraneousAds) {
-            mGalleryInfo?.let { readFromCache(it.gid)?.blockedAdPages } ?: emptySet()
-        } else {
-            emptySet()
-        }
-        mBlockedPages = pages
-        pages
+    private fun getBlockedPages(): Set<Int> {
+        if (!Settings.stripExtraneousAds) return emptySet()
+        val info = mGalleryInfo ?: return emptySet()
+        val pagesFromInfo = readFromCache(info.gid)?.blockedAdPages
+        val cachedPreviews = info.token?.let { loadReaderPreviewCache(info.gid, it) }
+        val blockedFromPreviews = cachedPreviews?.values?.filter { it.isAdBlocked }?.map { it.position }
+        val result = mutableSetOf<Int>()
+        if (pagesFromInfo != null) result.addAll(pagesFromInfo)
+        if (blockedFromPreviews != null) result.addAll(blockedFromPreviews)
+        return result
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -203,6 +205,11 @@ class GalleryPreviewsScene : ToolbarScene() {
         super.onViewCreated(view, savedInstanceState)
         setTitle(R.string.gallery_previews)
         setNavigationIcon(R.drawable.v_arrow_left_dark_x24)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mAdapter?.notifyDataSetChanged()
     }
 
     override fun getMenuResId(): Int = if ((mGalleryInfo as? GalleryDetail)?.previewPages?.let { it > 1 } == true) R.menu.scene_gallery_previews else 0

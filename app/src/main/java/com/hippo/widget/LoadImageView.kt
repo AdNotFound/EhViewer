@@ -23,6 +23,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.IntDef
 import androidx.core.content.ContextCompat
 import coil3.load
+import coil3.request.Disposable
 import coil3.request.allowHardware
 import coil3.request.crossfade
 import coil3.size.SizeResolver
@@ -45,6 +46,8 @@ open class LoadImageView @JvmOverloads constructor(
     private var mCrossfade = true
     private var mHardware = true
     private var mOnLoadingStateChangeListener: OnLoadingStateChangeListener? = null
+    private var mDisposable: Disposable? = null
+    private var mIsAdBlocked = false
 
     // Generation counter for guarding against stale Coil deliveries.
     // Each load() call increments this. setImageDrawable() only applies the clip
@@ -118,6 +121,9 @@ open class LoadImageView @JvmOverloads constructor(
         crossfade: Boolean = true,
         hardware: Boolean = true,
     ) {
+        mIsAdBlocked = false
+        mDisposable?.dispose()
+        mDisposable = null
         val oldUrl = mUrl
         mKey = key
         mUrl = url
@@ -136,7 +142,7 @@ open class LoadImageView @JvmOverloads constructor(
         mPendingClipOffsetY = mOffsetY
         mPendingClipWidth = mClipWidth
         mPendingClipHeight = mClipHeight
-        load(url) {
+        mDisposable = load(url) {
             // https://coil-kt.github.io/coil/recipes/#shared-element-transitions
             allowHardware(hardware)
             placeholderMemoryCacheKey(key)
@@ -169,13 +175,19 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     fun load(@DrawableRes id: Int) {
+        mIsAdBlocked = false
+        mDisposable?.dispose()
+        mDisposable = null
         onPreSetImageResource(id, true)
         setImageResource(id)
     }
 
     fun loadAdBlocked() {
+        mIsAdBlocked = true
+        mDisposable?.dispose()
+        mDisposable = null
         mLoadGeneration++
-        mPendingClipGeneration = mLoadGeneration
+        mPendingClipGeneration = -1L
         resetClip()
         val blockedDrawable = ContextCompat.getDrawable(context, R.drawable.image_ad_blocked)
         onPreSetImageDrawable(blockedDrawable, true)
@@ -190,6 +202,9 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     override fun setImageDrawable(drawable: Drawable?) {
+        if (mIsAdBlocked) {
+            return
+        }
         var newDrawable = drawable
         if (newDrawable != null) {
             // Guard against stale Coil deliveries from a previous load() call.
@@ -227,6 +242,8 @@ open class LoadImageView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        mDisposable?.dispose()
+        mDisposable = null
         mUrl?.let { removeFromUrlMap(it, this) }
     }
 
