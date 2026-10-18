@@ -131,15 +131,31 @@ interface GalleryInfo :
         )
     }
 }
+fun isExtraneousAdsTag(tag: String): Boolean {
+    var s = tag.trim()
+    var changed = true
+    while (changed) {
+        val prev = s
+        if (s.startsWith("other:", ignoreCase = true)) {
+            s = s.substring(6).trim()
+        }
+        while (s.startsWith("_") && s.length >= 2) {
+            s = s.substring(2).trim()
+        }
+        changed = (s != prev)
+    }
+    return s.equals("extraneous ads", ignoreCase = true) || s.equals("extraneous_ads", ignoreCase = true)
+}
 
 val GalleryInfo.hasAds: Boolean
     get() {
-        val detail = (this as? GalleryDetail) ?: com.hippo.ehviewer.EhApplication.galleryDetailCache[gid]
-        return detail?.tags?.any { group ->
-            group.any { tag ->
-                // Exact match: avoid false positive on "no extraneous ads" etc.
-                val stripped = tag.removePrefix("other:")
-                stripped == "extraneous ads"
-            }
-        } ?: false
+        if (simpleTags?.any { isExtraneousAdsTag(it) } == true) {
+            return true
+        }
+        val detail = (this as? GalleryDetail)
+            ?: runCatching { com.hippo.ehviewer.EhApplication.galleryDetailCache[gid] }.getOrNull()
+        if (detail?.tags?.any { group -> group.any { isExtraneousAdsTag(it) } } == true) {
+            return true
+        }
+        return false
     }

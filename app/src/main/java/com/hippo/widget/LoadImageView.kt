@@ -98,6 +98,7 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     fun resetClip() {
+        mIsAdBlocked = false
         mOffsetX = Int.MIN_VALUE
         mOffsetY = Int.MIN_VALUE
         mClipWidth = Int.MIN_VALUE
@@ -183,12 +184,12 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     fun loadAdBlocked() {
-        mIsAdBlocked = true
         mDisposable?.dispose()
         mDisposable = null
         mLoadGeneration++
         mPendingClipGeneration = -1L
         resetClip()
+        mIsAdBlocked = true
         val blockedDrawable = ContextCompat.getDrawable(context, R.drawable.image_ad_blocked)
         onPreSetImageDrawable(blockedDrawable, true)
         scaleType = ScaleType.CENTER_INSIDE
@@ -202,29 +203,30 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     override fun setImageDrawable(drawable: Drawable?) {
+        if (drawable == null) {
+            mIsAdBlocked = false
+            super.setImageDrawable(null)
+            return
+        }
         if (mIsAdBlocked) {
             return
         }
         var newDrawable = drawable
-        if (newDrawable != null) {
-            // Guard against stale Coil deliveries from a previous load() call.
-            // When a ViewHolder is recycled and reused, the old Coil request may
-            // complete after the new load() has started. The old request delivers
-            // a sprite sheet clipped to the NEW position (wrong content).
-            // Detect this via generation mismatch and clear the drawable instead.
-            if (mPendingClipGeneration != mLoadGeneration) {
-                return
-            }
-            if (Int.MIN_VALUE != mPendingClipOffsetX) {
-                newDrawable =
-                    PreciselyClipDrawable(newDrawable, mPendingClipOffsetX, mPendingClipOffsetY, mPendingClipWidth, mPendingClipHeight)
-            }
-            onPreSetImageDrawable(newDrawable, true)
+        // Guard against stale Coil deliveries from a previous load() call.
+        // When a ViewHolder is recycled and reused, the old Coil request may
+        // complete after the new load() has started. The old request delivers
+        // a sprite sheet clipped to the NEW position (wrong content).
+        // Detect this via generation mismatch and clear the drawable instead.
+        if (mPendingClipGeneration != mLoadGeneration) {
+            return
         }
+        if (Int.MIN_VALUE != mPendingClipOffsetX) {
+            newDrawable =
+                PreciselyClipDrawable(newDrawable, mPendingClipOffsetX, mPendingClipOffsetY, mPendingClipWidth, mPendingClipHeight)
+        }
+        onPreSetImageDrawable(newDrawable, true)
         super.setImageDrawable(newDrawable)
-        if (newDrawable != null) {
-            mOnLoadingStateChangeListener?.onLoadingStateChanged(false)
-        }
+        mOnLoadingStateChangeListener?.onLoadingStateChanged(false)
     }
 
     override fun getDrawable(): Drawable? {

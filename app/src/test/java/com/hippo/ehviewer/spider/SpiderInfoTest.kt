@@ -14,6 +14,7 @@ class SpiderInfoTest {
             blockedAdPages.add(18)
             blockedAdPages.add(19)
             bypassedAdPages.add(17)
+            hasAds = true
         }
 
         val bytes = SpiderInfo.encode(info)
@@ -24,5 +25,6 @@ class SpiderInfoTest {
         assertTrue(decoded.blockedAdPages.contains(18))
         assertTrue(decoded.blockedAdPages.contains(19))
         assertTrue(decoded.bypassedAdPages.contains(17))
+        assertTrue(decoded.hasAds)
     }
 }

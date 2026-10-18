@@ -97,6 +97,7 @@ import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.GalleryTagGroup
 import com.hippo.ehviewer.client.data.ListUrlBuilder
 import com.hippo.ehviewer.client.data.galleryDetailPreviewUpdates
+import com.hippo.ehviewer.client.data.hasAds
 import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.ehviewer.client.getImageKey
 import com.hippo.ehviewer.client.getThumbKey
@@ -106,6 +107,7 @@ import com.hippo.ehviewer.client.parser.HomeParser
 import com.hippo.ehviewer.client.parser.RateGalleryParser
 import com.hippo.ehviewer.client.parser.TorrentParser
 import com.hippo.ehviewer.client.thumbUrl
+import com.hippo.ehviewer.coil.loadReaderPreviewCache
 import com.hippo.ehviewer.dao.DownloadInfo
 import com.hippo.ehviewer.dao.Filter
 import com.hippo.ehviewer.download.DownloadManager.DownloadInfoListener
@@ -116,6 +118,7 @@ import com.hippo.ehviewer.spider.SpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.GET_FULL_HASH
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.MODE_READ
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.SPIDER_INFO_FILENAME
+import com.hippo.ehviewer.spider.ThumbnailAdScanner
 import com.hippo.ehviewer.spider.readFromCache
 import com.hippo.ehviewer.spider.saveToUniFile
 import com.hippo.ehviewer.ui.CommonOperations
@@ -625,11 +628,56 @@ class GalleryDetailScene :
                 }
             }
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ThumbnailAdScanner.adBlockEvents.collect { event ->
+                    if (event.gid == gid) {
+                        val grid = mGridLayout
+                        val gd = mGalleryDetail
+                        val previewSet = gd?.previewSet
+                        if (grid != null && previewSet != null) {
+                            var found = false
+                            for (i in 0 until minOf(grid.childCount, previewSet.size())) {
+                                val child = grid.getChildAt(i)
+                                val img = child.findViewById<LoadImageView>(R.id.image) ?: continue
+                                val pos = previewSet.getPosition(i)
+                                if (pos == event.pageIndex) {
+                                    found = true
+                                    if (event.isBlocked) {
+                                        img.loadAdBlocked()
+                                    } else {
+                                        previewSet.load(img, gd.gid, i)
+                                    }
+                                    break
+                                }
+                            }
+                            if (!found) {
+                                refreshPreviewSectionFromCache(force = true)
+                            }
+                        } else {
+                            refreshPreviewSectionFromCache(force = true)
+                        }
+                    }
+                }
+            }
+        }
         if (prepareData()) {
             if (mGalleryDetail != null) {
                 bindViewSecond()
                 setTransitionName()
                 adjustViewVisibility(STATE_NORMAL, false)
+                val gd = mGalleryDetail!!
+                val token = gd.token
+                if (Settings.stripExtraneousAds && gd.hasAds && gd.pages > 0 && !token.isNullOrEmpty()) {
+                    val ppp = gd.previewSet?.size()?.takeIf { it > 0 } ?: if (gd.previewPages > 0) gd.pages / gd.previewPages else 40
+                    ThumbnailAdScanner.launchScan(
+                        requireContext(),
+                        gd.gid,
+                        token,
+                        gd.pages,
+                        ppp,
+                    )
+                }
             } else if (mGalleryInfo != null) {
                 bindViewFirst()
                 setTransitionName()
@@ -1168,7 +1216,11 @@ class GalleryDetailScene :
         mGridLayout!!.setColumnSize(Settings.previewSize)
         mGridLayout!!.setStrategy(SimpleGridAutoSpanLayout.STRATEGY_SUITABLE_SIZE)
         val blockedPages = if (Settings.stripExtraneousAds) {
-            readFromCache(gd.gid)?.blockedAdPages ?: emptySet()
+            val fromInfo = readFromCache(gd.gid)?.blockedAdPages ?: emptySet()
+            val fromPreviews = gd.token?.let { token ->
+                loadReaderPreviewCache(gd.gid, token)?.values?.filter { it.isAdBlocked }?.map { it.position }
+            } ?: emptyList()
+            (fromInfo + fromPreviews).toSet()
         } else {
             emptySet()
         }
@@ -1925,6 +1977,17 @@ class GalleryDetailScene :
         updateDownloadState()
         adjustViewVisibility(STATE_NORMAL, true)
         bindViewSecond()
+        val token = result.token
+        if (Settings.stripExtraneousAds && result.hasAds && result.pages > 0 && !token.isNullOrEmpty()) {
+            val ppp = result.previewSet?.size()?.takeIf { it > 0 } ?: if (result.previewPages > 0) result.pages / result.previewPages else 40
+            ThumbnailAdScanner.launchScan(
+                requireContext(),
+                result.gid,
+                token,
+                result.pages,
+                ppp,
+            )
+        }
     }
 
     private fun onGetGalleryDetailFailure(e: Exception) {

@@ -93,6 +93,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     private val mBypassQrCheckPages = java.util.Collections.synchronizedSet(HashSet<Int>())
     private val mBlockedAdPages = java.util.Collections.synchronizedSet(HashSet<Int>())
     private var mThumbnailScanJob: Job? = null
+    private var mAdBlockJob: Job? = null
+
+    val hasAds: Boolean
+        get() = galleryInfo.hasAds || (::mSpiderInfo.isInitialized && mSpiderInfo.hasAds)
 
     fun addBypassQrCheckPage(index: Int) {
         mBypassQrCheckPages.add(index)
@@ -107,7 +111,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     suspend fun markAsAd(index: Int) {
-        if (!galleryInfo.hasAds) return
+        if (!hasAds) return
         removeBypassQrCheckPage(index)
         val src = mSpiderDen.getImageSource(index) ?: return
         val image = try {
@@ -138,11 +142,12 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 mSpiderInfo.blockedAdPages.add(index)
                 launchIO { mSpiderInfo.saveToCache() }
             }
+            ThumbnailAdScanner.notifyAdBlocked(galleryInfo.gid, index, true)
             it.recycle()
         }
     }
 
-    fun isAdBlocked(index: Int): Boolean = mBlockedAdPages.contains(index)
+    fun isAdBlocked(index: Int): Boolean = Settings.stripExtraneousAds && mBlockedAdPages.contains(index)
 
     fun removeBlockedAdPage(index: Int) {
         mBlockedAdPages.remove(index)
@@ -150,10 +155,11 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             mSpiderInfo.blockedAdPages.remove(index)
             launchIO { mSpiderInfo.saveToCache() }
         }
+        ThumbnailAdScanner.notifyAdBlocked(galleryInfo.gid, index, false, galleryInfo.token)
     }
 
     suspend fun unmarkAsAd(index: Int) {
-        if (!galleryInfo.hasAds) return
+        if (!hasAds) return
         val src = mSpiderDen.getImageSource(index) ?: return
         val image = try {
             Image.decode(src, analyzeFeatures = true, blockOnQr = false)
@@ -164,6 +170,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 mSpiderInfo.blockedAdPages.remove(index)
                 launchIO { mSpiderInfo.saveToCache() }
             }
+            ThumbnailAdScanner.notifyAdBlocked(galleryInfo.gid, index, false, galleryInfo.token)
             return
         }
         // null: src already closed by Image.decode's onFailure
@@ -178,6 +185,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 mSpiderInfo.blockedAdPages.remove(index)
                 launchIO { mSpiderInfo.saveToCache() }
             }
+            ThumbnailAdScanner.notifyAdBlocked(galleryInfo.gid, index, false, galleryInfo.token)
             it.recycle()
         }
     }
@@ -349,10 +357,32 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     private suspend fun doPrepare() {
         mSpiderDen.downloadDir = SpiderDen.getGalleryDownloadDir(galleryInfo.gid)?.takeIf { it.isDirectory }
         mSpiderInfo = readSpiderInfoFromLocal() ?: readSpiderInfoFromInternet() ?: return
+        if (galleryInfo.hasAds) {
+            mSpiderInfo.hasAds = true
+            launchIO { mSpiderInfo.saveToCache() }
+        }
         mBypassQrCheckPages.addAll(mSpiderInfo.bypassedAdPages)
         mBlockedAdPages.addAll(mSpiderInfo.blockedAdPages)
+        loadReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty())?.forEach { (index, preview) ->
+            if (preview.isAdBlocked && index !in mBypassQrCheckPages) {
+                mBlockedAdPages.add(index)
+            }
+        }
         mPageStateArray = IntArray(mSpiderInfo.pages)
         prepareUpgrade()
+        mAdBlockJob?.cancel()
+        mAdBlockJob = launchIO {
+            ThumbnailAdScanner.adBlockEvents.collect { event ->
+                if (event.gid == galleryInfo.gid) {
+                    if (event.isBlocked) {
+                        mBlockedAdPages.add(event.pageIndex)
+                        notifyGetImageFailure(event.pageIndex, AD_DETECTED_ERROR)
+                    } else {
+                        mBlockedAdPages.remove(event.pageIndex)
+                    }
+                }
+            }
+        }
         notifyGetPages(mSpiderInfo.pages)
         launchThumbnailAdScan()
     }
@@ -380,70 +410,16 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     private fun launchThumbnailAdScan() {
-        Log.d("AdBlockDebug", "launchThumbnailAdScan: stripExtraneousAds=${Settings.stripExtraneousAds}, hasAds=${galleryInfo.hasAds}, size=$size")
-        if (!Settings.stripExtraneousAds || !galleryInfo.hasAds || size <= 0) return
+        if (!Settings.stripExtraneousAds || !hasAds || size <= 0) return
         mThumbnailScanJob?.cancel()
-        mThumbnailScanJob = launchIO {
-            val totalPages = size
-            val startIndex = maxOf(0, totalPages - 10)
-            val targetIndices = (startIndex until totalPages).filter {
-                it !in mBlockedAdPages && !mBypassQrCheckPages.contains(it)
-            }.reversed()
-            Log.d("AdBlockDebug", "launchThumbnailAdScan: targetIndices=$targetIndices, totalPages=$totalPages")
-            if (targetIndices.isEmpty()) return@launchIO
-
-            val context = EhApplication.application
-            val cachedPreviews = loadReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty())
-            val previewMap = cachedPreviews?.toMutableMap() ?: mutableMapOf()
-
-            val missingIndices = targetIndices.filter { it !in previewMap }
-            if (missingIndices.isNotEmpty() && !galleryInfo.token.isNullOrEmpty()) {
-                val previewPerPage = mSpiderInfo.previewPerPage.takeIf { it > 0 } ?: 40
-                val neededPreviewPages = missingIndices.map { it / previewPerPage }.distinct()
-                for (previewPage in neededPreviewPages) {
-                    runSuspendCatching {
-                        val previewSet = EhEngine.getPreviewSet(
-                            EhUrl.getGalleryDetailUrl(galleryInfo.gid, galleryInfo.token!!, previewPage, false),
-                        ).first
-                        for (i in 0 until previewSet.size()) {
-                            val p = previewSet.getGalleryPreview(galleryInfo.gid, i)
-                            previewMap[p.position] = p
-                        }
-                    }.onFailure { it.printStackTrace() }
-                }
-                saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
-            }
-
-            for (index in targetIndices) {
-                currentCoroutineContext().ensureActive()
-                if (mBypassQrCheckPages.contains(index)) continue
-                val preview = previewMap[index]
-                if (preview == null) {
-                    Log.d("AdBlockDebug", "launchThumbnailAdScan: preview is null for page $index")
-                    continue
-                }
-                val isAd = runSuspendCatching {
-                    ThumbnailAdScanner.scanPreview(context, preview)
-                }.onFailure {
-                    Log.e("AdBlockDebug", "scanPreview failed for page $index", it)
-                }.getOrDefault(false)
-
-                Log.d("AdBlockDebug", "launchThumbnailAdScan: page $index isAd=$isAd")
-                if (isAd) {
-                    mBlockedAdPages.add(index)
-                    preview.isAdBlocked = true
-                    previewMap[index] = preview
-                    if (::mSpiderInfo.isInitialized) {
-                        mSpiderInfo.blockedAdPages.add(index)
-                        mSpiderInfo.saveToCache()
-                    }
-                    saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
-                    Log.d("AdBlockDebug", "Thumbnail ad detected for page $index, auto-blocked")
-                    notifyGetImageFailure(index, AD_DETECTED_ERROR)
-                }
-            }
-            saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
-        }
+        mThumbnailScanJob = ThumbnailAdScanner.launchScan(
+            context = EhApplication.application,
+            gid = galleryInfo.gid,
+            token = galleryInfo.token.orEmpty(),
+            totalPages = size,
+            previewPerPage = mSpiderInfo.previewPerPage.takeIf { it > 0 } ?: 40,
+            bypassPages = mBypassQrCheckPages,
+        )
     }
 
     suspend fun awaitReady(): Boolean {
@@ -459,6 +435,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     private fun stop() {
         mThumbnailScanJob?.cancel()
+        mAdBlockJob?.cancel()
         val queenScope = this
         launchIO {
             queenScope.cancel()
@@ -596,6 +573,9 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 val pages = GalleryDetailParser.parsePages(body)
                 val spiderInfo = SpiderInfo(galleryInfo.gid, galleryInfo.token, pages)
                 readPreviews(body, 0, spiderInfo)
+                if (galleryInfo.hasAds || body.contains("extraneous_ads") || body.contains("extraneous ads")) {
+                    spiderInfo.hasAds = true
+                }
                 spiderInfo
             }
         }.onFailure {
@@ -665,6 +645,9 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         synchronized(mBlockedAdPages) {
             mSpiderInfo.blockedAdPages.clear()
             mSpiderInfo.blockedAdPages.addAll(mBlockedAdPages)
+        }
+        if (hasAds) {
+            mSpiderInfo.hasAds = true
         }
         mSpiderDen.downloadDir?.run { createFile(SPIDER_INFO_FILENAME)?.also { mSpiderInfo.saveToUniFile(it) } }
         mSpiderInfo.saveToCache()
@@ -998,6 +981,50 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                             }
                         }
 
+                        val totalPages = mPageStateArray.size
+                        val mayBeAd = index >= totalPages - 10
+                        if (Settings.stripExtraneousAds && mayBeAd && hasAds && index !in mBypassQrCheckPages) {
+                            val src = mSpiderDen.getImageSource(index)
+                            if (src != null) {
+                                val isAd = try {
+                                    src.use {
+                                        val img = Image.decode(it, analyzeFeatures = true, blockOnQr = true)
+                                        img?.recycle()
+                                        false
+                                    }
+                                } catch (e: AdDetectedException) {
+                                    true
+                                } catch (e: CancellationException) {
+                                    throw e
+                                } catch (e: Throwable) {
+                                    false
+                                }
+                                if (isAd) {
+                                    Log.d(WORKER_DEBUG_TAG, "Page $index is an ad (detected from downloaded image), removing file and marking blocked")
+                                    mSpiderDen.remove(index)
+                                    mBlockedAdPages.add(index)
+                                    if (::mSpiderInfo.isInitialized) {
+                                        mSpiderInfo.blockedAdPages.add(index)
+                                        launchIO { mSpiderInfo.saveToCache() }
+                                    }
+                                    ThumbnailAdScanner.notifyAdBlocked(galleryInfo.gid, index, true)
+                                    launchIO {
+                                        val token = galleryInfo.token.orEmpty()
+                                        if (token.isNotEmpty()) {
+                                            loadReaderPreviewCache(galleryInfo.gid, token)?.let { cache ->
+                                                cache[index]?.let { preview ->
+                                                    preview.isAdBlocked = true
+                                                    saveReaderPreviewCache(galleryInfo.gid, token, cache)
+                                                }
+                                            }
+                                        }
+                                    }
+                                    updatePageState(index, STATE_FINISHED)
+                                    return
+                                }
+                            }
+                        }
+
                         Log.d(WORKER_DEBUG_TAG, "Download image $index succeed")
                         updatePageState(index, STATE_FINISHED)
                         return
@@ -1074,7 +1101,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     src.use {
                         val totalPages = mPageStateArray.size
                         val mayBeAd = index >= totalPages - 10
-                        val hasAdsTag = galleryInfo.hasAds
+                        val hasAdsTag = hasAds
                         val analyzeFeatures = Settings.stripExtraneousAds && mayBeAd && hasAdsTag && index !in mBypassQrCheckPages
                         val image = try {
                             val blockOnQr = analyzeFeatures && hasAdsTag
@@ -1085,9 +1112,22 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                                 mSpiderInfo.blockedAdPages.add(index)
                                 launchIO { mSpiderInfo.saveToCache() }
                             }
+                            ThumbnailAdScanner.notifyAdBlocked(galleryInfo.gid, index, true)
+                            launchIO {
+                                val token = galleryInfo.token.orEmpty()
+                                if (token.isNotEmpty()) {
+                                    loadReaderPreviewCache(galleryInfo.gid, token)?.let { cache ->
+                                        cache[index]?.let { preview ->
+                                            preview.isAdBlocked = true
+                                            saveReaderPreviewCache(galleryInfo.gid, token, cache)
+                                        }
+                                    }
+                                }
+                            }
                             notifyGetImageFailure(index, AD_DETECTED_ERROR)
                             return
                         }
+
                         try {
                             currentCoroutineContext().ensureActive()
                         } catch (e: CancellationException) {

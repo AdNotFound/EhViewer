@@ -43,6 +43,7 @@ class SpiderInfo(
     var upgradeFrom: Long? = null,
     val bypassedAdPages: MutableSet<Int> = hashSetOf(),
     val blockedAdPages: MutableSet<Int> = hashSetOf(),
+    var hasAds: Boolean = false,
 ) {
     companion object {
         fun encode(info: SpiderInfo): ByteArray = cbor.encodeToByteArray(info)

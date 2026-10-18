@@ -104,6 +104,14 @@ object GalleryDetailParser {
         val document = Jsoup.parse(body)
         parseDetail(galleryDetail, document, body)
         galleryDetail.tags = parseTagGroups(document)
+        val tagsList = galleryDetail.tags?.flatMap { group ->
+            group.map { tag ->
+                val prefix = group.groupName?.takeIf { it.isNotEmpty() }?.let { "$it:" } ?: ""
+                "$prefix$tag"
+            }
+        }?.toTypedArray()
+        galleryDetail.simpleTags = tagsList
+        galleryDetail.galleryInfo.simpleTags = tagsList
         galleryDetail.comments = parseComments(document)
         galleryDetail.previewPages = parsePreviewPages(document)
         galleryDetail.previewSet = parsePreviewSet(body)

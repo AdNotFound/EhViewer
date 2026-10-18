@@ -103,6 +103,23 @@ static void fill_image_2x(struct quirc *qr, int width, int height, const uint8_t
     quirc_end(qr);
 }
 
+static void fill_image_threshold(struct quirc *qr, int width, int height, const uint8_t *src, int stride, int format, int scale, int th) {
+    int w, h;
+    uint8_t *gray = quirc_begin(qr, &w, &h);
+
+    for (int y = 0; y < h; y++) {
+        int src_y = y / scale;
+        if (src_y >= height) src_y = height - 1;
+        for (int x = 0; x < w; x++) {
+            int src_x = x / scale;
+            if (src_x >= width) src_x = width - 1;
+            uint8_t val = get_gray(src, src_x, src_y, stride, format);
+            gray[y * w + x] = (val < th) ? 0 : 255;
+        }
+    }
+    quirc_end(qr);
+}
+
 JNIEXPORT jboolean JNICALL
 Java_com_hippo_ehviewer_jni_QrCodeKt_hasQrCode(JNIEnv *env, jclass clazz, jobject bitmap) {
     AndroidBitmapInfo info;
@@ -163,8 +180,19 @@ Java_com_hippo_ehviewer_jni_QrCodeKt_hasQrCode(JNIEnv *env, jclass clazz, jobjec
                 AndroidBitmap_unlockPixels(env, bitmap);
                 return JNI_TRUE;
             }
+            // Pass 5: 2.0x with targeted thresholding to overcome Otsu background bias
+            int ths[] = {100, 120, 140};
+            for (int t = 0; t < 3; t++) {
+                fill_image_threshold(qr, width, height, src_pixels, info.stride, format, 2, ths[t]);
+                if (check_qr(qr)) {
+                    quirc_destroy(qr);
+                    AndroidBitmap_unlockPixels(env, bitmap);
+                    return JNI_TRUE;
+                }
+            }
         }
     } else {
+
         // Large image / full page strategy: 0.5x fast path first, then 1.0x fallback
         int sw = width / 2;
         int sh = height / 2;

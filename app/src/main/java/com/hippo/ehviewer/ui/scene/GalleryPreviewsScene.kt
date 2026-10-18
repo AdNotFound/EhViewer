@@ -27,6 +27,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.easyrecyclerview.EasyRecyclerView
 import com.hippo.easyrecyclerview.MarginItemDecoration
@@ -41,10 +44,13 @@ import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.client.data.GalleryInfo
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.PreviewSet
+import com.hippo.ehviewer.client.data.hasAds
 import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.ehviewer.coil.loadReaderPreviewCache
 import com.hippo.ehviewer.coil.saveReaderPreviewCache
+import com.hippo.ehviewer.spider.ThumbnailAdScanner
 import com.hippo.ehviewer.spider.readFromCache
+import com.hippo.ehviewer.spider.saveToCache
 import com.hippo.ehviewer.ui.GalleryActivity
 import com.hippo.util.getParcelableCompat
 import com.hippo.widget.ContentLayout
@@ -54,6 +60,9 @@ import com.hippo.widget.Slider
 import com.hippo.widget.recyclerview.AutoGridLayoutManager
 import com.hippo.yorozuya.LayoutUtils
 import com.hippo.yorozuya.ViewUtils
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class GalleryPreviewsScene : ToolbarScene() {
@@ -63,17 +72,25 @@ class GalleryPreviewsScene : ToolbarScene() {
     private var mHelper: GalleryPreviewHelper? = null
     private var mHasFirstRefresh = false
     private var mScrollTo = 0
+    private val mBlockedPages = java.util.Collections.synchronizedSet(mutableSetOf<Int>())
 
-    private fun getBlockedPages(): Set<Int> {
-        if (!Settings.stripExtraneousAds) return emptySet()
-        val info = mGalleryInfo ?: return emptySet()
-        val pagesFromInfo = readFromCache(info.gid)?.blockedAdPages
-        val cachedPreviews = info.token?.let { loadReaderPreviewCache(info.gid, it) }
-        val blockedFromPreviews = cachedPreviews?.values?.filter { it.isAdBlocked }?.map { it.position }
-        val result = mutableSetOf<Int>()
-        if (pagesFromInfo != null) result.addAll(pagesFromInfo)
-        if (blockedFromPreviews != null) result.addAll(blockedFromPreviews)
-        return result
+    private fun refreshBlockedPages() {
+        if (!Settings.stripExtraneousAds) return
+        val info = mGalleryInfo ?: return
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val blocked = mutableSetOf<Int>()
+            readFromCache(info.gid)?.blockedAdPages?.let { blocked.addAll(it) }
+            info.token?.let { token ->
+                loadReaderPreviewCache(info.gid, token)?.values?.filter { it.isAdBlocked }?.map { it.position }?.let {
+                    blocked.addAll(it)
+                }
+            }
+            withContext(Dispatchers.Main) {
+                mBlockedPages.clear()
+                mBlockedPages.addAll(blocked)
+                mAdapter?.notifyDataSetChanged()
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -205,6 +222,38 @@ class GalleryPreviewsScene : ToolbarScene() {
         super.onViewCreated(view, savedInstanceState)
         setTitle(R.string.gallery_previews)
         setNavigationIcon(R.drawable.v_arrow_left_dark_x24)
+        refreshBlockedPages()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                ThumbnailAdScanner.adBlockEvents.collect { event ->
+                    if (event.gid == mGalleryInfo?.gid) {
+                        if (event.isBlocked) {
+                            mBlockedPages.add(event.pageIndex)
+                        } else {
+                            mBlockedPages.remove(event.pageIndex)
+                        }
+                        val pos = mHelper?.data?.indexOfFirst { it.position == event.pageIndex } ?: -1
+                        if (pos >= 0) {
+                            mHelper?.data?.getOrNull(pos)?.isAdBlocked = event.isBlocked
+                            mAdapter?.notifyItemChanged(pos)
+                        }
+                    }
+                }
+            }
+        }
+        val info = mGalleryInfo
+        val token = info?.token
+        if (Settings.stripExtraneousAds && info?.hasAds == true && info.pages > 0 && !token.isNullOrEmpty()) {
+            val gd = info as? GalleryDetail
+            val ppp = gd?.previewSet?.size()?.takeIf { it > 0 } ?: if (gd != null && gd.previewPages > 0) gd.pages / gd.previewPages else 40
+            ThumbnailAdScanner.launchScan(
+                requireContext(),
+                info.gid,
+                token,
+                info.pages,
+                ppp,
+            )
+        }
     }
 
     override fun onResume() {
@@ -281,7 +330,11 @@ class GalleryPreviewsScene : ToolbarScene() {
             val size = previewSet.size()
             val list = ArrayList<GalleryPreview>(size)
             for (i in 0 until size) {
-                list.add(previewSet.getGalleryPreview(mGalleryInfo!!.gid, i))
+                val p = previewSet.getGalleryPreview(mGalleryInfo!!.gid, i)
+                if (mBlockedPages.contains(p.position)) {
+                    p.isAdBlocked = true
+                }
+                list.add(p)
             }
             mHelper!!.onGetPageData(
                 taskId,
@@ -294,6 +347,53 @@ class GalleryPreviewsScene : ToolbarScene() {
             if (mScrollTo != 0 && mScrollTo < size) {
                 mHelper!!.scrollTo(mScrollTo)
                 mScrollTo = 0
+            }
+
+            val info = mGalleryInfo!!
+            val token = info.token
+            if (!token.isNullOrEmpty()) {
+                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                    val currentCache = loadReaderPreviewCache(info.gid, token)?.toMutableMap() ?: mutableMapOf()
+                    for (p in list) {
+                        currentCache[p.position] = p
+                    }
+                    saveReaderPreviewCache(info.gid, token, currentCache)
+                }
+            }
+
+            if (Settings.stripExtraneousAds && info.hasAds) {
+                val totalPages = info.pages.takeIf { it > 0 } ?: (mHelper?.size() ?: 0)
+                val targetCandidates = list.filter {
+                    it.position >= totalPages - 10 && !it.isAdBlocked && !mBlockedPages.contains(it.position)
+                }.reversed()
+                if (targetCandidates.isNotEmpty()) {
+                    val appContext = requireContext().applicationContext
+                    viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                        for (p in targetCandidates) {
+                            if (mBlockedPages.contains(p.position)) continue
+                            val isAd = runCatching {
+                                ThumbnailAdScanner.scanPreview(appContext, p)
+                            }.getOrDefault(false)
+                            if (isAd) {
+                                p.isAdBlocked = true
+                                withContext(Dispatchers.Main) {
+                                    mBlockedPages.add(p.position)
+                                    val pos = mHelper?.data?.indexOfFirst { it.position == p.position } ?: -1
+                                    if (pos >= 0) {
+                                        mAdapter?.notifyItemChanged(pos)
+                                    }
+                                }
+                                val spiderInfo = readFromCache(info.gid)
+                                    ?: (if (info.pages > 0) com.hippo.ehviewer.spider.SpiderInfo(info.gid, token.orEmpty(), info.pages).apply { hasAds = true } else null)
+                                spiderInfo?.let {
+                                    it.blockedAdPages.add(p.position)
+                                    it.saveToCache()
+                                }
+                                ThumbnailAdScanner.notifyAdBlocked(info.gid, p.position, true, token)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -348,7 +448,7 @@ class GalleryPreviewsScene : ToolbarScene() {
                 val preview = mHelper!!.getDataAtEx(position)
                 if (preview != null) {
                     val isBlocked = if (Settings.stripExtraneousAds) {
-                        preview.isAdBlocked || getBlockedPages().contains(preview.position)
+                        preview.isAdBlocked || mBlockedPages.contains(preview.position)
                     } else {
                         false
                     }

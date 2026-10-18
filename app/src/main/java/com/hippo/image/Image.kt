@@ -268,6 +268,7 @@ class Image private constructor(
             }.onFailure {
                 src.close()
                 if (it is AdDetectedException) throw it
+                if (it is kotlinx.coroutines.CancellationException) throw it
                 it.printStackTrace()
             }.getOrNull()
         }

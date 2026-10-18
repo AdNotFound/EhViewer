@@ -28,6 +28,7 @@ import android.widget.ProgressBar
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.ehviewer.R
+import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.widget.ReaderSidebarThumb
 import com.hippo.glgallery.GalleryView
@@ -318,7 +319,7 @@ class ReaderSidebarAdapter(
     }
 
     private fun restoreSidebarPreviewIfNeeded(view: ReaderSidebarThumb, pageIndex: Int, preview: GalleryPreview?) {
-        val isBlocked = callbacks.isAdBlocked(pageIndex) || preview?.isAdBlocked == true
+        val isBlocked = Settings.stripExtraneousAds && (callbacks.isAdBlocked(pageIndex) || preview?.isAdBlocked == true)
         if (isBlocked) {
             val blockedTag = -pageIndex - 1
             if (view.tag == blockedTag && view.drawable != null) return
@@ -339,7 +340,8 @@ class ReaderSidebarAdapter(
         preview: GalleryPreview?,
         loadingView: ProgressBar? = null,
     ) {
-        if (callbacks.isAdBlocked(pageIndex) || preview?.isAdBlocked == true) {
+        val isBlocked = Settings.stripExtraneousAds && (callbacks.isAdBlocked(pageIndex) || preview?.isAdBlocked == true)
+        if (isBlocked) {
             val blockedTag = -pageIndex - 1
             if (view.tag == blockedTag && view.drawable != null) return
             view.tag = blockedTag
