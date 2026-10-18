@@ -31,6 +31,7 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.widget.ReaderSidebarThumb
 import com.hippo.glgallery.GalleryView
+import com.hippo.yorozuya.SimpleHandler
 
 class ReaderSidebarAdapter(
     context: Context,
@@ -261,13 +262,33 @@ class ReaderSidebarAdapter(
     fun getCurrentAdapterPosition(): Int = currentIndex
 
     fun notifyPageChanged(page: Int) {
-        val pos = pageStarts.indexOfLast { it <= page }
-        if (pos in pageStarts.indices) {
-            val pageStart = pageStarts[pos]
-            val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
-            if (page < pageStart + pairSize) {
-                notifyItemChanged(pos, PREVIEW_PAYLOAD)
+        notifyPageChanged(null, page)
+    }
+
+    fun notifyPageChanged(recyclerView: RecyclerView?, page: Int) {
+        val updateAction = Runnable {
+            val pos = pageStarts.indexOfLast { it <= page }
+            if (pos in pageStarts.indices) {
+                val pageStart = pageStarts[pos]
+                val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
+                if (page < pageStart + pairSize) {
+                    if (recyclerView != null && recyclerView.isComputingLayout) {
+                        recyclerView.post {
+                            if (pos in pageStarts.indices) {
+                                notifyItemChanged(pos, PREVIEW_PAYLOAD)
+                            }
+                        }
+                    } else {
+                        notifyItemChanged(pos, PREVIEW_PAYLOAD)
+                    }
+                }
             }
+        }
+
+        if (recyclerView != null) {
+            recyclerView.post(updateAction)
+        } else {
+            SimpleHandler.getInstance().post(updateAction)
         }
     }
 

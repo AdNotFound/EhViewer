@@ -1877,7 +1877,7 @@ class GalleryActivity :
                         provider.forceRequest(page)
                     }
                     mReaderSidebarPreviewMap[page]?.let { it.isAdBlocked = false }
-                    mReaderSidebarAdapter?.notifyPageChanged(page)
+                    mReaderSidebarAdapter?.notifyPageChanged(mReaderSidebarRecyclerView, page)
                 }
 
                 getString(R.string.mark_as_ad) -> {
@@ -1885,7 +1885,7 @@ class GalleryActivity :
                         provider.markAsAd(page)
                     }
                     mReaderSidebarPreviewMap[page]?.let { it.isAdBlocked = true }
-                    mReaderSidebarAdapter?.notifyPageChanged(page)
+                    mReaderSidebarAdapter?.notifyPageChanged(mReaderSidebarRecyclerView, page)
                 }
 
                 getString(R.string.page_menu_share) -> shareImage(page)
@@ -2176,7 +2176,7 @@ class GalleryActivity :
 
         override fun onPageFailed(index: Int, error: String?) {
             super.onPageFailed(index, error)
-            mReaderSidebarAdapter?.notifyPageChanged(index)
+            mReaderSidebarAdapter?.notifyPageChanged(mReaderSidebarRecyclerView, index)
         }
     }
 
