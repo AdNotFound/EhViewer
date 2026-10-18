@@ -101,6 +101,10 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
     }
 
     override fun onForceRequest(index: Int) {
+        if (mSpiderQueen.isAdBlocked(index)) {
+            notifyPageFailed(index, GetText.getString(R.string.error_ad_detected))
+            return
+        }
         notifyPageWait(index)
         mSpiderQueen.forceRequest(index)
     }

@@ -465,6 +465,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     fun forceRequest(index: Int) {
+        if (isAdBlocked(index)) {
+            notifyGetImageFailure(index, AD_DETECTED_ERROR)
+            return
+        }
         request(index, true)
     }
 
@@ -809,8 +813,8 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         }
 
         private suspend fun doInJob(index: Int, force: Boolean, skipHath: Boolean) {
-            if (!force && isAdBlocked(index)) {
-                Log.d("SpiderQueen", "Page $index is an ad, skipping download")
+            if (isAdBlocked(index)) {
+                Log.d(WORKER_DEBUG_TAG, "Page $index is an ad, skipping download")
                 updatePageState(index, STATE_FINISHED)
                 return
             }
