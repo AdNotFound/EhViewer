@@ -27,7 +27,7 @@ Java_com_hippo_ehviewer_jni_ImageHashKt_getDHash(JNIEnv *env, jclass clazz, jobj
     void *pixels;
 
     if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) return 0;
-    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) return 0;
+    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888 && info.format != ANDROID_BITMAP_FORMAT_RGB_565) return 0;
     if (AndroidBitmap_lockPixels(env, bitmap, &pixels) < 0) return 0;
 
     // Resize to 9x8 using box filter (average all source pixels per target cell)
@@ -36,6 +36,7 @@ Java_com_hippo_ehviewer_jni_ImageHashKt_getDHash(JNIEnv *env, jclass clazz, jobj
     int sw = (int)info.width;
     int sh = (int)info.height;
     int stride = (int)info.stride;
+    int format = info.format;
 
     for (int ty = 0; ty < 8; ty++) {
         int y0 = ty * sh / 8;
@@ -49,8 +50,17 @@ Java_com_hippo_ehviewer_jni_ImageHashKt_getDHash(JNIEnv *env, jclass clazz, jobj
             int count = 0;
             for (int sy = y0; sy < y1 && sy < sh; sy++) {
                 for (int sx = x0; sx < x1 && sx < sw; sx++) {
-                    int idx = sy * stride + sx * 4;
-                    sum += (unsigned long)(0.299f * src[idx] + 0.587f * src[idx + 1] + 0.114f * src[idx + 2]);
+                    if (format == ANDROID_BITMAP_FORMAT_RGBA_8888) {
+                        int idx = sy * stride + sx * 4;
+                        sum += (unsigned long)(0.299f * src[idx] + 0.587f * src[idx + 1] + 0.114f * src[idx + 2]);
+                    } else {
+                        const uint16_t *pixel_ptr = (const uint16_t *)(src + sy * stride + sx * 2);
+                        uint16_t p = *pixel_ptr;
+                        uint8_t r = (p >> 11) << 3;
+                        uint8_t g = ((p >> 5) & 0x3f) << 2;
+                        uint8_t b = (p & 0x1f) << 3;
+                        sum += (unsigned long)(0.299f * r + 0.587f * g + 0.114f * b);
+                    }
                     count++;
                 }
             }

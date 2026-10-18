@@ -2,6 +2,7 @@ package com.hippo.ehviewer.spider
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.util.Log
 import coil3.BitmapImage
 import coil3.imageLoader
 import coil3.request.ImageRequest
@@ -22,21 +23,31 @@ object ThumbnailAdScanner {
         preview.offsetY + preview.clipHeight <= bitmapHeight
 
     suspend fun scanPreview(context: Context, preview: GalleryPreview): Boolean = withContext(Dispatchers.IO) {
-        val url = preview.imageUrl?.takeIf { it.isNotBlank() } ?: return@withContext false
+        val url = preview.imageUrl?.takeIf { it.isNotBlank() } ?: run {
+            Log.d("AdBlockDebug", "scanPreview: preview ${preview.position} has no imageUrl")
+            return@withContext false
+        }
         val request = ImageRequest.Builder(context)
             .data(url)
             .allowHardware(false) // Required for JNI AndroidBitmap_lockPixels
             .build()
         val result = context.imageLoader.execute(request)
-        val image = result.image ?: return@withContext false
+        val image = result.image ?: run {
+            Log.d("AdBlockDebug", "scanPreview: execute returned null image for url=$url")
+            return@withContext false
+        }
         val originalBitmap = (image as? BitmapImageWithExtraInfo)?.image?.bitmap
             ?: (image as? BitmapImage)?.bitmap
             ?: runCatching { image.toBitmap() }.getOrNull()
-            ?: return@withContext false
+            ?: run {
+                Log.d("AdBlockDebug", "scanPreview: failed to extract bitmap from image $image")
+                return@withContext false
+            }
 
         if (originalBitmap.isRecycled) return@withContext false
 
-        val targetBitmap = if (canClip(preview, originalBitmap.width, originalBitmap.height)) {
+        val canClip = canClip(preview, originalBitmap.width, originalBitmap.height)
+        val targetBitmap = if (canClip) {
             Bitmap.createBitmap(
                 originalBitmap,
                 preview.offsetX,
@@ -50,11 +61,13 @@ object ThumbnailAdScanner {
 
         try {
             val hash = getDHash(targetBitmap)
-            if (hash != 0L && AdBlockManager.isBlocked(hash)) {
+            val isHashBlocked = hash != 0L && AdBlockManager.isBlocked(hash)
+            val hasQr = if (isHashBlocked) false else hasQrCode(targetBitmap)
+            Log.d("AdBlockDebug", "scanPreview page ${preview.position}: size=${targetBitmap.width}x${targetBitmap.height}, canClip=$canClip, hash=$hash, isHashBlocked=$isHashBlocked, hasQr=$hasQr")
+            if (isHashBlocked) {
                 return@withContext true
             }
 
-            val hasQr = hasQrCode(targetBitmap)
             if (hasQr) {
                 if (hash != 0L) {
                     AdBlockManager.addHash(hash)

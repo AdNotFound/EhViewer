@@ -119,4 +119,36 @@ class ThumbnailAdScannerTest {
         )
         assertFalse(ThumbnailAdScanner.canClip(largePreview, 250, 350))
     }
+
+    @Test
+    fun testRealSpriteSheetSlicesValidation() {
+        val spriteWidth = 800
+        val spriteHeight = 300
+        val sliceWidth = 200
+        val sliceHeight = 300
+
+        for (i in 0 until 4) {
+            val preview = GalleryPreview(
+                position = i,
+                imageUrl = "https://praogxqcch.hath.network/c2/eaynqvk7kp1xud19i9/4261608-1.webp",
+                offsetX = i * sliceWidth,
+                offsetY = 0,
+                clipWidth = sliceWidth,
+                clipHeight = sliceHeight,
+            )
+            assertTrue(preview.hasClipAspect())
+            assertTrue("Slice $i should be valid to clip from sprite", ThumbnailAdScanner.canClip(preview, spriteWidth, spriteHeight))
+        }
+
+        // 5th slice (out of bounds)
+        val outOfBoundsPreview = GalleryPreview(
+            position = 4,
+            imageUrl = "https://praogxqcch.hath.network/c2/eaynqvk7kp1xud19i9/4261608-1.webp",
+            offsetX = 4 * sliceWidth,
+            offsetY = 0,
+            clipWidth = sliceWidth,
+            clipHeight = sliceHeight,
+        )
+        assertFalse(ThumbnailAdScanner.canClip(outOfBoundsPreview, spriteWidth, spriteHeight))
+    }
 }

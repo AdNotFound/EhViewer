@@ -380,6 +380,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     private fun launchThumbnailAdScan() {
+        Log.d("AdBlockDebug", "launchThumbnailAdScan: stripExtraneousAds=${Settings.stripExtraneousAds}, hasAds=${galleryInfo.hasAds}, size=$size")
         if (!Settings.stripExtraneousAds || !galleryInfo.hasAds || size <= 0) return
         mThumbnailScanJob?.cancel()
         mThumbnailScanJob = launchIO {
@@ -388,6 +389,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             val targetIndices = (startIndex until totalPages).filter {
                 it !in mBlockedAdPages && !mBypassQrCheckPages.contains(it)
             }
+            Log.d("AdBlockDebug", "launchThumbnailAdScan: targetIndices=$targetIndices, totalPages=$totalPages")
             if (targetIndices.isEmpty()) return@launchIO
 
             val context = EhApplication.application
@@ -415,11 +417,18 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             for (index in targetIndices) {
                 currentCoroutineContext().ensureActive()
                 if (mBypassQrCheckPages.contains(index)) continue
-                val preview = previewMap[index] ?: continue
+                val preview = previewMap[index]
+                if (preview == null) {
+                    Log.d("AdBlockDebug", "launchThumbnailAdScan: preview is null for page $index")
+                    continue
+                }
                 val isAd = runSuspendCatching {
                     ThumbnailAdScanner.scanPreview(context, preview)
+                }.onFailure {
+                    Log.e("AdBlockDebug", "scanPreview failed for page $index", it)
                 }.getOrDefault(false)
 
+                Log.d("AdBlockDebug", "launchThumbnailAdScan: page $index isAd=$isAd")
                 if (isAd) {
                     mBlockedAdPages.add(index)
                     preview.isAdBlocked = true

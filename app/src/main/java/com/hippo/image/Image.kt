@@ -253,6 +253,9 @@ class Image private constructor(
                     val isBlockedByHash = hash != 0L && AdBlockManager.isBlocked(hash)
                     val isBlockedByQr = blockOnQr && hasQr
                     if (isBlockedByQr || isBlockedByHash) {
+                        if (hash != 0L) {
+                            AdBlockManager.addHash(hash)
+                        }
                         Log.d("AdBlockDebug", "Image blocked: hasQr=$hasQr (autoBlock=$blockOnQr), dHash=${hash.toULong().toString(16)}, isBlockedByHash=$isBlockedByHash")
                         throw AdDetectedException()
                     }
