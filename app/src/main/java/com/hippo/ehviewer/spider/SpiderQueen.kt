@@ -21,6 +21,7 @@ import androidx.annotation.IntDef
 import androidx.collection.LongSparseArray
 import androidx.collection.set
 import coil3.BitmapImage
+import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.GetText
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
@@ -35,6 +36,8 @@ import com.hippo.ehviewer.client.exception.QuotaExceededException
 import com.hippo.ehviewer.client.parser.GalleryDetailParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
 import com.hippo.ehviewer.coil.BitmapImageWithExtraInfo
+import com.hippo.ehviewer.coil.loadReaderPreviewCache
+import com.hippo.ehviewer.coil.saveReaderPreviewCache
 import com.hippo.ehviewer.jni.getDHash
 import com.hippo.ehviewer.jni.hasQrCode
 import com.hippo.image.AdDetectedException
@@ -89,6 +92,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     private var mDownloadReference = 0
     private val mBypassQrCheckPages = java.util.Collections.synchronizedSet(HashSet<Int>())
     private val mBlockedAdPages = java.util.Collections.synchronizedSet(HashSet<Int>())
+    private var mThumbnailScanJob: Job? = null
 
     fun addBypassQrCheckPage(index: Int) {
         mBypassQrCheckPages.add(index)
@@ -111,6 +115,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         } catch (e: AdDetectedException) {
             // src already closed by Image.decode's onFailure
             mBlockedAdPages.add(index)
+            if (::mSpiderInfo.isInitialized) {
+                mSpiderInfo.blockedAdPages.add(index)
+                launchIO { mSpiderInfo.saveToCache() }
+            }
             return
         }
         // null: src already closed by Image.decode's onFailure
@@ -126,6 +134,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 AdBlockManager.addHash(hash)
             }
             mBlockedAdPages.add(index)
+            if (::mSpiderInfo.isInitialized) {
+                mSpiderInfo.blockedAdPages.add(index)
+                launchIO { mSpiderInfo.saveToCache() }
+            }
             it.recycle()
         }
     }
@@ -134,6 +146,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
     fun removeBlockedAdPage(index: Int) {
         mBlockedAdPages.remove(index)
+        if (::mSpiderInfo.isInitialized) {
+            mSpiderInfo.blockedAdPages.remove(index)
+            launchIO { mSpiderInfo.saveToCache() }
+        }
     }
 
     suspend fun unmarkAsAd(index: Int) {
@@ -144,6 +160,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         } catch (e: AdDetectedException) {
             // src already closed by Image.decode's onFailure
             mBlockedAdPages.remove(index)
+            if (::mSpiderInfo.isInitialized) {
+                mSpiderInfo.blockedAdPages.remove(index)
+                launchIO { mSpiderInfo.saveToCache() }
+            }
             return
         }
         // null: src already closed by Image.decode's onFailure
@@ -154,6 +174,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                 AdBlockManager.unblock(hash)
             }
             mBlockedAdPages.remove(index)
+            if (::mSpiderInfo.isInitialized) {
+                mSpiderInfo.blockedAdPages.remove(index)
+                launchIO { mSpiderInfo.saveToCache() }
+            }
             it.recycle()
         }
     }
@@ -326,9 +350,11 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         mSpiderDen.downloadDir = SpiderDen.getGalleryDownloadDir(galleryInfo.gid)?.takeIf { it.isDirectory }
         mSpiderInfo = readSpiderInfoFromLocal() ?: readSpiderInfoFromInternet() ?: return
         mBypassQrCheckPages.addAll(mSpiderInfo.bypassedAdPages)
+        mBlockedAdPages.addAll(mSpiderInfo.blockedAdPages)
         mPageStateArray = IntArray(mSpiderInfo.pages)
         prepareUpgrade()
         notifyGetPages(mSpiderInfo.pages)
+        launchThumbnailAdScan()
     }
 
     private suspend fun prepareUpgrade() {
@@ -349,6 +375,58 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     }
                 }
                 mOldHashMap = oldSpiderInfo.pTokenMap.entries.associateBy({ it.value }, { it.key }).toMutableMap()
+            }
+        }
+    }
+
+    private fun launchThumbnailAdScan() {
+        if (!Settings.stripExtraneousAds || !galleryInfo.hasAds || size <= 0) return
+        mThumbnailScanJob?.cancel()
+        mThumbnailScanJob = launchIO {
+            val totalPages = size
+            val startIndex = maxOf(0, totalPages - 10)
+            val targetIndices = (startIndex until totalPages).filter {
+                it !in mBlockedAdPages && it !in mSpiderInfo.bypassedAdPages
+            }
+            if (targetIndices.isEmpty()) return@launchIO
+
+            val context = EhApplication.application
+            val cachedPreviews = loadReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty())
+            val previewMap = cachedPreviews?.toMutableMap() ?: mutableMapOf()
+
+            val missing = targetIndices.any { it !in previewMap }
+            if (missing && !galleryInfo.token.isNullOrEmpty()) {
+                val previewPerPage = mSpiderInfo.previewPerPage.takeIf { it > 0 } ?: 40
+                val targetPreviewPage = (totalPages - 1) / previewPerPage
+                runCatching {
+                    val previewSet = EhEngine.getPreviewSet(
+                        EhUrl.getGalleryDetailUrl(galleryInfo.gid, galleryInfo.token!!, targetPreviewPage, false),
+                    ).first
+                    for (i in 0 until previewSet.size()) {
+                        val p = previewSet.getGalleryPreview(galleryInfo.gid, i)
+                        previewMap[p.position] = p
+                    }
+                    saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
+                }.onFailure { it.printStackTrace() }
+            }
+
+            for (index in targetIndices) {
+                currentCoroutineContext().ensureActive()
+                if (index in mSpiderInfo.bypassedAdPages) continue
+                val preview = previewMap[index] ?: continue
+                val isAd = runCatching {
+                    ThumbnailAdScanner.scanPreview(context, preview)
+                }.getOrDefault(false)
+
+                if (isAd) {
+                    mBlockedAdPages.add(index)
+                    if (::mSpiderInfo.isInitialized) {
+                        mSpiderInfo.blockedAdPages.add(index)
+                        launchIO { mSpiderInfo.saveToCache() }
+                    }
+                    Log.d("AdBlockDebug", "Thumbnail ad detected for page $index, auto-blocked")
+                    notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                }
             }
         }
     }
@@ -560,6 +638,8 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     @Synchronized
     private fun writeSpiderInfoToLocal() {
         if (!isReady) return
+        mSpiderInfo.blockedAdPages.clear()
+        mSpiderInfo.blockedAdPages.addAll(mBlockedAdPages)
         mSpiderDen.downloadDir?.run { createFile(SPIDER_INFO_FILENAME)?.also { mSpiderInfo.saveToUniFile(it) } }
         mSpiderInfo.saveToCache()
     }
@@ -962,6 +1042,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                             mSemaphore.withPermit { Image.decode(it, analyzeFeatures = analyzeFeatures, blockOnQr = blockOnQr) }
                         } catch (e: AdDetectedException) {
                             mBlockedAdPages.add(index)
+                            if (::mSpiderInfo.isInitialized) {
+                                mSpiderInfo.blockedAdPages.add(index)
+                                launchIO { mSpiderInfo.saveToCache() }
+                            }
                             notifyGetImageFailure(index, AD_DETECTED_ERROR)
                             return
                         }
