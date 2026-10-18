@@ -422,6 +422,8 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
                 if (isAd) {
                     mBlockedAdPages.add(index)
+                    preview.isAdBlocked = true
+                    previewMap[index] = preview
                     if (::mSpiderInfo.isInitialized) {
                         mSpiderInfo.blockedAdPages.add(index)
                         launchIO { mSpiderInfo.saveToCache() }
@@ -430,6 +432,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
                     notifyGetImageFailure(index, AD_DETECTED_ERROR)
                 }
             }
+            saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
         }
     }
 

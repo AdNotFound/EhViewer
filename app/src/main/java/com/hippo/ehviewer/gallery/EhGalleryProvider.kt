@@ -122,7 +122,7 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
         }
     }
 
-    fun isAdBlocked(index: Int): Boolean = mSpiderQueen.isAdBlocked(index)
+    override fun isAdBlocked(index: Int): Boolean = mSpiderQueen.isAdBlocked(index)
 
     override suspend fun awaitReady(): Boolean = mSpiderQueen.awaitReady()
 

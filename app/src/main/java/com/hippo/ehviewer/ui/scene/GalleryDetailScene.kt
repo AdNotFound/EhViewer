@@ -116,6 +116,7 @@ import com.hippo.ehviewer.spider.SpiderQueen
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.GET_FULL_HASH
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.MODE_READ
 import com.hippo.ehviewer.spider.SpiderQueen.Companion.SPIDER_INFO_FILENAME
+import com.hippo.ehviewer.spider.readFromCache
 import com.hippo.ehviewer.spider.saveToUniFile
 import com.hippo.ehviewer.ui.CommonOperations
 import com.hippo.ehviewer.ui.GalleryActivity
@@ -1166,6 +1167,11 @@ class GalleryDetailScene :
         }
         mGridLayout!!.setColumnSize(Settings.previewSize)
         mGridLayout!!.setStrategy(SimpleGridAutoSpanLayout.STRATEGY_SUITABLE_SIZE)
+        val blockedPages = if (Settings.stripExtraneousAds) {
+            readFromCache(gd.gid)?.blockedAdPages ?: emptySet()
+        } else {
+            emptySet()
+        }
         val size = previewCount.coerceAtMost(previewSet.size())
         for (i in 0 until size) {
             val view = inflater.inflate(R.layout.item_gallery_preview, mGridLayout, false)
@@ -1174,8 +1180,13 @@ class GalleryDetailScene :
             image.setTag(R.id.index, i)
             image.setOnClickListener(this)
             val text = view.findViewById<TextView>(R.id.text)
-            text.text = (previewSet.getPosition(i) + 1).toString()
-            previewSet.load(image, gd.gid, i)
+            val page = previewSet.getPosition(i)
+            text.text = (page + 1).toString()
+            if (page in blockedPages) {
+                image.loadAdBlocked()
+            } else {
+                previewSet.load(image, gd.gid, i)
+            }
         }
     }
 

@@ -53,6 +53,7 @@ class ReaderSidebarAdapter(
         val galleryView: GalleryView?
         val isDoublePageMode: Boolean
         val isRTL: Boolean
+        fun isAdBlocked(index: Int): Boolean = false
     }
 
     override fun getItemId(position: Int): Long = pageStarts[position].toLong()
@@ -93,12 +94,12 @@ class ReaderSidebarAdapter(
                 val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
                 val pageEnd = minOf(pageCount, pageStart + pairSize)
                 if (pageEnd - pageStart > 1 && callbacks.isRTL) {
-                    bindSidebarPreview(holder.image, previews[pageStart + 1], holder.imageLoading)
-                    bindSidebarPreview(holder.imageSecondary, previews[pageStart], holder.imageSecondaryLoading)
+                    bindSidebarPreview(holder.image, pageStart + 1, previews[pageStart + 1], holder.imageLoading)
+                    bindSidebarPreview(holder.imageSecondary, pageStart, previews[pageStart], holder.imageSecondaryLoading)
                 } else {
-                    bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
+                    bindSidebarPreview(holder.image, pageStart, previews[pageStart], holder.imageLoading)
                     if (pageEnd - pageStart > 1) {
-                        bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                        bindSidebarPreview(holder.imageSecondary, pageStart + 1, previews[pageStart + 1], holder.imageSecondaryLoading)
                     }
                 }
             }
@@ -118,10 +119,10 @@ class ReaderSidebarAdapter(
         val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
         val pageEnd = minOf(pageCount, pageStart + pairSize)
         if (pageEnd - pageStart > 1 && callbacks.isRTL) {
-            bindSidebarPreview(holder.image, previews[pageStart + 1], holder.imageLoading)
+            bindSidebarPreview(holder.image, pageStart + 1, previews[pageStart + 1], holder.imageLoading)
             holder.image.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 2)
         } else {
-            bindSidebarPreview(holder.image, previews[pageStart], holder.imageLoading)
+            bindSidebarPreview(holder.image, pageStart, previews[pageStart], holder.imageLoading)
             holder.image.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 1)
         }
         if (pageEnd - pageStart > 1) {
@@ -132,10 +133,10 @@ class ReaderSidebarAdapter(
             holder.imageSecondarySlot.visibility = View.VISIBLE
             holder.imageGap.visibility = View.VISIBLE
             if (callbacks.isRTL) {
-                bindSidebarPreview(holder.imageSecondary, previews[pageStart], holder.imageSecondaryLoading)
+                bindSidebarPreview(holder.imageSecondary, pageStart, previews[pageStart], holder.imageSecondaryLoading)
                 holder.imageSecondary.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 1)
             } else {
-                bindSidebarPreview(holder.imageSecondary, previews[pageStart + 1], holder.imageSecondaryLoading)
+                bindSidebarPreview(holder.imageSecondary, pageStart + 1, previews[pageStart + 1], holder.imageSecondaryLoading)
                 holder.imageSecondary.contentDescription = res.getString(R.string.reader_sidebar_page, pageStart + 2)
             }
         } else {
@@ -259,6 +260,17 @@ class ReaderSidebarAdapter(
 
     fun getCurrentAdapterPosition(): Int = currentIndex
 
+    fun notifyPageChanged(page: Int) {
+        val pos = pageStarts.indexOfLast { it <= page }
+        if (pos in pageStarts.indices) {
+            val pageStart = pageStarts[pos]
+            val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
+            if (page < pageStart + pairSize) {
+                notifyItemChanged(pos, PREVIEW_PAYLOAD)
+            }
+        }
+    }
+
     fun restoreVisiblePreviews(recyclerView: RecyclerView) {
         if (pageStarts.isEmpty()) {
             return
@@ -273,31 +285,52 @@ class ReaderSidebarAdapter(
             val pageStart = pageStarts[position]
             val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
             if (pairSize > 1 && callbacks.isRTL) {
-                restoreSidebarPreviewIfNeeded(holder.image, previews[pageStart + 1])
-                restoreSidebarPreviewIfNeeded(holder.imageSecondary, previews[pageStart])
+                restoreSidebarPreviewIfNeeded(holder.image, pageStart + 1, previews[pageStart + 1])
+                restoreSidebarPreviewIfNeeded(holder.imageSecondary, pageStart, previews[pageStart])
             } else {
-                restoreSidebarPreviewIfNeeded(holder.image, previews[pageStart])
+                restoreSidebarPreviewIfNeeded(holder.image, pageStart, previews[pageStart])
                 if (pairSize > 1) {
-                    restoreSidebarPreviewIfNeeded(holder.imageSecondary, previews[pageStart + 1])
+                    restoreSidebarPreviewIfNeeded(holder.imageSecondary, pageStart + 1, previews[pageStart + 1])
                 }
             }
         }
     }
 
-    private fun restoreSidebarPreviewIfNeeded(view: ReaderSidebarThumb, preview: GalleryPreview?) {
+    private fun restoreSidebarPreviewIfNeeded(view: ReaderSidebarThumb, pageIndex: Int, preview: GalleryPreview?) {
+        val isBlocked = callbacks.isAdBlocked(pageIndex) || preview?.isAdBlocked == true
+        if (isBlocked) {
+            val blockedTag = -pageIndex - 1
+            if (view.tag == blockedTag && view.drawable != null) return
+            bindSidebarPreview(view, pageIndex, preview, null)
+            return
+        }
         if (preview == null || (view.drawable != null && !isErrorState(view))) {
             return
         }
-        bindSidebarPreview(view, preview, null)
+        bindSidebarPreview(view, pageIndex, preview, null)
     }
 
     private fun isErrorState(view: ReaderSidebarThumb): Boolean = view.isClickable || view.isLongClickable
 
     private fun bindSidebarPreview(
         view: ReaderSidebarThumb,
+        pageIndex: Int,
         preview: GalleryPreview?,
         loadingView: ProgressBar? = null,
     ) {
+        if (callbacks.isAdBlocked(pageIndex) || preview?.isAdBlocked == true) {
+            val blockedTag = -pageIndex - 1
+            if (view.tag == blockedTag && view.drawable != null) return
+            view.tag = blockedTag
+            view.resetForReuse()
+            view.visibility = View.VISIBLE
+            view.setBackgroundResource(R.drawable.bg_reader_sidebar_placeholder)
+            view.resetSidebarAspect()
+            loadingView?.visibility = View.GONE
+            view.setOnLoadingStateChangeListener(null)
+            view.loadAdBlocked()
+            return
+        }
         if (preview != null) {
             if (view.tag == preview.position && view.drawable != null && !isErrorState(view)) return
             view.tag = preview.position

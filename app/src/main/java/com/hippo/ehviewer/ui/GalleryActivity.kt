@@ -508,6 +508,7 @@ class GalleryActivity :
                     override val galleryView: GalleryView? get() = mGalleryView
                     override val isDoublePageMode: Boolean get() = this@GalleryActivity.isDoublePageMode
                     override val isRTL: Boolean get() = mLayoutMode == GalleryView.LAYOUT_RIGHT_TO_LEFT
+                    override fun isAdBlocked(index: Int): Boolean = mGalleryProvider?.isAdBlocked(index) == true
                 },
             )
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
@@ -1875,12 +1876,16 @@ class GalleryActivity :
                     } else {
                         provider.forceRequest(page)
                     }
+                    mReaderSidebarPreviewMap[page]?.let { it.isAdBlocked = false }
+                    mReaderSidebarAdapter?.notifyPageChanged(page)
                 }
 
                 getString(R.string.mark_as_ad) -> {
                     if (provider is EhGalleryProvider) {
                         provider.markAsAd(page)
                     }
+                    mReaderSidebarPreviewMap[page]?.let { it.isAdBlocked = true }
+                    mReaderSidebarAdapter?.notifyPageChanged(page)
                 }
 
                 getString(R.string.page_menu_share) -> shareImage(page)
@@ -2167,6 +2172,11 @@ class GalleryActivity :
                 task.setData(NOTIFY_KEY_SIZE, size)
                 SimpleHandler.getInstance().post(task)
             }
+        }
+
+        override fun onPageFailed(index: Int, error: String?) {
+            super.onPageFailed(index, error)
+            mReaderSidebarAdapter?.notifyPageChanged(index)
         }
     }
 

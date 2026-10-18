@@ -173,6 +173,18 @@ open class LoadImageView @JvmOverloads constructor(
         setImageResource(id)
     }
 
+    fun loadAdBlocked() {
+        mLoadGeneration++
+        mPendingClipGeneration = mLoadGeneration
+        resetClip()
+        val blockedDrawable = ContextCompat.getDrawable(context, R.drawable.image_ad_blocked)
+        onPreSetImageDrawable(blockedDrawable, true)
+        scaleType = ScaleType.CENTER_INSIDE
+        super.setImageDrawable(blockedDrawable)
+        setRetry(false)
+        mOnLoadingStateChangeListener?.onLoadingStateChanged(false)
+    }
+
     private fun reload() {
         mUrl?.let { reloadAll(it) }
     }

@@ -43,6 +43,7 @@ import com.hippo.ehviewer.client.data.GalleryPreview
 import com.hippo.ehviewer.client.data.PreviewSet
 import com.hippo.ehviewer.client.exception.EhException
 import com.hippo.ehviewer.coil.saveReaderPreviewCache
+import com.hippo.ehviewer.spider.readFromCache
 import com.hippo.ehviewer.ui.GalleryActivity
 import com.hippo.util.getParcelableCompat
 import com.hippo.widget.ContentLayout
@@ -61,6 +62,17 @@ class GalleryPreviewsScene : ToolbarScene() {
     private var mHelper: GalleryPreviewHelper? = null
     private var mHasFirstRefresh = false
     private var mScrollTo = 0
+    private var mBlockedPages: Set<Int>? = null
+
+    private fun getBlockedPages(): Set<Int> = mBlockedPages ?: run {
+        val pages = if (Settings.stripExtraneousAds) {
+            mGalleryInfo?.let { readFromCache(it.gid)?.blockedAdPages } ?: emptySet()
+        } else {
+            emptySet()
+        }
+        mBlockedPages = pages
+        pages
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -328,7 +340,17 @@ class GalleryPreviewsScene : ToolbarScene() {
             if (null != mHelper) {
                 val preview = mHelper!!.getDataAtEx(position)
                 if (preview != null) {
-                    preview.load(holder.image)
+                    val isBlocked = if (Settings.stripExtraneousAds) {
+                        preview.isAdBlocked || getBlockedPages().contains(preview.position)
+                    } else {
+                        false
+                    }
+                    if (isBlocked) {
+                        preview.isAdBlocked = true
+                        holder.image.loadAdBlocked()
+                    } else {
+                        preview.load(holder.image)
+                    }
                     holder.text.text = (preview.position + 1).toString()
                 }
             }

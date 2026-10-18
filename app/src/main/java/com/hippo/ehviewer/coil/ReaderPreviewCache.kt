@@ -29,6 +29,7 @@ data class CachedPreviewItem(
     val offsetY: Int,
     val clipWidth: Int,
     val clipHeight: Int,
+    val isAdBlocked: Boolean = false,
 )
 
 private val cbor = Cbor { ignoreUnknownKeys = true }
@@ -51,6 +52,7 @@ private fun CachedPreviewItem.toGalleryPreview() = GalleryPreview(
     offsetY = offsetY,
     clipWidth = clipWidth,
     clipHeight = clipHeight,
+    isAdBlocked = isAdBlocked,
 )
 
 private val CACHE_TTL_MS = 48 * 60 * 60 * 1000L
@@ -83,6 +85,7 @@ fun saveReaderPreviewCache(gid: Long, token: String, map: Map<Int, GalleryPrevie
                 offsetY = preview.offsetY,
                 clipWidth = preview.clipWidth,
                 clipHeight = preview.clipHeight,
+                isAdBlocked = preview.isAdBlocked,
             )
         },
     )

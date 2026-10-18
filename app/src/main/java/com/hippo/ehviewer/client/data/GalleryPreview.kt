@@ -32,12 +32,17 @@ class GalleryPreview(
     var offsetY: Int = Int.MIN_VALUE,
     var clipWidth: Int = Int.MIN_VALUE,
     var clipHeight: Int = Int.MIN_VALUE,
+    var isAdBlocked: Boolean = false,
 ) : Parcelable {
     fun hasPreviewAspect(): Boolean = previewWidth > 0 && previewHeight > 0
 
     fun hasClipAspect(): Boolean = clipWidth > 0 && clipHeight > 0
 
     fun load(view: LoadImageView) {
+        if (isAdBlocked) {
+            view.loadAdBlocked()
+            return
+        }
         view.setClip(offsetX, offsetY, clipWidth, clipHeight)
         // Disable Coil crossfade — sidebar thumbnails use their own alpha fade-in
         view.load(imageKey!!, imageUrl!!, crossfade = false, hardware = offsetY == Int.MIN_VALUE || isAtLeastQ)

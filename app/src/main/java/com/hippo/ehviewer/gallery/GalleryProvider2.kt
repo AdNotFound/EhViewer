@@ -24,6 +24,8 @@ abstract class GalleryProvider2 : GalleryProvider() {
 
     open fun putStartPage(page: Int) {}
 
+    open fun isAdBlocked(index: Int): Boolean = false
+
     /**
      * @return without extension
      */
