@@ -16,13 +16,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object ThumbnailAdScanner {
-    fun canClip(preview: GalleryPreview, bitmapWidth: Int, bitmapHeight: Int): Boolean = preview.hasClipAspect() &&
+    internal fun canClip(preview: GalleryPreview, bitmapWidth: Int, bitmapHeight: Int): Boolean = preview.hasClipAspect() &&
         preview.offsetX >= 0 && preview.offsetY >= 0 &&
         preview.offsetX + preview.clipWidth <= bitmapWidth &&
         preview.offsetY + preview.clipHeight <= bitmapHeight
 
     suspend fun scanPreview(context: Context, preview: GalleryPreview): Boolean = withContext(Dispatchers.IO) {
-        val url = preview.imageUrl ?: return@withContext false
+        val url = preview.imageUrl?.takeIf { it.isNotBlank() } ?: return@withContext false
         val request = ImageRequest.Builder(context)
             .data(url)
             .allowHardware(false) // Required for JNI AndroidBitmap_lockPixels
@@ -34,20 +34,18 @@ object ThumbnailAdScanner {
             ?: runCatching { image.toBitmap() }.getOrNull()
             ?: return@withContext false
 
-        val targetBitmap: Bitmap
-        val needRecycle: Boolean
-        if (canClip(preview, originalBitmap.width, originalBitmap.height)) {
-            targetBitmap = Bitmap.createBitmap(
+        if (originalBitmap.isRecycled) return@withContext false
+
+        val targetBitmap = if (canClip(preview, originalBitmap.width, originalBitmap.height)) {
+            Bitmap.createBitmap(
                 originalBitmap,
                 preview.offsetX,
                 preview.offsetY,
                 preview.clipWidth,
                 preview.clipHeight,
             )
-            needRecycle = true
         } else {
-            targetBitmap = originalBitmap
-            needRecycle = false
+            originalBitmap
         }
 
         try {
@@ -65,7 +63,7 @@ object ThumbnailAdScanner {
             }
             false
         } finally {
-            if (needRecycle) {
+            if (targetBitmap !== originalBitmap) {
                 targetBitmap.recycle()
             }
         }

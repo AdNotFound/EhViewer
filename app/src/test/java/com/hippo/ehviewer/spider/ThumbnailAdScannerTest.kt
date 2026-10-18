@@ -82,6 +82,35 @@ class ThumbnailAdScannerTest {
         )
         assertFalse(ThumbnailAdScanner.canClip(outOfBoundsHeightPreview, 300, 300))
 
+        // Exact edge boundary (touching right and bottom edges)
+        val edgePreview = GalleryPreview(
+            imageUrl = "https://ehgt.org/t/sprite.jpg",
+            offsetX = 200,
+            offsetY = 160,
+            clipWidth = 100,
+            clipHeight = 140,
+        )
+        assertTrue(ThumbnailAdScanner.canClip(edgePreview, 300, 300))
+
+        // Non-positive clip width or height
+        val zeroWidthPreview = GalleryPreview(
+            imageUrl = "https://ehgt.org/t/sprite.jpg",
+            offsetX = 0,
+            offsetY = 0,
+            clipWidth = 0,
+            clipHeight = 140,
+        )
+        assertFalse(ThumbnailAdScanner.canClip(zeroWidthPreview, 300, 300))
+
+        val negHeightPreview = GalleryPreview(
+            imageUrl = "https://ehgt.org/t/sprite.jpg",
+            offsetX = 0,
+            offsetY = 0,
+            clipWidth = 100,
+            clipHeight = -10,
+        )
+        assertFalse(ThumbnailAdScanner.canClip(negHeightPreview, 300, 300))
+
         // Large preview without clip aspect
         val largePreview = GalleryPreview(
             imageUrl = "https://ehgt.org/t/large.jpg",
