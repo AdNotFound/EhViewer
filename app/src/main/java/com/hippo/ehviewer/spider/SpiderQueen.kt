@@ -386,7 +386,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             val totalPages = size
             val startIndex = maxOf(0, totalPages - 10)
             val targetIndices = (startIndex until totalPages).filter {
-                it !in mBlockedAdPages && it !in mSpiderInfo.bypassedAdPages
+                it !in mBlockedAdPages && !mBypassQrCheckPages.contains(it)
             }
             if (targetIndices.isEmpty()) return@launchIO
 
@@ -394,27 +394,29 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
             val cachedPreviews = loadReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty())
             val previewMap = cachedPreviews?.toMutableMap() ?: mutableMapOf()
 
-            val missing = targetIndices.any { it !in previewMap }
-            if (missing && !galleryInfo.token.isNullOrEmpty()) {
+            val missingIndices = targetIndices.filter { it !in previewMap }
+            if (missingIndices.isNotEmpty() && !galleryInfo.token.isNullOrEmpty()) {
                 val previewPerPage = mSpiderInfo.previewPerPage.takeIf { it > 0 } ?: 40
-                val targetPreviewPage = (totalPages - 1) / previewPerPage
-                runCatching {
-                    val previewSet = EhEngine.getPreviewSet(
-                        EhUrl.getGalleryDetailUrl(galleryInfo.gid, galleryInfo.token!!, targetPreviewPage, false),
-                    ).first
-                    for (i in 0 until previewSet.size()) {
-                        val p = previewSet.getGalleryPreview(galleryInfo.gid, i)
-                        previewMap[p.position] = p
-                    }
-                    saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
-                }.onFailure { it.printStackTrace() }
+                val neededPreviewPages = missingIndices.map { it / previewPerPage }.distinct()
+                for (previewPage in neededPreviewPages) {
+                    runSuspendCatching {
+                        val previewSet = EhEngine.getPreviewSet(
+                            EhUrl.getGalleryDetailUrl(galleryInfo.gid, galleryInfo.token!!, previewPage, false),
+                        ).first
+                        for (i in 0 until previewSet.size()) {
+                            val p = previewSet.getGalleryPreview(galleryInfo.gid, i)
+                            previewMap[p.position] = p
+                        }
+                    }.onFailure { it.printStackTrace() }
+                }
+                saveReaderPreviewCache(galleryInfo.gid, galleryInfo.token.orEmpty(), previewMap)
             }
 
             for (index in targetIndices) {
                 currentCoroutineContext().ensureActive()
-                if (index in mSpiderInfo.bypassedAdPages) continue
+                if (mBypassQrCheckPages.contains(index)) continue
                 val preview = previewMap[index] ?: continue
-                val isAd = runCatching {
+                val isAd = runSuspendCatching {
                     ThumbnailAdScanner.scanPreview(context, preview)
                 }.getOrDefault(false)
 
@@ -443,6 +445,7 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     private fun stop() {
+        mThumbnailScanJob?.cancel()
         val queenScope = this
         launchIO {
             queenScope.cancel()
@@ -638,8 +641,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     @Synchronized
     private fun writeSpiderInfoToLocal() {
         if (!isReady) return
-        mSpiderInfo.blockedAdPages.clear()
-        mSpiderInfo.blockedAdPages.addAll(mBlockedAdPages)
+        synchronized(mBlockedAdPages) {
+            mSpiderInfo.blockedAdPages.clear()
+            mSpiderInfo.blockedAdPages.addAll(mBlockedAdPages)
+        }
         mSpiderDen.downloadDir?.run { createFile(SPIDER_INFO_FILENAME)?.also { mSpiderInfo.saveToUniFile(it) } }
         mSpiderInfo.saveToCache()
     }
