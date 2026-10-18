@@ -92,6 +92,10 @@ class EhGalleryProvider(private val mGalleryInfo: GalleryInfo) :
     override fun getImageUrl(index: Int): String? = mSpiderQueen.getImageUrl(index)
 
     override fun onRequest(index: Int) {
+        if (mSpiderQueen.isAdBlocked(index)) {
+            notifyPageFailed(index, GetText.getString(R.string.error_ad_detected))
+            return
+        }
         notifyPageWait(index)
         mSpiderQueen.request(index)
     }

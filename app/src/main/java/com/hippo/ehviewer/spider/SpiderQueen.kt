@@ -469,6 +469,10 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
     }
 
     fun request(index: Int) {
+        if (isAdBlocked(index)) {
+            notifyGetImageFailure(index, AD_DETECTED_ERROR)
+            return
+        }
         request(index, false)
     }
 
@@ -805,6 +809,11 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
         }
 
         private suspend fun doInJob(index: Int, force: Boolean, skipHath: Boolean) {
+            if (!force && isAdBlocked(index)) {
+                Log.d("SpiderQueen", "Page $index is an ad, skipping download")
+                updatePageState(index, STATE_FINISHED)
+                return
+            }
             val previousPToken: String?
             val pToken: String
             notifyPageNetworkInfo(index, "Waiting for concurrency lock...")
@@ -1028,7 +1037,15 @@ class SpiderQueen private constructor(val galleryInfo: GalleryInfo) : CoroutineS
 
             private suspend fun doInJob(index: Int) {
                 runCatching {
+                    if (isAdBlocked(index)) {
+                        notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                        return
+                    }
                     mFetcherJobMap[index]?.takeIf { it.isActive }?.join()
+                    if (isAdBlocked(index)) {
+                        notifyGetImageFailure(index, AD_DETECTED_ERROR)
+                        return
+                    }
                     val src = mSpiderDen.getImageSource(index)
                     if (src == null) {
                         if (getPageState(index) == STATE_FINISHED) {
