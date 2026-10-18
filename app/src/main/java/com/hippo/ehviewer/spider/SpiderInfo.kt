@@ -35,14 +35,20 @@ import java.io.InputStream
 class SpiderInfo(
     val gid: Long,
     var token: String? = null,
-    val pages: Int,
+    val pages: Int = 0,
     val pTokenMap: MutableMap<Int, String> = hashMapOf(),
     var startPage: Int = 0,
     var previewPages: Int = -1,
     var previewPerPage: Int = -1,
     var upgradeFrom: Long? = null,
     val bypassedAdPages: MutableSet<Int> = hashSetOf(),
-)
+    val blockedAdPages: MutableSet<Int> = hashSetOf(),
+) {
+    companion object {
+        fun encode(info: SpiderInfo): ByteArray = cbor.encodeToByteArray(info)
+        fun decode(bytes: ByteArray): SpiderInfo = cbor.decodeFromByteArray(bytes)
+    }
+}
 
 private val cbor = Cbor { ignoreUnknownKeys = true }
 
