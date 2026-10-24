@@ -50,13 +50,18 @@ import androidx.core.net.toUri
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.hippo.app.EditTextDialogBuilder
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
+import com.hippo.ehviewer.client.EhCookieStore
+import com.hippo.ehviewer.client.EhEngine
+import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUrlOpener
 import com.hippo.ehviewer.client.EhUtils
+import com.hippo.ehviewer.client.ProfileSync
 import com.hippo.ehviewer.client.data.ListUrlBuilder
 import com.hippo.ehviewer.client.parser.GalleryDetailUrlParser
 import com.hippo.ehviewer.client.parser.GalleryPageUrlParser
@@ -83,16 +88,20 @@ import com.hippo.scene.SceneFragment
 import com.hippo.scene.StageActivity
 import com.hippo.unifile.UniFile
 import com.hippo.unifile.sha1
+import com.hippo.util.ExceptionUtils
 import com.hippo.util.addTextToClipboard
 import com.hippo.util.getClipboardManager
 import com.hippo.util.getParcelableExtraCompat
 import com.hippo.util.getUrlFromClipboard
 import com.hippo.util.isAtLeastQ
 import com.hippo.util.isAtLeastS
+import com.hippo.util.launchIO
+import com.hippo.util.withUIContext
 import com.hippo.widget.DrawerView
 import com.hippo.widget.LoadImageView
 import com.hippo.yorozuya.SimpleHandler
 import com.hippo.yorozuya.ViewUtils
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class MainActivity :
     StageActivity(),
@@ -298,7 +307,37 @@ class MainActivity :
             }
             updateProfile()
             mNavView!!.setNavigationItemSelectedListener(this)
-            mAvatar!!.setOnClickListener { updateProfile() }
+            mAvatar!!.setOnClickListener {
+                if (!EhCookieStore.hasSignedIn()) {
+                    return@setOnClickListener
+                }
+                ProfileSync.cancel()
+                lifecycleScope.launchIO {
+                    withUIContext {
+                        showTip(R.string.syncing_profile, BaseScene.LENGTH_SHORT)
+                    }
+                    runCatching {
+                        EhEngine.getProfile().run {
+                            Settings.putDisplayName(displayName)
+                            Settings.putAvatar(avatar)
+                        }
+                    }.onSuccess {
+                        withUIContext {
+                            updateProfile()
+                            showTip(R.string.sync_profile_success, BaseScene.LENGTH_SHORT)
+                        }
+                    }.onFailure {
+                        val memberId = EhCookieStore.getCookieValue(EhUrl.HOST_E.toHttpUrl(), EhCookieStore.KEY_IPB_MEMBER_ID)
+                        if (Settings.displayName == getString(R.string.getting_display_name) && !memberId.isNullOrEmpty()) {
+                            Settings.putDisplayName(memberId)
+                        }
+                        withUIContext {
+                            updateProfile()
+                            showTip(getString(R.string.sync_profile_failed, ExceptionUtils.getReadableString(it)), BaseScene.LENGTH_SHORT)
+                        }
+                    }
+                }
+            }
         }
         if (savedInstanceState == null) {
             checkDownloadLocation()
@@ -435,6 +474,10 @@ class MainActivity :
         setNavCheckedItem(mNavCheckedItem)
         processPendingUnrecognizedIntent()
         checkClipboardUrl()
+        if (Settings.displayName == getString(R.string.getting_display_name)) {
+            ProfileSync.sync(showToastOnFailure = false)
+        }
+        updateProfile()
     }
 
     override fun onTransactScene() {

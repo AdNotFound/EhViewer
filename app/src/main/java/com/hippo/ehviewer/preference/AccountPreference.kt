@@ -78,12 +78,15 @@ class AccountPreference(
                 mMessage += "\n\n" + context.getString(R.string.settings_eh_account_igneous_expire) +
                     ReadableTime.getShortTime(igneousExpire)
             }
-            mDialog.setMessage(mMessage)
+            if (::mDialog.isInitialized) {
+                mDialog.setMessage(mMessage)
+            }
         }
     }
 
     override fun onPrepareDialogBuilder(builder: AlertDialog.Builder) {
         super.onPrepareDialogBuilder(builder)
+        updateMessage()
         if (EhCookieStore.hasSignedIn()) {
             builder.setNeutralButton(R.string.settings_eh_account_identity_cookies_copy) { dialog: DialogInterface, which: Int ->
                 mActivity.addTextToClipboard(mCookie, true)

@@ -37,6 +37,7 @@ import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils
+import com.hippo.ehviewer.client.ProfileSync
 import com.hippo.ehviewer.ui.SettingsActivity
 import com.hippo.scene.Announcer
 import com.hippo.util.ExceptionUtils
@@ -45,6 +46,7 @@ import com.hippo.util.withUIContext
 import com.hippo.yorozuya.ViewUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class SignInScene :
     SolidScene(),
@@ -235,17 +237,19 @@ class SignInScene :
                 showProgress()
             }
             runCatching {
-                EhEngine.getProfile().run {
-                    Settings.putDisplayName(displayName)
-                    Settings.putAvatar(avatar)
-                }
+                EhEngine.getUConfig(EhUrl.URL_UCONFIG_E)
             }.onFailure {
+                it.printStackTrace()
+                EhUtils.signOut()
                 withUIContext {
                     hideProgress()
                     showResultErrorDialog(it)
                 }
+            }.onSuccess {
+                Settings.putDisplayName(getString(R.string.getting_display_name))
+                ProfileSync.sync(showToastOnFailure = true)
+                finishSignIn()
             }
-            finishSignIn()
         }
     }
 

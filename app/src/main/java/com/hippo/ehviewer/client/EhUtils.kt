@@ -115,6 +115,7 @@ object EhUtils {
     }.toInt()
 
     suspend fun signOut() {
+        ProfileSync.cancel()
         EhCookieStore.clear()
         Settings.putAvatar(null)
         Settings.putDisplayName(null)

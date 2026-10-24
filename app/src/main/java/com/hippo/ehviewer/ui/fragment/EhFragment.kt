@@ -28,9 +28,11 @@ import com.hippo.ehviewer.Settings
 import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhTagDatabase
+import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUrl.SITE_EX
 import com.hippo.ehviewer.client.EhUtils.isExHentai
 import com.hippo.util.launchNonCancellable
+import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class EhFragment : BasePreferenceFragment() {
     private lateinit var detailSize: Preference
@@ -63,7 +65,11 @@ class EhFragment : BasePreferenceFragment() {
         listThumbSize.onPreferenceChangeListener = this
         thumbSize.onPreferenceChangeListener = this
         thumbShowTitle.onPreferenceChangeListener = this
-        Settings.displayName?.let { account?.summary = it }
+        if (EhCookieStore.hasSignedIn()) {
+            account?.summary = Settings.displayName
+                ?: EhCookieStore.getCookieValue(EhUrl.HOST_E.toHttpUrl(), EhCookieStore.KEY_IPB_MEMBER_ID)
+                ?: getString(R.string.default_display_name)
+        }
         if (!EhTagDatabase.isTranslatable(requireActivity())) {
             if (!Settings.showTagTranslations) {
                 preferenceScreen.removePreference(showTagTranslations)
