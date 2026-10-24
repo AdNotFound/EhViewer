@@ -95,6 +95,8 @@ open class LoadImageView @JvmOverloads constructor(
     }
 
     fun resetClip() {
+        mKey = null
+        mUrl = null
         mOffsetX = Int.MIN_VALUE
         mOffsetY = Int.MIN_VALUE
         mClipWidth = Int.MIN_VALUE

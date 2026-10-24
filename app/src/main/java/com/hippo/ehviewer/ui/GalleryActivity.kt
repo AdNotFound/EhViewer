@@ -248,6 +248,7 @@ class GalleryActivity :
     private val mSidebarScrollHandler = Handler(Looper.getMainLooper())
     private var mSidebarScrollRunnable: Runnable? = null
     private var mSidebarUserScrolling = false
+    private var mSidebarUserHasScrolled = false
     private var mSidebarDataPending = false
     private var mSidebarPendingPageStarts: List<Int>? = null
     private var mSidebarAnimator: ValueAnimator? = null
@@ -516,20 +517,52 @@ class GalleryActivity :
             mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
             mReaderSidebarOnRight = Settings.layoutReaderThumbnailSidebarOnRight
             mReaderSidebarToggleTouchSlop = ViewConfiguration.get(this).scaledTouchSlop
+            mReaderSidebarRecyclerView!!.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
+                override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
+                    if (e.actionMasked == MotionEvent.ACTION_DOWN) {
+                        // User touched sidebar — mark as user scrolled and cancel any pending auto-center
+                        mSidebarUserHasScrolled = true
+                        mSidebarProgrammaticScroll = false
+                        mSidebarScrollRunnable?.let {
+                            mSidebarScrollHandler.removeCallbacks(it)
+                            rv.removeCallbacks(it)
+                        }
+                        mSidebarScrollRunnable = null
+                    }
+                    return false
+                }
+            })
             mReaderSidebarRecyclerView!!.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                    if (newState != RecyclerView.SCROLL_STATE_IDLE) {
+                    if (newState == RecyclerView.SCROLL_STATE_DRAGGING) {
+                        // User-initiated scroll gesture
+                        mSidebarUserHasScrolled = true
+                        mSidebarProgrammaticScroll = false
+                        mSidebarUserScrolling = true
+                        mSidebarScrollRunnable?.let {
+                            mSidebarScrollHandler.removeCallbacks(it)
+                            recyclerView.removeCallbacks(it)
+                        }
+                        mSidebarScrollRunnable = null
+                    } else if (newState != RecyclerView.SCROLL_STATE_IDLE) {
                         if (!mSidebarProgrammaticScroll) {
-                            // User-initiated scroll
+                            mSidebarUserHasScrolled = true
                             mSidebarUserScrolling = true
-                            // Cancel any pending auto-center scroll so it doesn't fight with user gesture
-                            mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
+                            mSidebarScrollRunnable?.let {
+                                mSidebarScrollHandler.removeCallbacks(it)
+                                recyclerView.removeCallbacks(it)
+                            }
+                            mSidebarScrollRunnable = null
                         }
                     }
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                        val wasProgrammatic = mSidebarProgrammaticScroll
                         mSidebarUserScrolling = false
                         mSidebarProgrammaticScroll = false
+                        mSidebarScrollRunnable?.let {
+                            mSidebarScrollHandler.removeCallbacks(it)
+                            recyclerView.removeCallbacks(it)
+                        }
+                        mSidebarScrollRunnable = null
                         if (mSidebarDataPending) {
                             mSidebarDataPending = false
                             val pending = mSidebarPendingPageStarts
@@ -541,7 +574,9 @@ class GalleryActivity :
                         } else if (mReaderSidebarAdapter?.hasPendingPreviewUpdate() == true) {
                             mReaderSidebarAdapter?.flushPendingData(null, mCurrentIndex)
                         }
-                        updateReaderSidebarSelection(forceCenter = wasProgrammatic)
+                        // Don't forceCenter on idle — respect user scroll position and avoid jumping to page 1
+                        updateReaderSidebarSelection(forceCenter = false)
+                        mReaderSidebarAdapter?.restoreVisiblePreviews(recyclerView)
                     }
                 }
             })
@@ -683,7 +718,7 @@ class GalleryActivity :
         mGalleryView!!.setDoublePageOffset(Settings.doublePageOffset)
         mGalleryView!!.setDoublePageGap(Settings.doublePageGap)
         ensureReaderPreviewMetadata()
-        updateReaderSidebarData(forceCenter = true)
+        updateReaderSidebarData(forceCenter = !mSidebarUserHasScrolled)
     }
 
     private fun shouldLoadReaderPreviewMetadata(): Boolean = mAction == ACTION_EH && (mReaderSidebarRecyclerView != null || isDoublePageMode)
@@ -1021,7 +1056,7 @@ class GalleryActivity :
         val galleryView = mGalleryView
         val alignedIndex = galleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
         adapter.updateCurrentIndex(alignedIndex)
-        if (!mReaderSidebarVisible || !forceCenter || mSidebarUserScrolling) {
+        if (!mReaderSidebarVisible || !forceCenter || mSidebarUserScrolling || mSidebarUserHasScrolled) {
             return
         }
         val targetPosition = adapter.getCurrentAdapterPosition()
@@ -1043,11 +1078,17 @@ class GalleryActivity :
         // RecyclerView hasn't laid out yet — pre-scroll to position and schedule centered alignment after layout
         if (firstVisible == RecyclerView.NO_POSITION) {
             layoutManager.scrollToPosition(targetPosition)
-            recyclerView.post {
-                if (mReaderSidebarVisible && !mSidebarUserScrolling) {
+            mSidebarScrollRunnable?.let {
+                mSidebarScrollHandler.removeCallbacks(it)
+                recyclerView.removeCallbacks(it)
+            }
+            val initRunnable = Runnable {
+                if (mReaderSidebarVisible && !mSidebarUserScrolling && !mSidebarUserHasScrolled) {
                     updateReaderSidebarSelection(forceCenter = true)
                 }
             }
+            mSidebarScrollRunnable = initRunnable
+            recyclerView.post(initRunnable)
             return
         }
 
@@ -1468,7 +1509,7 @@ class GalleryActivity :
                     mReaderSidebarRecyclerView?.let { rv ->
                         mReaderSidebarAdapter?.restoreVisiblePreviews(rv)
                     }
-                    updateReaderSidebarSelection(forceCenter = true)
+                    updateReaderSidebarSelection(forceCenter = !mSidebarUserHasScrolled)
                 }
             } else {
                 contentContainer.post {
@@ -1555,7 +1596,7 @@ class GalleryActivity :
                             mReaderSidebarRecyclerView?.let { rv ->
                                 mReaderSidebarAdapter?.restoreVisiblePreviews(rv)
                             }
-                            updateReaderSidebarSelection(forceCenter = true)
+                            updateReaderSidebarSelection(forceCenter = !mSidebarUserHasScrolled)
                         }
                     } else {
                         sidebarContainer.isVisible = false
@@ -2149,7 +2190,7 @@ class GalleryActivity :
             updateDoublePageMode()
             updateSlider()
             updateProgress()
-            updateReaderSidebarData(forceCenter = true)
+            updateReaderSidebarData(forceCenter = !mSidebarUserHasScrolled)
             if (oldReadingFullscreen != readingFullscreen || oldReadTheme != readTheme) {
                 recreate()
             }
@@ -2208,21 +2249,27 @@ class GalleryActivity :
                 NOTIFY_KEY_LAYOUT_MODE -> {
                     mLayoutMode = mValue
                     updateSlider()
-                    updateReaderSidebarData(forceCenter = true)
+                    updateReaderSidebarData(forceCenter = !mSidebarUserHasScrolled)
                 }
 
                 NOTIFY_KEY_SIZE -> {
                     mSize = mValue
                     updateSlider()
                     updateProgress()
-                    updateReaderSidebarData(forceCenter = true)
+                    updateReaderSidebarData(forceCenter = false)
                 }
 
                 NOTIFY_KEY_CURRENT_INDEX -> {
+                    val indexChanged = mCurrentIndex != mValue
                     mCurrentIndex = mValue
                     updateSlider()
                     updateProgress()
-                    refreshReaderSidebarStructure(forceCenter = true)
+                    if (indexChanged) {
+                        mSidebarUserHasScrolled = false
+                        refreshReaderSidebarStructure(forceCenter = true)
+                    } else {
+                        refreshReaderSidebarStructure(forceCenter = false)
+                    }
                 }
 
                 NOTIFY_KEY_TAP_MENU_AREA -> onTapMenuArea()
