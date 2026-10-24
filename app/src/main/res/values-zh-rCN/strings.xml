@@ -29,6 +29,11 @@
     <string name="sign_in_failed">登录失败</string>
     <string name="sign_in_failed_tip">若持续出错，请尝试“通过网页登录”或“通过 Cookie 登录”。</string>
     <string name="get_it">知道了</string>
+    <string name="sign_in_profile_failed_toast">由于网络问题，未能获取论坛用户名与头像，默认显示 UID</string>
+    <string name="getting_display_name">获取中…</string>
+    <string name="syncing_profile">正在同步个人资料…</string>
+    <string name="sync_profile_success">个人资料同步成功</string>
+    <string name="sync_profile_failed">个人资料同步失败：%s</string>
     <!-- Cookie Sign In Scene -->
     <string name="cookie_explain">Cookie 是存储在浏览器里的一小块数据。如果您不清楚 Cookie 是什么或者怎么获取 Cookie，最好搜索一下。\n\n请输入特定的 Cookie 来登录。</string>
     <string name="from_clipboard">从剪贴板导入</string>

@@ -30,6 +30,11 @@
     <string name="sign_in_failed">ログインに失敗しました</string>
     <string name="sign_in_failed_tip">この問題が解決しない場合は「WebView でログイン」か「Cookie でログイン」をお試しください。</string>
     <string name="get_it">了解</string>
+    <string name="sign_in_profile_failed_toast">ネットワークの問題により、フォーラムのユーザー名とアバターを取得できませんでした。デフォルトでUIDが表示されます。</string>
+    <string name="getting_display_name">取得中…</string>
+    <string name="syncing_profile">プロフィールを同期中…</string>
+    <string name="sync_profile_success">プロフィールを同期しました</string>
+    <string name="sync_profile_failed">プロフィールの同期に失敗しました: %s</string>
     <!-- Cookie Sign In Scene -->
     <string name="cookie_explain">Cookie とは、ウェブブラウザに保存される小さなデータのことです。Cookie が何なのか、または取得方法がわからない場合は Google で検索をしてください。\n\nログインをするには特別な Cookie を入力してください。</string>
     <string name="from_clipboard">クリップボードから</string>

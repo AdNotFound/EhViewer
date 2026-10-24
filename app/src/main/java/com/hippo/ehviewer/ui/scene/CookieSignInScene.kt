@@ -35,6 +35,7 @@ import com.hippo.ehviewer.client.EhCookieStore
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.EhUtils
+import com.hippo.ehviewer.client.ProfileSync
 import com.hippo.util.ExceptionUtils
 import com.hippo.util.getClipboardManager
 import com.hippo.util.getTextFromClipboard
@@ -161,18 +162,18 @@ class CookieSignInScene :
         showProgress()
         mSignInJob = viewLifecycleOwner.lifecycleScope.launchIO {
             EhUtils.signOut()
+            storeCookie(ipbMemberId, ipbPassHash, igneous)
             runCatching {
-                storeCookie(ipbMemberId, ipbPassHash, igneous)
-                EhEngine.getProfile().run {
-                    Settings.putDisplayName(displayName)
-                    Settings.putAvatar(avatar)
-                }
+                EhEngine.getUConfig(EhUrl.URL_UCONFIG_E)
             }.onFailure {
+                EhUtils.signOut()
                 withUIContext {
                     hideProgress()
                     showResultErrorDialog(it)
                 }
             }.onSuccess {
+                Settings.putDisplayName(getString(R.string.getting_display_name))
+                ProfileSync.sync(showToastOnFailure = true)
                 withUIContext {
                     setResult(RESULT_OK, null)
                     finish()
@@ -182,9 +183,14 @@ class CookieSignInScene :
     }
 
     private fun showResultErrorDialog(e: Throwable) {
+        val message = if (e is IllegalStateException) {
+            getString(R.string.wrong_cookie_warning)
+        } else {
+            "${ExceptionUtils.getReadableString(e)}\n\n${getString(R.string.wrong_cookie_warning)}"
+        }
         AlertDialog.Builder(requireContext())
             .setTitle(R.string.sign_in_failed)
-            .setMessage("${ExceptionUtils.getReadableString(e)}\n\n${getString(R.string.wrong_cookie_warning)}")
+            .setMessage(message)
             .setPositiveButton(R.string.get_it, null)
             .show()
     }

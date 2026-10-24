@@ -32,6 +32,11 @@
     <string name="sign_in_failed">Sign in failed</string>
     <string name="sign_in_failed_tip">If this issue continues, try \"Sign in via WebView\" or \"Sign in via cookies\".</string>
     <string name="get_it">Got it</string>
+    <string name="sign_in_profile_failed_toast">Due to network issues, forum username and avatar could not be fetched. UID is displayed by default.</string>
+    <string name="getting_display_name">Fetching…</string>
+    <string name="syncing_profile">Syncing profile…</string>
+    <string name="sync_profile_success">Profile synced successfully</string>
+    <string name="sync_profile_failed">Failed to sync profile: %s</string>
     <!-- Cookie Sign In Scene -->
     <string name="cookie_explain">A cookie is a small piece of data stored in web browser. Google it if you don\'t know what it is or how to get it.\n\nPlease enter special cookies to sign in.</string>
     <string name="from_clipboard">From clipboard</string>
