@@ -147,7 +147,8 @@
         android:elevation="2dp"
         android:orientation="vertical"
         android:paddingHorizontal="8dp"
-        android:paddingVertical="12dp">
+        android:paddingVertical="12dp"
+        android:visibility="gone">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/reader_sidebar_list"
