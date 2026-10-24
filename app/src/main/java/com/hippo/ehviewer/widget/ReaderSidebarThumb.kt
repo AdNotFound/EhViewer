@@ -46,6 +46,8 @@ class ReaderSidebarThumb @JvmOverloads constructor(
     }
 
     fun resetForReuse() {
+        animate().cancel()
+        alpha = 1f
         pendingFadeIn = true
         lastDrawableHash = 0
     }

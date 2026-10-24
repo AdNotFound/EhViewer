@@ -77,6 +77,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -114,6 +115,7 @@ import com.hippo.util.getParcelableExtraCompat
 import com.hippo.util.isAtLeastP
 import com.hippo.util.isAtLeastQ
 import com.hippo.util.launchIO
+import com.hippo.util.runSuspendCatching
 import com.hippo.util.sendTo
 import com.hippo.util.withUIContext
 import com.hippo.widget.ColorView
@@ -128,12 +130,12 @@ import com.hippo.yorozuya.SimpleHandler
 import com.hippo.yorozuya.ViewUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.suspendCancellableCoroutine
 import rikka.core.res.isNight
 import rikka.core.res.resolveColor
@@ -517,10 +519,7 @@ class GalleryActivity :
             mReaderSidebarRecyclerView!!.addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                     if (newState != RecyclerView.SCROLL_STATE_IDLE) {
-                        if (mSidebarProgrammaticScroll) {
-                            // Programmatic auto-center scroll — block concurrent auto-center until idle
-                            mSidebarUserScrolling = true
-                        } else {
+                        if (!mSidebarProgrammaticScroll) {
                             // User-initiated scroll
                             mSidebarUserScrolling = true
                             // Cancel any pending auto-center scroll so it doesn't fight with user gesture
@@ -528,6 +527,7 @@ class GalleryActivity :
                         }
                     }
                     if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        val wasProgrammatic = mSidebarProgrammaticScroll
                         mSidebarUserScrolling = false
                         mSidebarProgrammaticScroll = false
                         if (mSidebarDataPending) {
@@ -541,14 +541,13 @@ class GalleryActivity :
                         } else if (mReaderSidebarAdapter?.hasPendingPreviewUpdate() == true) {
                             mReaderSidebarAdapter?.flushPendingData(null, mCurrentIndex)
                         }
-                        // Don't forceCenter — flushPendingData already preserves scroll position
-                        updateReaderSidebarSelection(forceCenter = false)
+                        updateReaderSidebarSelection(forceCenter = wasProgrammatic)
                     }
                 }
             })
             mReaderSidebarToggle?.setOnClickListener { toggleReaderSidebar() }
             mReaderSidebarToggle?.setOnTouchListener { view, event -> onReaderSidebarToggleTouch(view, event) }
-            updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
+            updateReaderSidebarVisibility(animated = false, showHiddenIndicator = !mReaderSidebarVisible)
             updateReaderSidebarData(forceCenter = true)
         }
 
@@ -579,6 +578,24 @@ class GalleryActivity :
                 galleryHeader.setDisplayCutout(insets.displayCutout)
             }
             WindowInsetsCompat.CONSUMED
+        }
+        mReaderSidebarContainer?.let { container ->
+            val basePaddingLeft = container.paddingLeft
+            val basePaddingRight = container.paddingRight
+            val basePaddingTop = container.paddingTop
+            val basePaddingBottom = container.paddingBottom
+            ViewCompat.setOnApplyWindowInsetsListener(container) { v, insets ->
+                val sysBars = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+                )
+                v.updatePadding(
+                    left = basePaddingLeft + if (!mReaderSidebarOnRight) sysBars.left else 0,
+                    top = basePaddingTop + sysBars.top,
+                    right = basePaddingRight + if (mReaderSidebarOnRight) sysBars.right else 0,
+                    bottom = basePaddingBottom + sysBars.bottom,
+                )
+                insets
+            }
         }
 
         // Screen lightness
@@ -746,6 +763,18 @@ class GalleryActivity :
         mGLLoading = null
         mReaderSidebarPreviewJob?.cancel()
         mReaderSidebarPreviewJob = null
+        mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
+        mSidebarScrollHandler.removeCallbacksAndMessages(null)
+        mSidebarAnimator?.cancel()
+        mSidebarAnimator = null
+        mReaderSidebarToggle?.let { toggle ->
+            toggle.animate().cancel()
+            toggle.removeCallbacks(mHideReaderSidebarToggleRunnable)
+        }
+        mReaderSidebarContainer?.animate()?.cancel()
+        mReaderSidebarContainer = null
+        mReaderSidebarDivider = null
+        mReaderSidebarToggle = null
         mReaderSidebarRecyclerView = null
         mReaderSidebarAdapter = null
         mReaderSidebarPreviewMap.clear()
@@ -772,6 +801,13 @@ class GalleryActivity :
         mGLRootView?.onResume()
         mReaderSidebarRecyclerView?.let { rv ->
             rv.post { mReaderSidebarAdapter?.restoreVisiblePreviews(rv) }
+        }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (mReaderSidebarContainer != null) {
+            updateReaderSidebarVisibility(animated = false)
         }
     }
 
@@ -900,23 +936,6 @@ class GalleryActivity :
         mReaderPreviewCacheLoaded = false
         mReaderSidebarPageStarts = emptyList()
         mergeInitialReaderPreviews()
-        loadReaderPreviewCacheFromDisk()
-    }
-
-    private fun loadReaderPreviewCacheFromDisk() {
-        val galleryInfo = mGalleryInfo ?: return
-        val token = galleryInfo.token ?: return
-        val cached = loadReaderPreviewCache(galleryInfo.gid, token) ?: return
-        cached.forEach { (_, preview) ->
-            if (preview.position >= 0 && preview.position !in mReaderSidebarPreviewMap) {
-                mReaderSidebarPreviewMap[preview.position] = preview
-                updateSpreadPage(preview)
-            }
-        }
-        mReaderPreviewCacheLoaded = true
-        // Persist merged data so `mInitialReaderPreviews` updates are not lost
-        // on subsequent sessions when disk cache exists.
-        saveReaderPreviewCache(galleryInfo.gid, token, mReaderSidebarPreviewMap)
     }
 
     private fun mergeInitialReaderPreviews() {
@@ -943,14 +962,12 @@ class GalleryActivity :
         if (secondIndex >= mSize) {
             return 1
         }
-        if (currentPreview?.hasPreviewAspect() == true) {
-            if (currentPreview.previewWidth > currentPreview.previewHeight) {
-                return 1
-            }
-            val secondPreview = mReaderSidebarPreviewMap[secondIndex]
-            if (secondPreview?.hasPreviewAspect() == true && secondPreview.previewWidth > secondPreview.previewHeight) {
-                return 1
-            }
+        if (currentPreview?.hasPreviewAspect() == true && currentPreview.previewWidth > currentPreview.previewHeight) {
+            return 1
+        }
+        val secondPreview = mReaderSidebarPreviewMap[secondIndex]
+        if (secondPreview?.hasPreviewAspect() == true && secondPreview.previewWidth > secondPreview.previewHeight) {
+            return 1
         }
         return pairSize
     }
@@ -975,7 +992,9 @@ class GalleryActivity :
         if (deferred) {
             mSidebarDataPending = true
             mSidebarPendingPageStarts = pageStarts
-        } else if (!mSidebarDataPending) {
+        } else {
+            mSidebarDataPending = false
+            mSidebarPendingPageStarts = null
             mReaderSidebarPageStarts = pageStarts
         }
         updateReaderSidebarSelection(forceCenter)
@@ -988,7 +1007,9 @@ class GalleryActivity :
             if (deferred) {
                 mSidebarDataPending = true
                 mSidebarPendingPageStarts = pageStarts
-            } else if (!mSidebarDataPending) {
+            } else {
+                mSidebarDataPending = false
+                mSidebarPendingPageStarts = null
                 mReaderSidebarPageStarts = pageStarts
             }
         }
@@ -1053,9 +1074,6 @@ class GalleryActivity :
             return
         }
 
-        // Skip if a smooth scroll is already in progress — prevents two scrollers fighting
-        if (layoutManager.isSmoothScrolling()) return
-
         // Debounce: cancel pending scroll
         mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
 
@@ -1096,7 +1114,28 @@ class GalleryActivity :
         val snapshotSize = mSize
         mReaderSidebarPreviewJob?.cancel()
         mReaderSidebarPreviewJob = lifecycleScope.launchIO {
-            runCatching {
+            // Load disk cache first asynchronously to display immediately without blocking UI thread
+            val cached = loadReaderPreviewCache(galleryInfo.gid, token)
+            if (!cached.isNullOrEmpty()) {
+                withUIContext {
+                    var cachedChanged = false
+                    cached.forEach { (_, preview) ->
+                        if (preview.position >= 0 && preview.position !in mReaderSidebarPreviewMap) {
+                            mReaderSidebarPreviewMap[preview.position] = preview
+                            if (updateSpreadPage(preview)) {
+                                cachedChanged = true
+                            }
+                        }
+                    }
+                    mReaderPreviewCacheLoaded = true
+                    if (cachedChanged) {
+                        applySpreadPages()
+                    }
+                    updateReaderSidebarData()
+                }
+            }
+
+            runSuspendCatching {
                 val first = EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, 0, false))
                 val totalPreviewPages = first.second
                 val previewPerPage = first.first.size()
@@ -1129,27 +1168,33 @@ class GalleryActivity :
                     if (page !in priorityPages) priorityPages.add(page)
                 }
                 // Fetch pages in parallel batches to speed up fresh URL delivery
-                coroutineScope {
+                supervisorScope {
                     priorityPages.chunked(3).forEach { batch ->
                         val deferreds = batch.map { page ->
                             async {
-                                page to EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
+                                page to runSuspendCatching {
+                                    EhEngine.getPreviewSet(EhUrl.getGalleryDetailUrl(galleryInfo.gid, token, page, false))
+                                }.getOrNull()
                             }
                         }
                         deferreds.forEach { deferred ->
                             val (page, result) = deferred.await()
-                            withUIContext {
-                                currentCoroutineContext().ensureActive()
-                                val changed = mergeReaderPreviewSet(result.first)
-                                if (changed) {
-                                    applySpreadPages()
+                            if (result != null) {
+                                withUIContext {
+                                    currentCoroutineContext().ensureActive()
+                                    val changed = mergeReaderPreviewSet(result.first)
+                                    if (changed) {
+                                        applySpreadPages()
+                                    }
+                                    updateReaderSidebarData()
                                 }
-                                updateReaderSidebarData()
                             }
                         }
+                        delay(100L)
                     }
                 }
-                saveReaderPreviewCache(galleryInfo.gid, token, mReaderSidebarPreviewMap)
+                val snapshot = withUIContext { mReaderSidebarPreviewMap.toMap() }
+                saveReaderPreviewCache(galleryInfo.gid, token, snapshot)
             }.onFailure {
                 it.printStackTrace()
             }
@@ -1272,6 +1317,7 @@ class GalleryActivity :
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 val deltaX = event.rawX - mReaderSidebarToggleDownRawX
                 val sidebarContainer = mReaderSidebarContainer
+                val isCancel = event.actionMasked == MotionEvent.ACTION_CANCEL
                 view.parent?.requestDisallowInterceptTouchEvent(false)
                 if (mReaderSidebarToggleDragging) {
                     val threshold = TypedValue.applyDimension(
@@ -1281,7 +1327,7 @@ class GalleryActivity :
                     )
                     if (mReaderSidebarVisible) {
                         val isCloseDirection = if (mReaderSidebarOnRight) deltaX > 0 else deltaX < 0
-                        if (isCloseDirection && kotlin.math.abs(deltaX) > threshold) {
+                        if (!isCancel && isCloseDirection && kotlin.math.abs(deltaX) > threshold) {
                             // Commit close — sidebar follows animation from current position
                             view.translationX = 0f
                             toggleReaderSidebar()
@@ -1289,14 +1335,13 @@ class GalleryActivity :
                             // Bounce sidebar back to visible
                             sidebarContainer?.animate()?.translationX(0f)?.setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION)?.start()
                             // Try side-switch; if no switch, bounce toggle back
-                            view.translationX = 0f
-                            if (!maybeSwitchReaderSidebarSide(deltaX)) {
+                            if (isCancel || !maybeSwitchReaderSidebarSide(deltaX)) {
                                 view.animate().translationX(0f).setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION).start()
                             }
                         }
                     } else {
                         val isOpenDirection = if (mReaderSidebarOnRight) deltaX < 0 else deltaX > 0
-                        if (isOpenDirection && kotlin.math.abs(deltaX) > threshold) {
+                        if (!isCancel && isOpenDirection && kotlin.math.abs(deltaX) > threshold) {
                             // Commit open — sidebar animation picks up from current position
                             view.translationX = 0f
                             toggleReaderSidebar()
@@ -1307,14 +1352,17 @@ class GalleryActivity :
                             } else {
                                 -getReaderSidebarWidth().toFloat()
                             }
+                            val animGen = mSidebarAnimGeneration
                             sidebarContainer?.animate()?.translationX(slideOffset)?.withEndAction {
-                                sidebarContainer.isVisible = false
-                                mReaderSidebarDivider?.isVisible = false
+                                if (mSidebarAnimGeneration == animGen && !mReaderSidebarVisible) {
+                                    sidebarContainer.isVisible = false
+                                    mReaderSidebarDivider?.isVisible = false
+                                }
                             }?.setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION)?.start()
                             view.animate().translationX(0f).setDuration(AnimationConstants.SIDEBAR_SLIDE_DURATION).start()
                         }
                     }
-                } else if (event.actionMasked == MotionEvent.ACTION_UP) {
+                } else if (!isCancel && event.actionMasked == MotionEvent.ACTION_UP) {
                     view.performClick()
                 }
                 mReaderSidebarToggleDragging = false
@@ -1340,11 +1388,15 @@ class GalleryActivity :
         }
         mReaderSidebarOnRight = targetOnRight
         Settings.putLayoutReaderThumbnailSidebarOnRight(targetOnRight)
+        mReaderSidebarContainer?.let { ViewCompat.requestApplyInsets(it) }
         updateReaderSidebarVisibility(showHiddenIndicator = !mReaderSidebarVisible)
         return true
     }
 
-    private fun updateReaderSidebarVisibility(showHiddenIndicator: Boolean = false) {
+    private fun updateReaderSidebarVisibility(
+        animated: Boolean = true,
+        showHiddenIndicator: Boolean = false,
+    ) {
         val contentContainer = mReaderContentContainer ?: return
         val sidebarContainer = mReaderSidebarContainer ?: return
         val toggleView = mReaderSidebarToggle ?: return
@@ -1353,6 +1405,7 @@ class GalleryActivity :
         val sidebarWidth = getReaderSidebarWidth()
 
         // Cancel any running sidebar animation (stale onAnimationEnd is guarded by generation)
+        sidebarContainer.animate().cancel()
         mSidebarAnimator?.cancel()
         mSidebarAnimator = null
         val generation = ++mSidebarAnimGeneration
@@ -1393,11 +1446,42 @@ class GalleryActivity :
         }
         toggleView.bringToFront()
 
-        // Animate sidebar slide + content margin + divider fade
-        // Read current animated state so interrupted animations resume seamlessly
         val targetInset = if (mReaderSidebarVisible) sidebarWidth + dividerWidth else 0
         val targetStartMargin = if (mReaderSidebarOnRight) 0 else targetInset
         val targetEndMargin = if (mReaderSidebarOnRight) targetInset else 0
+
+        if (!animated) {
+            sidebarContainer.isVisible = mReaderSidebarVisible
+            mReaderSidebarDivider?.isVisible = mReaderSidebarVisible
+            sidebarContainer.translationX = 0f
+            mReaderSidebarDivider?.alpha = if (mReaderSidebarVisible) 1f else 0f
+            if (contentLayoutParams.marginStart != targetStartMargin || contentLayoutParams.marginEnd != targetEndMargin) {
+                contentLayoutParams.marginStart = targetStartMargin
+                contentLayoutParams.marginEnd = targetEndMargin
+                contentContainer.layoutParams = contentLayoutParams
+            }
+            if (mReaderSidebarVisible) {
+                contentContainer.post {
+                    mGLRootView?.requestLayout()
+                    mGLRootView?.requestLayoutContentPane()
+                    mGalleryView?.requestLayout()
+                    mReaderSidebarRecyclerView?.let { rv ->
+                        mReaderSidebarAdapter?.restoreVisiblePreviews(rv)
+                    }
+                    updateReaderSidebarSelection(forceCenter = true)
+                }
+            } else {
+                contentContainer.post {
+                    mGLRootView?.requestLayout()
+                    mGLRootView?.requestLayoutContentPane()
+                    mGalleryView?.requestLayout()
+                }
+            }
+            return
+        }
+
+        // Animate sidebar slide + content margin + divider fade
+        // Read current animated state so interrupted animations resume seamlessly
         val startStartMargin = contentLayoutParams.marginStart
         val startEndMargin = contentLayoutParams.marginEnd
         val slideOffset = if (mReaderSidebarOnRight) sidebarWidth.toFloat() else -sidebarWidth.toFloat()
@@ -2065,6 +2149,7 @@ class GalleryActivity :
             updateDoublePageMode()
             updateSlider()
             updateProgress()
+            updateReaderSidebarData(forceCenter = true)
             if (oldReadingFullscreen != readingFullscreen || oldReadTheme != readTheme) {
                 recreate()
             }

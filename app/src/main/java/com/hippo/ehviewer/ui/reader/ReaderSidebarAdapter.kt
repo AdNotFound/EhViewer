@@ -198,6 +198,7 @@ class ReaderSidebarAdapter(
             return true
         } else {
             applyDiff(pageStarts, currentPageIndex)
+            notifyItemRangeChanged(0, pageStarts.size, PREVIEW_PAYLOAD)
             return false
         }
     }
@@ -221,7 +222,7 @@ class ReaderSidebarAdapter(
         val currentAlignedIndex = callbacks.galleryView?.getPagePairStart(currentPageIndex) ?: currentPageIndex
         this.pageStarts = newPageStarts
         this.pageStartToPosition = newPageStarts.withIndex().associate { (position, pageStart) -> pageStart to position }
-        this.currentIndex = pageStartToPosition[currentAlignedIndex] ?: -1
+        this.currentIndex = pageStartToPosition[currentAlignedIndex] ?: pageStarts.indexOfLast { it <= currentAlignedIndex }.takeIf { it >= 0 } ?: -1
         val newCurrentIndex = this.currentIndex
         val diff = DiffUtil.calculateDiff(
             object : DiffUtil.Callback() {
@@ -245,7 +246,7 @@ class ReaderSidebarAdapter(
     }
 
     fun updateCurrentIndex(index: Int) {
-        val newIndex = pageStartToPosition[index] ?: -1
+        val newIndex = pageStartToPosition[index] ?: pageStarts.indexOfLast { it <= index }.takeIf { it >= 0 } ?: -1
         if (currentIndex == newIndex) return
         val oldIndex = currentIndex
         currentIndex = newIndex
@@ -317,6 +318,9 @@ class ReaderSidebarAdapter(
                 loadingView?.visibility = if (isLoading) View.VISIBLE else View.GONE
             }
             if (preview.hasClipAspect()) {
+                preview.load(view)
+            } else if (preview.hasPreviewAspect()) {
+                view.resetClip()
                 preview.load(view)
             } else {
                 view.resetClip()
