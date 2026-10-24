@@ -99,6 +99,8 @@ open class LoadImageView @JvmOverloads constructor(
 
     fun resetClip() {
         mIsAdBlocked = false
+        mKey = null
+        mUrl = null
         mOffsetX = Int.MIN_VALUE
         mOffsetY = Int.MIN_VALUE
         mClipWidth = Int.MIN_VALUE
