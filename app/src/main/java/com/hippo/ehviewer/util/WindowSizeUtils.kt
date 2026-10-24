@@ -21,22 +21,26 @@ import android.content.res.Configuration
 
 object WindowSizeUtils {
     /**
-     * Minimum width in dp for qualifying as a large screen (Medium/Expanded window size classes).
+     * Minimum width in dp for qualifying as a large landscape screen.
      * Compact: < 600dp (standard portrait phones, narrow split screen windows)
-     * Medium: 600dp - 839dp (foldables unfolded, tablets in portrait, medium split windows)
-     * Expanded: >= 840dp (tablets in landscape, desktop windows)
+     * Medium/Expanded: >= 600dp (tablets, foldables, and wide landscape windows)
      */
     const val LARGE_SCREEN_MIN_WIDTH_DP = 600
 
     /**
-     * Determines whether the current window configuration qualifies as a large screen.
-     * Checks if the available window width is at least 600dp.
-     * This covers portrait/landscape tablets, unfolded foldables, and landscape phones,
-     * while gracefully falling back to single-pane mode during narrow multi-window / split-screen usage.
+     * Determines whether the current window configuration qualifies as a large screen
+     * suitable for two-pane / persistent sidebar layout.
+     *
+     * Only landscape orientations with sufficient width (screenWidthDp >= 600dp) qualify.
+     * In portrait mode, devices maintain single-pane layout to avoid cramped content panels.
+     * During split-screen or multi-window mode where available landscape width drops below 600dp,
+     * it gracefully falls back to single-pane mode.
      */
     @JvmStatic
     fun isLargeScreen(configuration: Configuration?): Boolean {
         if (configuration == null) return false
-        return configuration.screenWidthDp >= LARGE_SCREEN_MIN_WIDTH_DP
+        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE ||
+            (configuration.orientation == Configuration.ORIENTATION_UNDEFINED && configuration.screenWidthDp > configuration.screenHeightDp)
+        return isLandscape && configuration.screenWidthDp >= LARGE_SCREEN_MIN_WIDTH_DP
     }
 }
