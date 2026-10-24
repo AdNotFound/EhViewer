@@ -1021,9 +1021,37 @@ class GalleryActivity :
             return
         }
 
-        // RecyclerView hasn't laid out yet — jump directly without animation
+        // RecyclerView hasn't laid out yet — pre-scroll to position and schedule centered alignment after layout
         if (firstVisible == RecyclerView.NO_POSITION) {
             layoutManager.scrollToPosition(targetPosition)
+            recyclerView.post {
+                if (mReaderSidebarVisible && !mSidebarUserScrolling) {
+                    updateReaderSidebarSelection(forceCenter = true)
+                }
+            }
+            return
+        }
+
+        val distance = if (targetPosition < firstVisible) {
+            firstVisible - targetPosition
+        } else {
+            targetPosition - lastVisible
+        }
+
+        // When the distance is large, smooth scrolling through hundreds of items takes seconds
+        // and floods layout/binding. Jump directly to the centered position instead.
+        if (distance > 8) {
+            mSidebarScrollRunnable?.let { mSidebarScrollHandler.removeCallbacks(it) }
+            recyclerView.stopScroll()
+            mSidebarProgrammaticScroll = false
+            val child = layoutManager.getChildAt(0)
+            val itemHeight = child?.height?.takeIf { it > 0 } ?: 0
+            val targetOffset = if (itemHeight > 0) {
+                (recyclerView.height - itemHeight) / 2
+            } else {
+                0
+            }
+            layoutManager.scrollToPositionWithOffset(targetPosition, targetOffset.coerceAtLeast(0))
             return
         }
 
@@ -1089,12 +1117,15 @@ class GalleryActivity :
                     0
                 }
                 val priorityPages = mutableListOf<Int>()
+                if (currentPagePreviewPage > 0) {
+                    priorityPages.add(currentPagePreviewPage)
+                }
                 for (offset in 1 until totalPreviewPages) {
-                    val before = currentPagePreviewPage - offset
                     val after = currentPagePreviewPage + offset
-                    if (before >= 1) priorityPages.add(before)
+                    val before = currentPagePreviewPage - offset
                     if (after < totalPreviewPages) priorityPages.add(after)
-                    if (before < 1 && after >= totalPreviewPages) break
+                    if (before >= 1) priorityPages.add(before)
+                    if (after >= totalPreviewPages && before < 1) break
                 }
                 for (page in 1 until totalPreviewPages) {
                     if (page !in priorityPages) priorityPages.add(page)
