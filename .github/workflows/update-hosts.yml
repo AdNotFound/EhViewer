@@ -1,0 +1,54 @@
+name: Update hosts
+
+# Keeps hosts.json (consumed by the app's RemoteHosts) in sync with public
+# DNS. Scheduled runs only fire on the default branch (test).
+
+on:
+  schedule:
+    - cron: "17 3,15 * * *" # Runs roughly every 12 hours at 03:17 and 15:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: update-hosts
+  cancel-in-progress: false
+
+jobs:
+  update-hosts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: test
+          fetch-depth: 100
+
+      - name: Prune historical no-change runs
+        run: |
+          KEPT_RUNS=$(git log -n 100 --format="%s" | grep -oE "\[run-[0-9]+\]" | tr -d '[]run-' || true)
+          gh run list --workflow=update-hosts.yml --status=completed --limit=100 --json databaseId -q '.[].databaseId' | while read -r id; do
+            [ -z "$id" ] && continue
+            if ! echo "$KEPT_RUNS" | grep -qw "$id"; then
+              echo "Pruning historical no-change run $id"
+              gh api --method DELETE "repos/${{ github.repository }}/actions/runs/$id" >/dev/null 2>&1 || true
+            fi
+          done
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Resolve current IPs
+        run: python3 scripts/update_hosts.py
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- hosts.json; then
+            echo "No host changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add hosts.json
+          git commit -m "chore(hosts): sync IP changes [run-${{ github.run_id }}]"
+          git push origin test
