@@ -1316,6 +1316,10 @@ class GalleryDetailScene :
                 val downloadState = EhDownloadManager.getDownloadState(galleryDetail.gid)
                 when (downloadState) {
                     DownloadInfo.STATE_INVALID -> {
+                        if (mBasicInfoOnly) {
+                            showTip(R.string.error_cannot_find_gallery, LENGTH_SHORT)
+                            return
+                        }
                         // CommonOperations Actions
                         CommonOperations.startDownload(activity, galleryDetail, false)
                     }
@@ -1929,7 +1933,7 @@ class GalleryDetailScene :
     }
 
     private fun tryShowBasicInfoForUnavailableGallery(error: String): Boolean {
-        if (!isCopyrightUnavailable(error)) {
+        if (!isGalleryUnavailable(error)) {
             return false
         }
         val galleryInfo = mGalleryInfo ?: return false
@@ -1945,7 +1949,13 @@ class GalleryDetailScene :
         return true
     }
 
-    private fun isCopyrightUnavailable(error: String?): Boolean = error?.contains("unavailable due to a copyright", ignoreCase = true) == true
+    private fun isGalleryUnavailable(error: String?): Boolean = error?.let {
+        it.contains("unavailable due to a copyright", ignoreCase = true) ||
+            it.contains("has been removed", ignoreCase = true) ||
+            it.contains("is unavailable", ignoreCase = true) ||
+            it.contains("has been expelled", ignoreCase = true) ||
+            it.contains("no longer available", ignoreCase = true)
+    } == true
 
     private fun onRateGallerySuccess(result: RateGalleryParser.Result) {
         if (mGalleryDetail != null) {
