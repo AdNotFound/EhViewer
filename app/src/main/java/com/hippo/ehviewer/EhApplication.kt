@@ -40,6 +40,7 @@ import com.hippo.ehviewer.client.EhDns
 import com.hippo.ehviewer.client.EhEngine
 import com.hippo.ehviewer.client.EhSSLSocketFactory
 import com.hippo.ehviewer.client.EhTagDatabase
+import com.hippo.ehviewer.client.RemoteHosts
 import com.hippo.ehviewer.client.data.GalleryDetail
 import com.hippo.ehviewer.coil.DownloadThumbInterceptor
 import com.hippo.ehviewer.coil.MergeInterceptor
@@ -63,12 +64,18 @@ import okhttp3.OkHttpClient
 import okhttp3.tls.HandshakeCertificates
 import okio.FileSystem
 import okio.Path.Companion.toOkioPath
+import java.io.IOException
+import java.net.ConnectException
 import java.net.Proxy
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.security.KeyStore
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
+
+private fun isConnectionFailure(e: IOException): Boolean = e is ConnectException || e is SocketTimeoutException || e is UnknownHostException
 
 class EhApplication :
     SceneApplication(),
@@ -276,6 +283,20 @@ class EhApplication :
                     proxy(Proxy.NO_PROXY)
                 }
                 addInterceptor(CloudflareInterceptor(application))
+                addInterceptor { chain ->
+                    val request = chain.request()
+                    try {
+                        chain.proceed(request)
+                    } catch (e: IOException) {
+                        val host = request.url.host
+                        if (Settings.builtInHosts && EhDns.isBuiltInHost(host) && isConnectionFailure(e)) {
+                            if (RemoteHosts.onAllHostsFailed(host)) {
+                                return@addInterceptor chain.proceed(request)
+                            }
+                        }
+                        throw e
+                    }
+                }
             }.build()
         }
         val noRedirectOkHttpClient by lazy {
