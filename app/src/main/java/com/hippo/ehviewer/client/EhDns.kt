@@ -74,9 +74,9 @@ object EhDns : Dns {
             Pair("172.66.140.62", false),
         )
         val ehgtHosts = arrayOf(
-            Pair("62.112.8.21", false),
-            Pair("89.39.106.43", false),
-            Pair("109.236.85.28", false),
+            Pair("185.132.132.79", false),
+            Pair("62.112.8.152", false),
+            Pair("185.132.132.76", false),
             Pair("2a00:7c80:0:123::3a85", false),
             Pair("2a00:7c80:0:12d::38a1", false),
             Pair("2a00:7c80:0:13b::37a4", false),
