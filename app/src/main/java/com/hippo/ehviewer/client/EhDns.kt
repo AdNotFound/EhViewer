@@ -175,11 +175,25 @@ object EhDns : Dns {
 
     @Throws(UnknownHostException::class)
     override fun lookup(hostname: String): List<InetAddress> {
+        hosts[hostname]?.let { return it }
+        if (Settings.builtInHosts) {
+            // Remote entries first, built-in entries as fallback, merged so
+            // OkHttp can fail over within the list (and postpones routes
+            // that already failed) instead of a stale table shadowing every
+            // fresher source.
+            val merged = (
+                (RemoteHosts.lookup(hostname) ?: emptyList()) +
+                    (builtInHosts[hostname] ?: emptyList())
+                ).distinct()
+            if (merged.isNotEmpty()) {
+                return merged
+            }
+        }
         val dns = getDoh() ?: Dns.SYSTEM
-
-        return hosts[hostname] ?: builtInHosts[hostname].takeIf { Settings.builtInHosts }
-            ?: dns.lookup(hostname)
+        return dns.lookup(hostname)
     }
 
-    fun isInHosts(hostname: String): Boolean = hosts.contains(hostname) || (builtInHosts.contains(hostname))
+    fun isBuiltInHost(hostname: String): Boolean = builtInHosts.contains(hostname)
+
+    fun isInHosts(hostname: String): Boolean = hosts.contains(hostname) || builtInHosts.contains(hostname) || RemoteHosts.contains(hostname)
 }
