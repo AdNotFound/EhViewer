@@ -92,16 +92,48 @@ object RemoteHosts {
     private fun ensureLoaded() {
         if (loaded) return
         loaded = true
+        var cachedMap: Map<String, List<InetAddress>>? = null
+        var cachedVersion: Int? = null
+        var cachedUpdated: String? = null
+
         if (cacheFile.exists()) {
             val content = runCatching { cacheFile.readText() }.getOrNull()
-            val parsed = content?.let { runCatching { parse(it) }.getOrNull() }
-            if (!parsed.isNullOrEmpty()) {
-                remoteHosts = parsed
+            cachedMap = content?.let { runCatching { parse(it) }.getOrNull() }
+            if (cachedMap != null) {
+                cachedVersion = version
+                cachedUpdated = updated
             } else {
                 runCatching { cacheFile.delete() }
                 version = null
                 updated = null
             }
+        }
+
+        val assetContent = runCatching {
+            EhApplication.application.assets.open("hosts.json").bufferedReader().use { it.readText() }
+        }.getOrNull()
+
+        if (assetContent != null) {
+            val assetMap = runCatching { parse(assetContent) }.getOrNull()
+            val assetVersion = version
+            val assetUpdated = updated
+            val useAsset = cachedMap == null ||
+                (assetVersion ?: 0) > (cachedVersion ?: 0) ||
+                ((assetVersion ?: 0) == (cachedVersion ?: 0) && (assetUpdated ?: "") > (cachedUpdated ?: ""))
+
+            if (useAsset && assetMap != null) {
+                remoteHosts = assetMap
+                version = assetVersion
+                updated = assetUpdated
+                runCatching { cacheFile.delete() }
+                return
+            }
+        }
+
+        if (cachedMap != null) {
+            remoteHosts = cachedMap
+            version = cachedVersion
+            updated = cachedUpdated
         }
     }
 

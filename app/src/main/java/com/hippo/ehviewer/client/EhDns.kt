@@ -29,7 +29,21 @@ import java.net.UnknownHostException
 
 object EhDns : Dns {
     private val hosts = EhApplication.hosts
-    private val builtInHosts: MutableMap<String, List<InetAddress>> = mutableMapOf()
+    private val builtInHostnames = setOf(
+        "e-hentai.org",
+        "forums.e-hentai.org",
+        "repo.e-hentai.org",
+        "api.e-hentai.org",
+        "ehgt.org",
+        "gt0.ehgt.org",
+        "gt1.ehgt.org",
+        "gt2.ehgt.org",
+        "gt3.ehgt.org",
+        "ul.ehgt.org",
+        "exhentai.org",
+        "s.exhentai.org",
+        "raw.githubusercontent.com",
+    )
     private val appCache = Cache(FileSystem.SYSTEM, EhApplication.cacheDir / "dns_cache", 5L * 1024 * 1024)
     private val bootstrapClient = OkHttpClient.Builder().cache(appCache)
         .hostnameVerifier { _, _ -> true }
@@ -67,133 +81,20 @@ object EhDns : Dns {
         }
     }
 
-    init {
-        /* Pair(ip: String!, blockedByCCP: Boolean!) */
-        val ehHosts = arrayOf(
-            Pair("172.66.132.196", false),
-            Pair("172.66.140.62", false),
-        )
-        val ehgtHosts = arrayOf(
-            Pair("185.132.132.79", false),
-            Pair("62.112.8.152", false),
-            Pair("185.132.132.76", false),
-            Pair("2a00:7c80:0:123::3a85", false),
-            Pair("2a00:7c80:0:12d::38a1", false),
-            Pair("2a00:7c80:0:13b::37a4", false),
-        )
-        val exHosts = arrayOf(
-            Pair("178.175.128.251", false),
-            Pair("178.175.128.252", false),
-            Pair("178.175.128.253", false),
-            Pair("178.175.128.254", false),
-            Pair("178.175.129.251", false),
-            Pair("178.175.129.252", false),
-            Pair("178.175.129.253", false),
-            Pair("178.175.129.254", false),
-            Pair("178.175.132.19", false),
-            Pair("178.175.132.20", false),
-            Pair("178.175.132.21", false),
-            Pair("178.175.132.22", false),
-        )
-
-        put(
-            "e-hentai.org",
-            *ehHosts,
-        )
-        put(
-            "forums.e-hentai.org",
-            *ehHosts,
-        )
-        put(
-            "repo.e-hentai.org",
-            *ehHosts,
-        )
-        put(
-            "api.e-hentai.org",
-            *ehHosts,
-            Pair("5.79.104.110", false),
-            Pair("37.48.81.204", false),
-            Pair("37.48.92.161", false),
-            Pair("212.7.200.104", false),
-            Pair("212.7.202.51", false),
-            Pair("95.211.79.44", false),
-            Pair("89.149.222.80", false),
-        )
-        put(
-            "ehgt.org",
-            *ehgtHosts,
-        )
-        put(
-            "gt0.ehgt.org",
-            *ehgtHosts,
-        )
-        put(
-            "gt1.ehgt.org",
-            *ehgtHosts,
-        )
-        put(
-            "gt2.ehgt.org",
-            *ehgtHosts,
-        )
-        put(
-            "gt3.ehgt.org",
-            *ehgtHosts,
-        )
-        put(
-            "ul.ehgt.org",
-            *ehgtHosts,
-        )
-
-        put(
-            "exhentai.org",
-            *exHosts,
-        )
-        put(
-            "s.exhentai.org",
-            Pair("178.175.128.254", false),
-            Pair("178.175.129.254", false),
-            Pair("178.175.132.22", false),
-        )
-
-        put(
-            "raw.githubusercontent.com",
-            Pair("151.101.0.133", false),
-            Pair("151.101.64.133", false),
-            Pair("151.101.128.133", false),
-            Pair("151.101.192.133", false),
-        )
-    }
-
-    private fun put(
-        host: String,
-        vararg ips: Pair<String, Boolean>,
-    ) {
-        builtInHosts[host] = ips.mapNotNull { pair ->
-            Hosts.toInetAddress(host, pair.first).takeUnless { Settings.dF && pair.second }
-        }
-    }
-
     @Throws(UnknownHostException::class)
     override fun lookup(hostname: String): List<InetAddress> {
         hosts[hostname]?.let { return it }
         if (Settings.builtInHosts) {
-            // Remote entries first, built-in entries as fallback, merged so
-            // OkHttp can fail over within the list (and postpones routes
-            // that already failed) instead of a stale table shadowing every
-            // fresher source.
-            val merged = (
-                (RemoteHosts.lookup(hostname) ?: emptyList()) +
-                    (builtInHosts[hostname] ?: emptyList())
-                ).distinct()
-            if (merged.isNotEmpty()) {
-                return merged
+            val ips = RemoteHosts.lookup(hostname)
+            if (!ips.isNullOrEmpty()) {
+                return ips
             }
         }
         val dns = getDoh() ?: Dns.SYSTEM
         return dns.lookup(hostname)
     }
 
-    fun isBuiltInHost(hostname: String): Boolean = builtInHosts.contains(hostname)
+    fun isBuiltInHost(hostname: String): Boolean = builtInHostnames.contains(hostname) || RemoteHosts.contains(hostname)
 
-    fun isInHosts(hostname: String): Boolean = hosts.contains(hostname) || builtInHosts.contains(hostname) || RemoteHosts.contains(hostname)
+    fun isInHosts(hostname: String): Boolean = hosts.contains(hostname) || isBuiltInHost(hostname)
 }

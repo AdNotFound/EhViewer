@@ -123,7 +123,22 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        named("main") {
+            assets.srcDir(layout.buildDirectory.dir("generated/assets/hosts"))
+        }
+    }
+
     namespace = "com.hippo.ehviewer"
+}
+
+val copyHostsJson by tasks.registering(Copy::class) {
+    from(rootProject.file("hosts.json"))
+    into(layout.buildDirectory.dir("generated/assets/hosts"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(copyHostsJson)
 }
 
 dependencies {
