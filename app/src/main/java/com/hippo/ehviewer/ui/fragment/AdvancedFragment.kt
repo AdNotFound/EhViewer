@@ -37,6 +37,7 @@ import com.hippo.ehviewer.R
 import com.hippo.ehviewer.adblock.AdBlockManager
 import com.hippo.ehviewer.client.EhClient
 import com.hippo.ehviewer.client.EhRequest
+import com.hippo.ehviewer.client.RemoteHosts
 import com.hippo.ehviewer.client.data.FavListUrlBuilder
 import com.hippo.ehviewer.client.parser.FavoritesParser
 import com.hippo.ehviewer.ui.scene.BaseScene
@@ -248,6 +249,12 @@ class AdvancedFragment : BasePreferenceFragment() {
         val domainFronting = findPreference<Preference>(AppSettings.KEY_DOMAIN_FRONTING)
         val bypassVpn = findPreference<Preference>(AppSettings.KEY_BYPASS_VPN)
         val clearAdBlock = findPreference<Preference>(KEY_CLEAR_AD_BLOCK)
+        clearAdBlock?.onPreferenceClickListener = this
+        val syncHosts = findPreference<Preference>(KEY_SYNC_HOSTS)
+        syncHosts?.let { pref ->
+            updateSyncHostsSummary(pref)
+            pref.onPreferenceClickListener = this
+        }
         if (isAtLeastS) {
             openByDefault!!.onPreferenceClickListener = this
         } else {
@@ -320,8 +327,36 @@ class AdvancedFragment : BasePreferenceFragment() {
             AdBlockManager.clear()
             showTip(R.string.settings_advanced_clear_ad_block_success, BaseScene.LENGTH_SHORT)
             return true
+        } else if (KEY_SYNC_HOSTS == key) {
+            preference.summary = getString(R.string.settings_advanced_sync_hosts_syncing)
+            preference.isEnabled = false
+            lifecycleScope.launchIO {
+                val success = RemoteHosts.sync(force = true)
+                withUIContext {
+                    preference.isEnabled = true
+                    updateSyncHostsSummary(preference)
+                    showTip(
+                        if (success) {
+                            R.string.settings_advanced_sync_hosts_success
+                        } else {
+                            R.string.settings_advanced_sync_hosts_failed
+                        },
+                        BaseScene.LENGTH_SHORT,
+                    )
+                }
+            }
+            return true
         }
         return false
+    }
+
+    private fun updateSyncHostsSummary(preference: Preference) {
+        val (version, updated) = RemoteHosts.getMetadata()
+        if (version != null && updated != null) {
+            preference.summary = getString(R.string.settings_advanced_sync_hosts_summary, version, updated)
+        } else {
+            preference.summary = getString(R.string.settings_advanced_sync_hosts_not_synced)
+        }
     }
 
     private fun backupFavorite() {
@@ -423,5 +458,6 @@ class AdvancedFragment : BasePreferenceFragment() {
         private const val KEY_OPEN_BY_DEFAULT = "open_by_default"
         private const val KEY_BACKUP_FAVORITE = "backup_favorite"
         private const val KEY_CLEAR_AD_BLOCK = "clear_ad_block"
+        private const val KEY_SYNC_HOSTS = "sync_hosts"
     }
 }

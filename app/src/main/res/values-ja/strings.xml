@@ -527,6 +527,12 @@
     <string name="settings_advanced_proxy">プロキシ</string>
     <string name="settings_advanced_built_in_hosts_title">既定hosts.txt</string>
     <string name="settings_advanced_built_in_hosts_summary">ホストをアプリ既定のIPにマッピング\nカスタムhosts.txtに上書きされます。</string>
+    <string name="settings_advanced_sync_hosts_title">今すぐHostsを同期</string>
+    <string name="settings_advanced_sync_hosts_summary">バージョン: %1$d、更新日時: %2$s</string>
+    <string name="settings_advanced_sync_hosts_not_synced">未キャッシュ（タップして最新Hostsを同期）</string>
+    <string name="settings_advanced_sync_hosts_syncing">Hostsを同期中…</string>
+    <string name="settings_advanced_sync_hosts_success">Hostsの同期に成功しました</string>
+    <string name="settings_advanced_sync_hosts_failed">Hostsの同期に失敗しました</string>
     <string name="settings_advanced_custom_hosts_title">カスタムhosts.txt</string>
     <string name="settings_advanced_custom_hosts_summary">ホスト名をIPにマッピング\n既定のhosts.txtを上書きできます。</string>
     <string name="settings_advanced_dns_over_https_title">DNS over HTTPS (DoH)</string>
