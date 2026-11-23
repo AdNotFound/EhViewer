@@ -536,6 +536,12 @@
     <string name="settings_advanced_default">預設</string>
     <string name="settings_advanced_built_in_hosts_title">內建 hosts.txt</string>
     <string name="settings_advanced_built_in_hosts_summary">應用提供的主機到 IP 的對映\n可被自定義 hosts.txt 覆蓋</string>
+    <string name="settings_advanced_sync_hosts_title">立即同步 Hosts</string>
+    <string name="settings_advanced_sync_hosts_summary">版本: %1$d，更新時間: %2$s</string>
+    <string name="settings_advanced_sync_hosts_not_synced">未快取（點選從遠端同步最新 Hosts）</string>
+    <string name="settings_advanced_sync_hosts_syncing">正在同步 Hosts…</string>
+    <string name="settings_advanced_sync_hosts_success">Hosts 同步成功</string>
+    <string name="settings_advanced_sync_hosts_failed">Hosts 同步失敗</string>
     <string name="settings_advanced_custom_hosts_title">自定義 hosts.txt</string>
     <string name="settings_advanced_custom_hosts_summary">將主機名稱對映到相應的 IP 位址\n可覆蓋內建 hosts.txt</string>
     <string name="settings_advanced_dns_over_https_title">DNS over HTTPS (DoH)</string>

@@ -73,6 +73,11 @@
         app:iconSpaceReserved="false" />
 
     <Preference
+        android:key="sync_hosts"
+        android:title="@string/settings_advanced_sync_hosts_title"
+        app:iconSpaceReserved="false" />
+
+    <Preference
         android:key="hosts"
         android:summary="@string/settings_advanced_custom_hosts_summary"
         android:title="@string/settings_advanced_custom_hosts_title"

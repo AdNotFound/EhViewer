@@ -62,6 +62,14 @@ object RemoteHosts {
     @Volatile
     private var remoteHosts: Map<String, List<InetAddress>> = emptyMap()
 
+    @Volatile
+    var version: Int? = null
+        private set
+
+    @Volatile
+    var updated: String? = null
+        private set
+
     private val cacheFile: File
         get() = File(EhApplication.application.cacheDir, CACHE_FILE_NAME)
 
@@ -75,16 +83,24 @@ object RemoteHosts {
         return remoteHosts.containsKey(hostname)
     }
 
+    fun getMetadata(): Pair<Int?, String?> {
+        ensureLoaded()
+        return Pair(version, updated)
+    }
+
     @Synchronized
     private fun ensureLoaded() {
         if (loaded) return
         loaded = true
         if (cacheFile.exists()) {
-            val parsed = runCatching { parse(cacheFile.readText()) }.getOrNull()
+            val content = runCatching { cacheFile.readText() }.getOrNull()
+            val parsed = content?.let { runCatching { parse(it) }.getOrNull() }
             if (!parsed.isNullOrEmpty()) {
                 remoteHosts = parsed
             } else {
                 runCatching { cacheFile.delete() }
+                version = null
+                updated = null
             }
         }
     }
@@ -93,11 +109,19 @@ object RemoteHosts {
      * Called when all candidate IP addresses for [hostname] fail to connect.
      * Triggers a remote hosts refresh and returns true if new hosts were fetched.
      */
-    fun onAllHostsFailed(hostname: String): Boolean {
-        if (!Settings.builtInHosts) return false
+    fun onAllHostsFailed(hostname: String): Boolean = sync(force = false)
+
+    /**
+     * Synchronizes remote hosts table from remote repositories.
+     * When [force] is true, ignores failure interval check and builtInHosts setting.
+     */
+    fun sync(force: Boolean = false): Boolean {
         val now = System.currentTimeMillis()
-        if (now - lastFailureSyncTime < MIN_UPDATE_INTERVAL_MS) {
-            return false
+        if (!force) {
+            if (!Settings.builtInHosts) return false
+            if (now - lastFailureSyncTime < MIN_UPDATE_INTERVAL_MS) {
+                return false
+            }
         }
         if (!isNetworkConnected()) {
             return false
@@ -155,7 +179,10 @@ object RemoteHosts {
     }
 
     private fun parse(json: String): Map<String, List<InetAddress>> {
-        val hostsJson = JSONObject(json).getJSONObject("hosts")
+        val rootObj = JSONObject(json)
+        val hostsJson = rootObj.getJSONObject("hosts")
+        val parsedVersion = rootObj.optInt("version", 0).takeIf { it > 0 }
+        val parsedUpdated = rootObj.optString("updated").takeIf { it.isNotEmpty() }
         val result = mutableMapOf<String, List<InetAddress>>()
         val keys = hostsJson.keys()
         while (keys.hasNext()) {
@@ -170,6 +197,8 @@ object RemoteHosts {
                 result[host] = addresses
             }
         }
+        version = parsedVersion
+        updated = parsedUpdated
         return result
     }
 

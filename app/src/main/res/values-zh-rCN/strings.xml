@@ -561,6 +561,12 @@
     <string name="settings_advanced_proxy">代理</string>
     <string name="settings_advanced_built_in_hosts_title">内置 hosts.txt</string>
     <string name="settings_advanced_built_in_hosts_summary">应用提供的主机到 IP 的映射\n可被自定义 hosts.txt 覆盖</string>
+    <string name="settings_advanced_sync_hosts_title">立即同步 Hosts</string>
+    <string name="settings_advanced_sync_hosts_summary">版本: %1$d，更新时间: %2$s</string>
+    <string name="settings_advanced_sync_hosts_not_synced">未缓存（点击从远端同步最新 Hosts）</string>
+    <string name="settings_advanced_sync_hosts_syncing">正在同步 Hosts…</string>
+    <string name="settings_advanced_sync_hosts_success">Hosts 同步成功</string>
+    <string name="settings_advanced_sync_hosts_failed">Hosts 同步失败</string>
     <string name="settings_advanced_custom_hosts_title">自定义 hosts.txt</string>
     <string name="settings_advanced_custom_hosts_summary">将主机名称映射到相应的 IP 地址\n可覆盖内置 hosts.txt</string>
     <string name="settings_advanced_dns_over_https_title">DNS over HTTPS (DoH)</string>
