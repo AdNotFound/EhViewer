@@ -114,12 +114,27 @@
             android:layout_height="match_parent" />
     </FrameLayout>
 
-    <com.hippo.ehviewer.widget.SidebarResizeHandle
+    <FrameLayout
         android:id="@+id/reader_sidebar_divider"
         android:layout_width="24dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
-        android:visibility="gone" />
+        android:visibility="gone">
+
+        <com.hippo.ehviewer.widget.SidebarResizeHandle
+            android:id="@+id/reader_sidebar_resize_handle"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <com.hippo.ehviewer.widget.ReaderSidebarScrollIndicator
+            android:id="@+id/reader_sidebar_scroll_indicator"
+            android:layout_width="3dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="start"
+            android:layout_marginHorizontal="4dp"
+            android:layout_marginVertical="8dp"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
 
 
 
@@ -145,8 +160,8 @@
         android:background="?android:attr/colorBackground"
         android:elevation="2dp"
         android:orientation="vertical"
-        android:paddingHorizontal="8dp"
-        android:paddingVertical="12dp"
+        android:paddingHorizontal="2dp"
+        android:paddingVertical="8dp"
         android:visibility="gone">
 
         <androidx.recyclerview.widget.RecyclerView
@@ -155,6 +170,6 @@
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:paddingBottom="12dp"
-            android:scrollbars="vertical" />
+            android:scrollbars="none" />
     </LinearLayout>
 </FrameLayout>

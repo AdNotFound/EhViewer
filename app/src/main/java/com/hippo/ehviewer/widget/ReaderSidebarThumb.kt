@@ -7,6 +7,7 @@ import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewOutlineProvider
+import com.hippo.ehviewer.util.ReaderSidebarLayoutUtils
 
 class ReaderSidebarThumb @JvmOverloads constructor(
     context: Context,
@@ -82,9 +83,9 @@ class ReaderSidebarThumb @JvmOverloads constructor(
     }
 
     companion object {
-        private const val DEFAULT_ASPECT = 1f
-        private const val MIN_ASPECT = 0.7f
-        private const val MAX_ASPECT = 1.6f
+        private const val DEFAULT_ASPECT = ReaderSidebarLayoutUtils.DEFAULT_ASPECT
+        private const val MIN_ASPECT = 0.5f
+        private const val MAX_ASPECT = 2.0f
         private const val CORNER_RADIUS_DP = 4f
         private const val FADE_IN_DURATION = 200L
     }

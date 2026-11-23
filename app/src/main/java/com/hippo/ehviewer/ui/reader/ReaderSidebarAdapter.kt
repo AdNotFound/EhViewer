@@ -23,7 +23,6 @@ import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.LinearLayout
 import android.widget.ProgressBar
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
@@ -60,16 +59,6 @@ class ReaderSidebarAdapter(
 
     override fun getItemId(position: Int): Long = pageStarts[position].toLong()
 
-    private fun updateSlotLayout(view: View, width: Int, weight: Float) {
-        val params = view.layoutParams as? LinearLayout.LayoutParams ?: return
-        if (params.width == width && params.weight == weight) {
-            return
-        }
-        params.width = width
-        params.weight = weight
-        view.layoutParams = params
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ReaderSidebarHolder = ReaderSidebarHolder(
         inflater.inflate(R.layout.item_gallery_sidebar_preview, parent, false),
     )
@@ -92,6 +81,7 @@ class ReaderSidebarAdapter(
             val hasPreview = payloads.contains(PREVIEW_PAYLOAD)
             val hasIndex = payloads.contains(INDEX_PAYLOAD)
             if (hasPreview) {
+                holder.imageRow.isDoublePageMode = callbacks.isDoublePageMode
                 val pageStart = pageStarts[position]
                 val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
                 val pageEnd = minOf(pageCount, pageStart + pairSize)
@@ -117,6 +107,7 @@ class ReaderSidebarAdapter(
 
     @SuppressLint("SetTextI18n")
     private fun bindSidebarFull(holder: ReaderSidebarHolder, position: Int) {
+        holder.imageRow.isDoublePageMode = callbacks.isDoublePageMode
         val pageStart = pageStarts[position]
         val pairSize = (callbacks.galleryView?.getPagePairSize(pageStart) ?: 1).coerceAtLeast(1)
         val pageEnd = minOf(pageCount, pageStart + pairSize)
@@ -130,8 +121,6 @@ class ReaderSidebarAdapter(
         if (pageEnd - pageStart > 1) {
             holder.imageLeadingSpace.visibility = View.GONE
             holder.imageTrailingSpace.visibility = View.GONE
-            updateSlotLayout(holder.imageSlot, 0, 1f)
-            updateSlotLayout(holder.imageSecondarySlot, 0, 1f)
             holder.imageSecondarySlot.visibility = View.VISIBLE
             holder.imageGap.visibility = View.VISIBLE
             if (callbacks.isRTL) {
@@ -146,22 +135,10 @@ class ReaderSidebarAdapter(
             holder.imageSecondary.setImageDrawable(null)
             holder.imageSecondary.setBackgroundResource(0)
             holder.imageSecondaryLoading.visibility = View.GONE
-            if (callbacks.isDoublePageMode) {
-                holder.imageLeadingSpace.visibility = View.VISIBLE
-                holder.imageTrailingSpace.visibility = View.VISIBLE
-                updateSlotLayout(holder.imageLeadingSpace, 0, 1f)
-                updateSlotLayout(holder.imageSlot, 0, 2f)
-                updateSlotLayout(holder.imageTrailingSpace, 0, 1f)
-                holder.imageSecondarySlot.visibility = View.GONE
-                holder.imageGap.visibility = View.GONE
-            } else {
-                holder.imageLeadingSpace.visibility = View.GONE
-                holder.imageTrailingSpace.visibility = View.GONE
-                updateSlotLayout(holder.imageSlot, 0, 1f)
-                updateSlotLayout(holder.imageSecondarySlot, 0, 1f)
-                holder.imageSecondarySlot.visibility = View.GONE
-                holder.imageGap.visibility = View.GONE
-            }
+            holder.imageLeadingSpace.visibility = View.VISIBLE
+            holder.imageTrailingSpace.visibility = View.VISIBLE
+            holder.imageSecondarySlot.visibility = View.GONE
+            holder.imageGap.visibility = View.GONE
         }
         holder.text.text = if (pageEnd - pageStart > 1) {
             "${pageStart + 1}-$pageEnd"

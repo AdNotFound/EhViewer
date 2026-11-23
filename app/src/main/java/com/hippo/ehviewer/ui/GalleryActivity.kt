@@ -105,6 +105,7 @@ import com.hippo.ehviewer.ui.reader.ReaderSidebarAdapter
 import com.hippo.ehviewer.util.SidebarWidthUtils
 import com.hippo.ehviewer.widget.GalleryGuideView
 import com.hippo.ehviewer.widget.GalleryHeader
+import com.hippo.ehviewer.widget.ReaderSidebarScrollIndicator
 import com.hippo.ehviewer.widget.ReversibleSeekBar
 import com.hippo.ehviewer.widget.SidebarResizeHandle
 import com.hippo.glgallery.GalleryProvider
@@ -519,6 +520,7 @@ class GalleryActivity :
             )
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
             mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
+            findViewById<ReaderSidebarScrollIndicator>(R.id.reader_sidebar_scroll_indicator)?.bind(mReaderSidebarRecyclerView!!)
             mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
             mReaderSidebarOnRight = Settings.layoutReaderThumbnailSidebarOnRight
             mReaderSidebarToggleTouchSlop = ViewConfiguration.get(this).scaledTouchSlop
@@ -585,7 +587,7 @@ class GalleryActivity :
                     }
                 }
             })
-            (mReaderSidebarDivider as? SidebarResizeHandle)?.bind(
+            findViewById<SidebarResizeHandle>(R.id.reader_sidebar_resize_handle)?.bind(
                 title = R.string.settings_layout_reader_thumbnail_sidebar_width,
                 range = SidebarWidthUtils.READER_MIN_PERCENT..SidebarWidthUtils.READER_MAX_PERCENT,
                 percent = { Settings.layoutReaderThumbnailSidebarWidth + SidebarWidthUtils.READER_MIN_PERCENT },
@@ -1494,6 +1496,12 @@ class GalleryActivity :
             gravity = if (mReaderSidebarOnRight) Gravity.END else Gravity.START
             marginEnd = if (mReaderSidebarOnRight) sidebarWidth else 0
             marginStart = if (mReaderSidebarOnRight) 0 else sidebarWidth
+        }
+
+        mReaderSidebarDivider?.findViewById<ReaderSidebarScrollIndicator>(R.id.reader_sidebar_scroll_indicator)?.let { indicator ->
+            indicator.layoutParams = (indicator.layoutParams as FrameLayout.LayoutParams).apply {
+                gravity = if (mReaderSidebarOnRight) Gravity.END else Gravity.START
+            }
         }
 
         // Toggle positioning (instant)

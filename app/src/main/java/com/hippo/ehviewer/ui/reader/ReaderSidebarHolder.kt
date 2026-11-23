@@ -22,9 +22,11 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.hippo.ehviewer.R
+import com.hippo.ehviewer.widget.ReaderSidebarPreviewLayout
 import com.hippo.ehviewer.widget.ReaderSidebarThumb
 
 class ReaderSidebarHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    val imageRow: ReaderSidebarPreviewLayout = itemView.findViewById(R.id.image_row)
     val imageLeadingSpace: View = itemView.findViewById(R.id.image_leading_space)
     val imageSlot: View = itemView.findViewById(R.id.image_slot)
     val image: ReaderSidebarThumb = itemView.findViewById(R.id.image)

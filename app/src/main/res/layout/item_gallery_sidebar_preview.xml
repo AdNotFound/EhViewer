@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="8dp">
+    android:layout_marginBottom="4dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -11,10 +11,10 @@
         android:background="?attr/selectableItemBackground"
         android:duplicateParentState="true"
         android:orientation="vertical"
-        android:padding="4dp"
-        android:paddingStart="8dp">
+        android:padding="2dp"
+        android:paddingHorizontal="4dp">
 
-        <LinearLayout
+        <com.hippo.ehviewer.widget.ReaderSidebarPreviewLayout
             android:id="@+id/image_row"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -25,24 +25,22 @@
                 android:id="@+id/image_leading_space"
                 android:layout_width="0dp"
                 android:layout_height="1dp"
-                android:layout_weight="1"
                 android:visibility="gone" />
 
             <FrameLayout
                 android:id="@+id/image_slot"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_height="match_parent"
                 android:background="@drawable/bg_reader_sidebar_placeholder">
 
                 <com.hippo.ehviewer.widget.ReaderSidebarThumb
                     android:id="@+id/image"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:contentDescription="@string/reader_sidebar_thumb"
                     app:alwaysCutAndScale="true"
-                    app:aspect="1.0"
-                    app:maxAspect="0.8"
+                    app:aspect="0.7"
+                    app:maxAspect="2.0"
                     app:minAspect="0.5"
                     app:retryType="longClick" />
 
@@ -65,18 +63,17 @@
             <FrameLayout
                 android:id="@+id/image_secondary_slot"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
+                android:layout_height="match_parent"
                 android:background="@drawable/bg_reader_sidebar_placeholder">
 
                 <com.hippo.ehviewer.widget.ReaderSidebarThumb
                     android:id="@+id/image_secondary"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="match_parent"
                     android:contentDescription="@string/reader_sidebar_thumb"
                     app:alwaysCutAndScale="true"
-                    app:aspect="1.0"
-                    app:maxAspect="0.8"
+                    app:aspect="0.7"
+                    app:maxAspect="2.0"
                     app:minAspect="0.5"
                     app:retryType="longClick" />
 
@@ -95,26 +92,27 @@
                 android:id="@+id/image_trailing_space"
                 android:layout_width="0dp"
                 android:layout_height="1dp"
-                android:layout_weight="1"
                 android:visibility="gone" />
 
-        </LinearLayout>
+        </com.hippo.ehviewer.widget.ReaderSidebarPreviewLayout>
 
         <TextView
             android:id="@+id/text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:paddingTop="4dp"
+            android:paddingTop="2dp"
             android:textAppearance="@style/TextAppearance.AppCompat.Caption"
             android:textColor="?attr/textColorThemeAccent" />
     </LinearLayout>
 
     <View
         android:id="@+id/indicator"
-        android:layout_width="4dp"
+        android:layout_width="3dp"
         android:layout_height="match_parent"
         android:layout_gravity="start|center_vertical"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="2dp"
         android:background="@drawable/bg_reader_sidebar_indicator"
         android:importantForAccessibility="no"
         android:visibility="gone" />
