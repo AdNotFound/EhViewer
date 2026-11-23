@@ -12,20 +12,6 @@
     <SwitchPreferenceCompat
         android:defaultValue="false"
         android:dependency="layout_enabled"
-        android:key="layout_main_persistent_nav"
-        android:summary="@string/settings_layout_main_persistent_nav_summary"
-        android:title="@string/settings_layout_main_persistent_nav"
-        app:iconSpaceReserved="false" />
-
-    <com.hippo.ehviewer.preference.SidebarWidthSeekBarPreference
-        android:defaultValue="3"
-        android:key="layout_main_persistent_nav_width"
-        android:title="@string/settings_layout_main_persistent_nav_width"
-        app:iconSpaceReserved="false" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        android:dependency="layout_enabled"
         android:key="layout_settings_two_pane"
         android:summary="@string/settings_layout_settings_two_pane_summary"
         android:title="@string/settings_layout_settings_two_pane"

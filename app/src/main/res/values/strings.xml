@@ -476,9 +476,6 @@
     <string name="settings_layout">Layout</string>
     <string name="settings_layout_enabled">Large-screen layout optimizations</string>
     <string name="settings_layout_enabled_summary">Applies a layout better suited for wider screens. Turn it off to keep the default layout.</string>
-    <string name="settings_layout_main_persistent_nav">Persistent main sidebar</string>
-    <string name="settings_layout_main_persistent_nav_width">Main sidebar width</string>
-    <string name="settings_layout_main_persistent_nav_summary">Keeps the main navigation visible instead of hiding it in a drawer.</string>
     <string name="settings_layout_settings_two_pane">Two-pane settings</string>
     <string name="settings_layout_detail_two_pane">Two-pane gallery details</string>
     <string name="settings_layout_settings_two_pane_summary">Shows the settings list and detail view side by side on wider screens.</string>

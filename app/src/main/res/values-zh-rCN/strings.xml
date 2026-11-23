@@ -448,9 +448,6 @@
     <string name="settings_layout">布局</string>
     <string name="settings_layout_enabled">大屏布局优化</string>
     <string name="settings_layout_enabled_summary">为宽屏设备提供更合适的界面布局，关闭后使用默认布局。</string>
-    <string name="settings_layout_main_persistent_nav">主界面侧栏常驻</string>
-    <string name="settings_layout_main_persistent_nav_width">主界面侧栏宽度</string>
-    <string name="settings_layout_main_persistent_nav_summary">在主界面固定显示导航侧栏，不再收纳到抽屉中。</string>
     <string name="settings_layout_settings_two_pane">设置页双栏显示</string>
     <string name="settings_layout_detail_two_pane">详情页双栏显示</string>
     <string name="settings_layout_settings_two_pane_summary">在较宽屏幕上同时显示设置列表和详情内容。</string>

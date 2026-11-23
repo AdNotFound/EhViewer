@@ -81,7 +81,6 @@ import com.hippo.ehviewer.ui.scene.SelectSiteScene
 import com.hippo.ehviewer.ui.scene.SignInScene
 import com.hippo.ehviewer.ui.scene.SolidScene
 import com.hippo.ehviewer.ui.scene.WebViewSignInScene
-import com.hippo.ehviewer.util.WindowSizeUtils
 import com.hippo.ehviewer.widget.EhStageLayout
 import com.hippo.scene.Announcer
 import com.hippo.scene.SceneFragment
@@ -147,10 +146,6 @@ class MainActivity :
     private var mAvatar: LoadImageView? = null
     private var mDisplayName: TextView? = null
     private var mNavCheckedItem = 0
-    private var mUsePersistentNavigationLayout = false
-    private var mMainNavContainer: View? = null
-    private var mPersistentNavigationVisible = true
-    private var mPersistentNavigationWidth = 0
 
     override var containerViewId: Int = R.id.fragment_container
 
@@ -267,19 +262,12 @@ class MainActivity :
         if (Settings.dF && Settings.bypassVpn) {
             bypassVpn()
         }
-        setContentView(if (Settings.layoutEnabled && Settings.layoutMainPersistentNav && WindowSizeUtils.isLargeScreen(resources.configuration)) R.layout.activity_main_large else R.layout.activity_main)
+        setContentView(R.layout.activity_main)
         mSnackBar = ViewUtils.`$$`(this, R.id.snackbar) as CoordinatorLayout
         mStageLayout = ViewUtils.`$$`(this, R.id.fragment_container) as EhStageLayout
         mDrawerLayout = ViewUtils.`$$`(this, R.id.draw_view) as DrawerLayout
         mNavView = ViewUtils.`$$`(this, R.id.nav_view) as NavigationView
         mRightDrawer = ViewUtils.`$$`(this, R.id.right_drawer) as DrawerView
-        mMainNavContainer = findViewById(R.id.main_nav_container)
-        mUsePersistentNavigationLayout = mMainNavContainer != null
-        if (mUsePersistentNavigationLayout) {
-            mPersistentNavigationWidth = getPersistentNavigationWidth()
-            mPersistentNavigationVisible = Settings.layoutMainPersistentNavVisible
-            updatePersistentNavigationLayout()
-        }
         if (mDrawerLayout != null) {
             mDrawerLayout!!.setStatusBarBackgroundColor(0)
         }
@@ -614,109 +602,19 @@ class MainActivity :
         mStageLayout?.removeAboveSnackView(view)
     }
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        val shouldBeLarge = Settings.layoutEnabled && Settings.layoutMainPersistentNav && WindowSizeUtils.isLargeScreen(newConfig)
-        if (shouldBeLarge != mUsePersistentNavigationLayout) {
-            recreate()
-        } else if (mUsePersistentNavigationLayout) {
-            updatePersistentNavigationLayout()
-        }
-    }
-
-    private fun getPersistentNavigationWidth(): Int {
-        val ratio = PERSISTENT_NAV_WIDTH_RATIOS[Settings.layoutMainPersistentNavWidth]
-        val baseWidth = getPersistentNavigationAvailableWidth()
-        val minNavWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 220f, resources.displayMetrics).toInt()
-        val maxNavWidthPx = (baseWidth * 0.45f).toInt()
-        val calculatedNavWidth = (baseWidth * ratio).toInt()
-        val navWidthPx = calculatedNavWidth.coerceIn(minNavWidthPx.coerceAtMost(maxNavWidthPx), maxNavWidthPx.coerceAtLeast(0))
-        val dividerWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1f, resources.displayMetrics).toInt()
-        return navWidthPx + dividerWidthPx
-    }
-
-    private fun getPersistentNavigationAvailableWidth(): Int {
-        val parentWidth = (mDrawerLayout?.parent as? View)?.width ?: 0
-        if (parentWidth > 0) {
-            return parentWidth
-        }
-        val drawerWidth = mDrawerLayout?.width ?: 0
-        if (drawerWidth > 0) {
-            return drawerWidth
-        }
-        val windowWidth = window.decorView.width
-        if (windowWidth > 0) {
-            return windowWidth
-        }
-        val configWidthDp = resources.configuration.screenWidthDp
-        if (configWidthDp > 0) {
-            return TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                configWidthDp.toFloat(),
-                resources.displayMetrics,
-            ).toInt()
-        }
-        return resources.displayMetrics.widthPixels
-    }
-
-    private fun setPersistentNavigationVisible(visible: Boolean) {
-        if (!mUsePersistentNavigationLayout) {
-            return
-        }
-        if (mPersistentNavigationVisible == visible) {
-            return
-        }
-        mPersistentNavigationVisible = visible
-        Settings.putLayoutMainPersistentNavVisible(visible)
-        updatePersistentNavigationLayout()
-    }
-
-    private fun updatePersistentNavigationLayout() {
-        if (!mUsePersistentNavigationLayout) {
-            return
-        }
-        mPersistentNavigationWidth = getPersistentNavigationWidth()
-        mMainNavContainer?.layoutParams = mMainNavContainer?.layoutParams?.apply {
-            width = mPersistentNavigationWidth
-        }
-        mMainNavContainer?.isVisible = mPersistentNavigationVisible
-        val drawerLayout = mDrawerLayout ?: return
-        val layoutParams = drawerLayout.layoutParams as? FrameLayout.LayoutParams ?: return
-        val marginStart = if (mPersistentNavigationVisible) mPersistentNavigationWidth else 0
-        if (layoutParams.marginStart != marginStart) {
-            layoutParams.marginStart = marginStart
-            drawerLayout.layoutParams = layoutParams
-        }
-    }
-
     fun setDrawerLockMode(lockMode: Int, edgeGravity: Int) {
-        if (mUsePersistentNavigationLayout && edgeGravity == GravityCompat.START) {
-            return
-        }
         mDrawerLayout?.setDrawerLockMode(lockMode, edgeGravity)
     }
 
     fun openDrawer(drawerGravity: Int) {
-        if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
-            setPersistentNavigationVisible(true)
-            return
-        }
         mDrawerLayout?.openDrawer(drawerGravity)
     }
 
     fun closeDrawer(drawerGravity: Int) {
-        if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
-            setPersistentNavigationVisible(false)
-            return
-        }
         mDrawerLayout?.closeDrawer(drawerGravity)
     }
 
     fun toggleDrawer(drawerGravity: Int) {
-        if (mUsePersistentNavigationLayout && drawerGravity == GravityCompat.START) {
-            setPersistentNavigationVisible(!mPersistentNavigationVisible)
-            return
-        }
         mDrawerLayout?.run {
             if (isDrawerOpen(drawerGravity)) {
                 closeDrawer(drawerGravity)
@@ -742,12 +640,8 @@ class MainActivity :
     }
 
     private val isDrawerOpen
-        get() = if (mUsePersistentNavigationLayout) {
+        get() = mDrawerLayout?.isDrawerOpen(GravityCompat.START) == true ||
             mDrawerLayout?.isDrawerOpen(GravityCompat.END) == true
-        } else {
-            mDrawerLayout?.isDrawerOpen(GravityCompat.START) == true ||
-                mDrawerLayout?.isDrawerOpen(GravityCompat.END) == true
-        }
 
     /**
      * If activity is running, show snack bar, otherwise show toast
@@ -845,7 +739,6 @@ class MainActivity :
     }
 
     companion object {
-        private val PERSISTENT_NAV_WIDTH_RATIOS = floatArrayOf(0.10f, 0.14f, 0.18f, 0.22f, 0.27f, 0.31f, 0.35f)
         private const val KEY_NAV_CHECKED_ITEM = "nav_checked_item"
 
         init {

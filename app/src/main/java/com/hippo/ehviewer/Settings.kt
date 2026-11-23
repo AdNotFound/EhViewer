@@ -147,12 +147,6 @@ object Settings {
      ********************/
     private const val KEY_LAYOUT_ENABLED = "layout_enabled"
     private const val DEFAULT_LAYOUT_ENABLED = false
-    private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV = "layout_main_persistent_nav"
-    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV = false
-    private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE = "layout_main_persistent_nav_visible"
-    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE = true
-    private const val KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = "layout_main_persistent_nav_width"
-    private const val DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH = 3
     private const val KEY_LAYOUT_SETTINGS_TWO_PANE = "layout_settings_two_pane"
     private const val DEFAULT_LAYOUT_SETTINGS_TWO_PANE = false
     private const val KEY_LAYOUT_DETAIL_TWO_PANE = "layout_detail_two_pane"
@@ -357,15 +351,6 @@ object Settings {
         if (!sSettingsPre.contains(KEY_LAYOUT_ENABLED)) {
             putLayoutEnabled(enableLargeScreenLayout)
         }
-        if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV)) {
-            putLayoutMainPersistentNav(enableLargeScreenLayout)
-        }
-        if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE)) {
-            putLayoutMainPersistentNavVisible(DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE)
-        }
-        if (!sSettingsPre.contains(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)) {
-            putLayoutMainPersistentNavWidth(DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
-        }
         if (!sSettingsPre.contains(KEY_LAYOUT_SETTINGS_TWO_PANE)) {
             putLayoutSettingsTwoPane(enableLargeScreenLayout)
         }
@@ -393,7 +378,6 @@ object Settings {
         if (sSettingsPre.getBoolean(KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED, false)) {
             return
         }
-        migrateLegacyLayoutSidebarWidth(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
         migrateLegacyLayoutSidebarWidth(KEY_LAYOUT_DETAIL_LEFT_WIDTH)
         migrateLegacyLayoutSidebarWidth(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH)
         putBoolean(KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED, true)
@@ -403,7 +387,6 @@ object Settings {
         if (sSettingsPre.getBoolean(KEY_LAYOUT_SIDEBAR_WIDTH_SEVEN_LEVELS_MIGRATED, false)) {
             return
         }
-        migrateLayoutSidebarWidthToSevenLevels(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH)
         migrateLayoutSidebarWidthToSevenLevels(KEY_LAYOUT_DETAIL_LEFT_WIDTH)
         migrateLayoutSidebarWidthToSevenLevels(KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH)
         putBoolean(KEY_LAYOUT_SIDEBAR_WIDTH_SEVEN_LEVELS_MIGRATED, true)
@@ -797,24 +780,6 @@ object Settings {
         get() = getBoolean(KEY_LAYOUT_ENABLED, DEFAULT_LAYOUT_ENABLED)
     fun putLayoutEnabled(value: Boolean) {
         putBoolean(KEY_LAYOUT_ENABLED, value)
-    }
-
-    val layoutMainPersistentNav: Boolean
-        get() = getBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV)
-    fun putLayoutMainPersistentNav(value: Boolean) {
-        putBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV, value)
-    }
-
-    val layoutMainPersistentNavVisible: Boolean
-        get() = getBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE)
-    fun putLayoutMainPersistentNavVisible(value: Boolean) {
-        putBoolean(KEY_LAYOUT_MAIN_PERSISTENT_NAV_VISIBLE, value)
-    }
-
-    val layoutMainPersistentNavWidth: Int
-        get() = getIntFromStr(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH, DEFAULT_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH).coerceIn(0, 6)
-    fun putLayoutMainPersistentNavWidth(value: Int) {
-        putIntToStr(KEY_LAYOUT_MAIN_PERSISTENT_NAV_WIDTH, value)
     }
 
     val layoutSettingsTwoPane: Boolean
