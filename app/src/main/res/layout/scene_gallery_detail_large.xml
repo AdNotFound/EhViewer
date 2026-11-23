@@ -29,10 +29,10 @@
 
         </FrameLayout>
 
-        <View
-            android:layout_width="1dp"
-            android:layout_height="match_parent"
-            android:background="?attr/galleryDetailDivider" />
+        <com.hippo.ehviewer.widget.SidebarResizeHandle
+            android:id="@+id/detail_resize_handle"
+            android:layout_width="24dp"
+            android:layout_height="match_parent" />
 
         <FrameLayout
             android:id="@+id/right_panel"

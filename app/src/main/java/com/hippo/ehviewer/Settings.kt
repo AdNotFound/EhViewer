@@ -24,6 +24,7 @@ import com.hippo.ehviewer.EhApplication.Companion.application
 import com.hippo.ehviewer.client.EhUtils
 import com.hippo.ehviewer.client.data.FavListUrlBuilder
 import com.hippo.ehviewer.ui.scene.GalleryListScene
+import com.hippo.ehviewer.util.SidebarWidthUtils
 import com.hippo.glgallery.GalleryView
 import com.hippo.okhttp.UAPresets
 import com.hippo.unifile.UniFile
@@ -152,7 +153,7 @@ object Settings {
     private const val KEY_LAYOUT_DETAIL_TWO_PANE = "layout_detail_two_pane"
     private const val DEFAULT_LAYOUT_DETAIL_TWO_PANE = false
     private const val KEY_LAYOUT_DETAIL_LEFT_WIDTH = "layout_detail_left_width"
-    private const val DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH = 3
+    private const val DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH = 18
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR = "layout_reader_thumbnail_sidebar"
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR = false
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH = "layout_reader_thumbnail_sidebar_width"
@@ -165,6 +166,7 @@ object Settings {
     private const val DEFAULT_LAYOUT_READER_THUMBNAIL_SIDEBAR_TOGGLE_AUTO_HIDE = false
     private const val KEY_LAYOUT_SIDEBAR_WIDTH_FIVE_LEVELS_MIGRATED = "layout_sidebar_width_five_levels_migrated"
     private const val KEY_LAYOUT_SIDEBAR_WIDTH_SEVEN_LEVELS_MIGRATED = "layout_sidebar_width_seven_levels_migrated"
+    private const val KEY_LAYOUT_DETAIL_LEFT_WIDTH_PERCENT_MIGRATED = "layout_detail_left_width_percent_migrated"
     private const val KEY_LAYOUT_READER_THUMBNAIL_SIDEBAR_WIDTH_MIGRATED =
         "layout_reader_thumbnail_sidebar_width_migrated"
 
@@ -347,6 +349,7 @@ object Settings {
         migrateLegacyLayoutSidebarWidths()
         migrateLayoutSidebarWidthsToSevenLevels()
         migrateReaderThumbnailSidebarWidth()
+        migrateDetailLeftWidthToPercent()
         val enableLargeScreenLayout = application.resources.configuration.smallestScreenWidthDp >= 600
         if (!sSettingsPre.contains(KEY_LAYOUT_ENABLED)) {
             putLayoutEnabled(enableLargeScreenLayout)
@@ -428,6 +431,23 @@ object Settings {
         if (migratedValue != rawValue) {
             putIntToStr(key, migratedValue)
         }
+    }
+
+    private fun migrateDetailLeftWidthToPercent() {
+        if (sSettingsPre.getBoolean(KEY_LAYOUT_DETAIL_LEFT_WIDTH_PERCENT_MIGRATED, false)) return
+        val rawValue = when (val storedValue = sSettingsPre.all[KEY_LAYOUT_DETAIL_LEFT_WIDTH]) {
+            is Int -> storedValue
+            is Long -> storedValue.toInt()
+            is String -> storedValue.toIntOrNull()
+            else -> null
+        }
+        // Keep the existing 7-level percentage when switching to 1% increments.
+        sSettingsPre.edit().apply {
+            if (rawValue != null) {
+                putString(KEY_LAYOUT_DETAIL_LEFT_WIDTH, SidebarWidthUtils.migrateDetailWidth(rawValue).toString())
+            }
+            putBoolean(KEY_LAYOUT_DETAIL_LEFT_WIDTH_PERCENT_MIGRATED, true)
+        }.apply()
     }
 
     private fun migrateReaderThumbnailSidebarWidth() {
@@ -795,9 +815,9 @@ object Settings {
     }
 
     val layoutDetailLeftWidth: Int
-        get() = getIntFromStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH).coerceIn(0, 6)
+        get() = getIntFromStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, DEFAULT_LAYOUT_DETAIL_LEFT_WIDTH).coerceIn(0, 35)
     fun putLayoutDetailLeftWidth(value: Int) {
-        putIntToStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, value)
+        putIntToStr(KEY_LAYOUT_DETAIL_LEFT_WIDTH, value.coerceIn(0, 35))
     }
 
     val layoutReaderThumbnailSidebar: Boolean

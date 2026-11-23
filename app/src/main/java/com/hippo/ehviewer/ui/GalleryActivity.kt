@@ -102,9 +102,11 @@ import com.hippo.ehviewer.gallery.ArchiveGalleryProvider
 import com.hippo.ehviewer.gallery.EhGalleryProvider
 import com.hippo.ehviewer.gallery.GalleryProvider2
 import com.hippo.ehviewer.ui.reader.ReaderSidebarAdapter
+import com.hippo.ehviewer.util.SidebarWidthUtils
 import com.hippo.ehviewer.widget.GalleryGuideView
 import com.hippo.ehviewer.widget.GalleryHeader
 import com.hippo.ehviewer.widget.ReversibleSeekBar
+import com.hippo.ehviewer.widget.SidebarResizeHandle
 import com.hippo.glgallery.GalleryProvider
 import com.hippo.glgallery.GalleryView
 import com.hippo.glgallery.SimpleAdapter
@@ -243,6 +245,7 @@ class GalleryActivity :
     private var mReaderPreviewMetadataRequested = false
     private var mReaderPreviewCacheLoaded = false
     private var mReaderSidebarPageStarts: List<Int> = emptyList()
+    private var mReaderSidebarWidthPreview: Int? = null
     private var mReaderSidebarVisible = true
     private var mReaderSidebarOnRight = true
     private var mReaderSidebarPreviewJob: Job? = null
@@ -582,6 +585,29 @@ class GalleryActivity :
                     }
                 }
             })
+            (mReaderSidebarDivider as? SidebarResizeHandle)?.bind(
+                title = R.string.settings_layout_reader_thumbnail_sidebar_width,
+                range = SidebarWidthUtils.READER_MIN_PERCENT..SidebarWidthUtils.READER_MAX_PERCENT,
+                percent = { Settings.layoutReaderThumbnailSidebarWidth + SidebarWidthUtils.READER_MIN_PERCENT },
+                paneWidth = { getReaderSidebarWidth() },
+                availableWidth = { getReaderSidebarAvailableWidth() },
+                direction = {
+                    val rtl = mReaderSidebarDivider?.layoutDirection == View.LAYOUT_DIRECTION_RTL
+                    if (mReaderSidebarOnRight != rtl) -1 else 1
+                },
+                onPreview = { percent ->
+                    mReaderSidebarWidthPreview = percent
+                    updateReaderSidebarVisibility(animated = false, resizing = true)
+                },
+                onCommit = { percent ->
+                    Settings.putLayoutReaderThumbnailSidebarWidth(percent - SidebarWidthUtils.READER_MIN_PERCENT)
+                    mReaderSidebarWidthPreview = null
+                    updateReaderSidebarVisibility(animated = false, resizing = true)
+                    mReaderSidebarRecyclerView?.post {
+                        mReaderSidebarRecyclerView?.let { rv -> mReaderSidebarAdapter?.restoreVisiblePreviews(rv) }
+                    }
+                },
+            )
             mReaderSidebarToggle?.setOnClickListener { toggleReaderSidebar() }
             mReaderSidebarToggle?.setOnTouchListener { view, event -> onReaderSidebarToggleTouch(view, event) }
             updateReaderSidebarVisibility(animated = false, showHiddenIndicator = !mReaderSidebarVisible)
@@ -1279,15 +1305,16 @@ class GalleryActivity :
     }
 
     private fun getReaderSidebarWidth(): Int {
-        val ratio = READER_SIDEBAR_WIDTH_RATIOS[Settings.layoutReaderThumbnailSidebarWidth]
+        val percent = mReaderSidebarWidthPreview ?: (Settings.layoutReaderThumbnailSidebarWidth + SidebarWidthUtils.READER_MIN_PERCENT)
         val baseWidth = getReaderSidebarAvailableWidth()
-        val ratioWidth = (baseWidth * ratio).toInt().coerceAtLeast(0)
         val minWidthPx = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             READER_SIDEBAR_MIN_WIDTH_DP.toFloat(),
             resources.displayMetrics,
         ).toInt()
-        return ratioWidth.coerceAtLeast(minWidthPx)
+        val minContentWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 160f, resources.displayMetrics).toInt()
+        val dividerWidth = mReaderSidebarDivider?.layoutParams?.width ?: 0
+        return SidebarWidthUtils.paneWidth(baseWidth, percent, minWidthPx, minContentWidthPx, dividerWidth)
     }
 
     private fun getReaderSidebarAvailableWidth(): Int {
@@ -1443,6 +1470,7 @@ class GalleryActivity :
     private fun updateReaderSidebarVisibility(
         animated: Boolean = true,
         showHiddenIndicator: Boolean = false,
+        resizing: Boolean = false,
     ) {
         val contentContainer = mReaderContentContainer ?: return
         val sidebarContainer = mReaderSidebarContainer ?: return
@@ -1512,10 +1540,12 @@ class GalleryActivity :
                     mGLRootView?.requestLayout()
                     mGLRootView?.requestLayoutContentPane()
                     mGalleryView?.requestLayout()
-                    mReaderSidebarRecyclerView?.let { rv ->
-                        mReaderSidebarAdapter?.restoreVisiblePreviews(rv)
+                    if (!resizing) {
+                        mReaderSidebarRecyclerView?.let { rv ->
+                            mReaderSidebarAdapter?.restoreVisiblePreviews(rv)
+                        }
+                        updateReaderSidebarSelection(forceCenter = !mSidebarUserHasScrolled)
                     }
-                    updateReaderSidebarSelection(forceCenter = !mSidebarUserHasScrolled)
                 }
             } else {
                 contentContainer.post {
@@ -2368,7 +2398,6 @@ class GalleryActivity :
         private const val NOTIFY_KEY_TAP_MENU_AREA = 4
         private const val NOTIFY_KEY_TAP_ERROR_TEXT = 5
         private const val NOTIFY_KEY_LONG_PRESS_PAGE = 6
-        private val READER_SIDEBAR_WIDTH_RATIOS = FloatArray(33) { (3 + it) / 100f }
         private const val READER_SIDEBAR_MIN_WIDTH_DP = 56
     }
 }

@@ -787,4 +787,6 @@
     <string name="reader_sidebar_thumb">Page thumbnail</string>
     <string name="reader_sidebar_page">Page %d</string>
     <string name="reader_auto_transfer">Auto page turn</string>
+    <string name="sidebar_resize_handle">Drag to resize; tap to adjust width</string>
+    <string name="sidebar_width_percent">Width: %1$d%%</string>
 </resources>

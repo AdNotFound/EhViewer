@@ -26,7 +26,7 @@
         app:iconSpaceReserved="false" />
 
     <com.hippo.ehviewer.preference.SidebarWidthSeekBarPreference
-        android:defaultValue="3"
+        android:defaultValue="18"
         android:key="layout_detail_left_width"
         android:title="@string/settings_layout_detail_left_width"
         app:iconSpaceReserved="false" />

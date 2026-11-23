@@ -114,12 +114,11 @@
             android:layout_height="match_parent" />
     </FrameLayout>
 
-    <View
+    <com.hippo.ehviewer.widget.SidebarResizeHandle
         android:id="@+id/reader_sidebar_divider"
-        android:layout_width="1dp"
+        android:layout_width="24dp"
         android:layout_height="match_parent"
         android:layout_gravity="end"
-        android:background="?attr/colorControlHighlight"
         android:visibility="gone" />
 
 

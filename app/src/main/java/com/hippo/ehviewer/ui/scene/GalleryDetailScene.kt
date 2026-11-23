@@ -123,9 +123,11 @@ import com.hippo.ehviewer.spider.readFromCache
 import com.hippo.ehviewer.spider.saveToUniFile
 import com.hippo.ehviewer.ui.CommonOperations
 import com.hippo.ehviewer.ui.GalleryActivity
+import com.hippo.ehviewer.util.SidebarWidthUtils
 import com.hippo.ehviewer.util.WindowSizeUtils
 import com.hippo.ehviewer.widget.GalleryRatingBar
 import com.hippo.ehviewer.widget.GalleryRatingBar.OnUserRateListener
+import com.hippo.ehviewer.widget.SidebarResizeHandle
 import com.hippo.scene.Announcer
 import com.hippo.scene.TransitionHelper
 import com.hippo.util.AppHelper
@@ -259,6 +261,7 @@ class GalleryDetailScene :
     private var mModifyingFavorites = false
     private var mBasicInfoOnly = false
     private var mUseLargeTwoPaneLayout = false
+    private var mDetailLeftWidthPreview: Int? = null
     private val mHideDetailOverlayRunnable = Runnable {
         val container = mRightOverlayContainer ?: return@Runnable
         if (childFragmentManager.findFragmentById(R.id.right_overlay_container) == null) {
@@ -529,7 +532,28 @@ class GalleryDetailScene :
         )
         val main = ViewUtils.`$$`(view, R.id.main) as ViewGroup
         if (mUseLargeTwoPaneLayout) {
+            mDetailLeftWidthPreview = null
             applyLargeDetailLeftWidth(view)
+            view.findViewById<SidebarResizeHandle>(R.id.detail_resize_handle).bind(
+                title = R.string.settings_layout_detail_left_width,
+                range = SidebarWidthUtils.DETAIL_MIN_PERCENT..SidebarWidthUtils.DETAIL_MAX_PERCENT,
+                percent = { Settings.layoutDetailLeftWidth + SidebarWidthUtils.DETAIL_MIN_PERCENT },
+                paneWidth = { getLargeDetailLeftWidth(view) },
+                availableWidth = { getLargeDetailAvailableWidth(view) },
+                direction = { if (view.layoutDirection == View.LAYOUT_DIRECTION_RTL) -1 else 1 },
+                onPreview = { percent ->
+                    mDetailLeftWidthPreview = percent
+                    applyLargeDetailLeftWidth(view)
+                },
+                onCommit = { percent ->
+                    Settings.putLayoutDetailLeftWidth(percent - SidebarWidthUtils.DETAIL_MIN_PERCENT)
+                    mDetailLeftWidthPreview = null
+                    applyLargeDetailLeftWidth(view)
+                },
+            )
+            view.addOnLayoutChangeListener { _, left, _, right, _, oldLeft, _, oldRight, _ ->
+                if (right - left != oldRight - oldLeft) applyLargeDetailLeftWidth(view)
+            }
         }
         val mainView = ViewUtils.`$$`(main, R.id.scroll_view) as ScrollView
         mRightScrollView = mainView
@@ -1243,13 +1267,12 @@ class GalleryDetailScene :
     }
 
     private fun getLargeDetailLeftWidth(root: View): Int {
-        val ratio = DETAIL_LEFT_WIDTH_RATIOS[Settings.layoutDetailLeftWidth]
+        val percent = mDetailLeftWidthPreview ?: (Settings.layoutDetailLeftWidth + SidebarWidthUtils.DETAIL_MIN_PERCENT)
         val baseWidth = getLargeDetailAvailableWidth(root)
-        val minLeftWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 280f, resources.displayMetrics).toInt()
-        val minRightWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 300f, resources.displayMetrics).toInt()
-        val maxLeftWidthPx = (baseWidth - minRightWidthPx).coerceAtLeast(minLeftWidthPx)
-        val calculatedWidth = (baseWidth * ratio).toInt()
-        return calculatedWidth.coerceIn(minLeftWidthPx.coerceAtMost(maxLeftWidthPx), maxLeftWidthPx)
+        val minLeftWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 280f, root.resources.displayMetrics).toInt()
+        val minRightWidthPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 300f, root.resources.displayMetrics).toInt()
+        val dividerWidth = root.findViewById<View>(R.id.detail_resize_handle)?.layoutParams?.width ?: 0
+        return SidebarWidthUtils.paneWidth(baseWidth, percent, minLeftWidthPx, minRightWidthPx, dividerWidth)
     }
 
     private fun getLargeDetailAvailableWidth(root: View): Int {
@@ -2568,7 +2591,6 @@ class GalleryDetailScene :
         private const val KEY_BASIC_INFO_ONLY = "basic_info_only"
         private const val DETAIL_OVERLAY_CLOSE_DURATION = 250L
         private const val TRANSITION_ANIMATION_DISABLED = true
-        private val DETAIL_LEFT_WIDTH_RATIOS = floatArrayOf(0.25f, 0.31f, 0.37f, 0.43f, 0.49f, 0.55f, 0.60f)
         private fun getArtist(tagGroups: Array<GalleryTagGroup>?): String? {
             if (null == tagGroups) {
                 return null

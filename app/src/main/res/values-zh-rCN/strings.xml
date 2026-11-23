@@ -711,4 +711,6 @@
         <item quantity="other">年</item>
     </plurals>
     <string name="reader_sidebar_toggle">切换阅读器缩略图侧栏</string>
+    <string name="sidebar_resize_handle">拖动调整宽度，点击精细调整</string>
+    <string name="sidebar_width_percent">宽度：%1$d%%</string>
 </resources>
