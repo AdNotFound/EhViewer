@@ -128,10 +128,10 @@
 
         <com.hippo.ehviewer.widget.ReaderSidebarScrollIndicator
             android:id="@+id/reader_sidebar_scroll_indicator"
-            android:layout_width="3dp"
+            android:layout_width="12dp"
             android:layout_height="match_parent"
             android:layout_gravity="start"
-            android:layout_marginHorizontal="4dp"
+            android:layout_marginHorizontal="0dp"
             android:layout_marginVertical="8dp"
             android:importantForAccessibility="no" />
     </FrameLayout>

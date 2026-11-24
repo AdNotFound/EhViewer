@@ -520,7 +520,20 @@ class GalleryActivity :
             )
             mReaderSidebarRecyclerView!!.layoutManager = LinearLayoutManager(this)
             mReaderSidebarRecyclerView!!.adapter = mReaderSidebarAdapter
-            findViewById<ReaderSidebarScrollIndicator>(R.id.reader_sidebar_scroll_indicator)?.bind(mReaderSidebarRecyclerView!!)
+            findViewById<ReaderSidebarScrollIndicator>(R.id.reader_sidebar_scroll_indicator)?.apply {
+                bind(mReaderSidebarRecyclerView!!)
+                onDragStateChanged = { dragging ->
+                    if (dragging) {
+                        mSidebarUserHasScrolled = true
+                        mSidebarProgrammaticScroll = false
+                        mSidebarScrollRunnable?.let {
+                            mSidebarScrollHandler.removeCallbacks(it)
+                            mReaderSidebarRecyclerView?.removeCallbacks(it)
+                        }
+                        mSidebarScrollRunnable = null
+                    }
+                }
+            }
             mReaderSidebarVisible = Settings.layoutReaderThumbnailSidebarVisible
             mReaderSidebarOnRight = Settings.layoutReaderThumbnailSidebarOnRight
             mReaderSidebarToggleTouchSlop = ViewConfiguration.get(this).scaledTouchSlop
