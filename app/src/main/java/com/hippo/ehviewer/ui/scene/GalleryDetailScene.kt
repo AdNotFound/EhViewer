@@ -146,7 +146,6 @@ import com.hippo.widget.LoadImageView
 import com.hippo.widget.ObservedTextView
 import com.hippo.widget.SimpleGridAutoSpanLayout
 import com.hippo.yorozuya.FileUtils
-import com.hippo.yorozuya.IntIdGenerator
 import com.hippo.yorozuya.SimpleHandler
 import com.hippo.yorozuya.ViewUtils
 import com.hippo.yorozuya.collect.IntList
@@ -238,7 +237,6 @@ class GalleryDetailScene :
     private var mToken: String? = null
     private var mPage = 0
     private var mGalleryDetail: GalleryDetail? = null
-    private var mRequestId = IntIdGenerator.INVALID_ID
     private var mTorrentList: List<TorrentParser.Result>? = null
     private var requestStoragePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission(),
@@ -412,7 +410,6 @@ class GalleryDetailScene :
         mGid = savedInstanceState.getLong(KEY_GID)
         mToken = savedInstanceState.getString(KEY_TOKEN)
         mGalleryDetail = savedInstanceState.getParcelableCompat(KEY_GALLERY_DETAIL)
-        mRequestId = savedInstanceState.getInt(KEY_REQUEST_ID)
         mBasicInfoOnly = savedInstanceState.getBoolean(KEY_BASIC_INFO_ONLY, false)
     }
 
@@ -433,7 +430,6 @@ class GalleryDetailScene :
         if (mToken != null) {
             outState.putString(KEY_TOKEN, mToken)
         }
-        outState.putInt(KEY_REQUEST_ID, mRequestId)
         outState.putBoolean(KEY_BASIC_INFO_ONLY, mBasicInfoOnly)
     }
 
@@ -853,10 +849,6 @@ class GalleryDetailScene :
             }
             mGalleryDetail = null
         }
-        val application = requireContext().applicationContext as EhApplication
-        if (application.containGlobalStuff(mRequestId)) {
-            application.removeGlobalStuff(mRequestId)
-        }
         return request()
     }
 
@@ -900,7 +892,6 @@ class GalleryDetailScene :
             return false
         }
         val callback: EhClient.Callback<*> = GetGalleryDetailListener(context)
-        mRequestId = (context.applicationContext as EhApplication).putGlobalStuff(callback)
         val request = EhRequest()
             .setMethod(EhClient.METHOD_GET_GALLERY_DETAIL)
             .setArgs(url)
@@ -2218,7 +2209,6 @@ class GalleryDetailScene :
 
     private inner class GetGalleryDetailListener(context: Context) : EhCallback<GalleryDetailScene?, GalleryDetail>(context) {
         override fun onSuccess(result: GalleryDetail) {
-            application.removeGlobalStuff(this)
             // Put gallery detail to cache
             galleryDetailCache.put(result.gid, result)
             // Add history
@@ -2230,14 +2220,11 @@ class GalleryDetailScene :
         }
 
         override fun onFailure(e: Exception) {
-            application.removeGlobalStuff(this)
             val scene = this@GalleryDetailScene
             scene.onGetGalleryDetailFailure(e)
         }
 
-        override fun onCancel() {
-            application.removeGlobalStuff(this)
-        }
+        override fun onCancel() {}
     }
 
     private inner class RateGalleryListener(
@@ -2587,7 +2574,6 @@ class GalleryDetailScene :
         private const val TAG_STATUS_UP = "↑"
         private const val TAG_STATUS_DN = "↓"
         private const val KEY_GALLERY_DETAIL = "gallery_detail"
-        private const val KEY_REQUEST_ID = "request_id"
         private const val KEY_BASIC_INFO_ONLY = "basic_info_only"
         private const val DETAIL_OVERLAY_CLOSE_DURATION = 250L
         private const val TRANSITION_ANIMATION_DISABLED = true

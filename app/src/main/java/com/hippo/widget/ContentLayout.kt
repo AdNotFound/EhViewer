@@ -21,6 +21,7 @@ import android.os.Bundle
 import android.os.Parcelable
 import android.util.AttributeSet
 import android.util.Log
+import android.util.SparseArray
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -38,7 +39,6 @@ import com.hippo.easyrecyclerview.FastScroller
 import com.hippo.easyrecyclerview.HandlerDrawable
 import com.hippo.easyrecyclerview.LayoutManagerUtils
 import com.hippo.easyrecyclerview.LayoutManagerUtils.OnScrollToPositionListener
-import com.hippo.ehviewer.EhApplication
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.client.EhUrl
 import com.hippo.ehviewer.client.exception.CloudflareBypassException
@@ -818,12 +818,12 @@ class ContentLayout @JvmOverloads constructor(
             bundle.putString(KEY_TIP, mTipView!!.text.toString())
 
             // TODO It's a bad design
-            val app = context.applicationContext as EhApplication
             if (mSavedDataId != IntIdGenerator.INVALID_ID) {
-                app.removeGlobalStuff(mSavedDataId)
+                sDataMap.remove(mSavedDataId)
                 mSavedDataId = IntIdGenerator.INVALID_ID
             }
-            mSavedDataId = app.putGlobalStuff(mData)
+            mSavedDataId = sIdGenerator.nextId()
+            sDataMap.put(mSavedDataId, mData)
             bundle.putInt(KEY_DATA, mSavedDataId)
             bundle.putInt(KEY_NEXT_ID, mIdGenerator.nextId())
             bundle.putParcelable(KEY_PAGE_DIVIDER, mPageDivider)
@@ -841,9 +841,9 @@ class ContentLayout @JvmOverloads constructor(
             mTipView!!.text = state.getString(KEY_TIP)
             mSavedDataId = state.getInt(KEY_DATA)
             var newData: ArrayList<E>? = null
-            val app = context.applicationContext as EhApplication
             if (mSavedDataId != IntIdGenerator.INVALID_ID) {
-                newData = app.removeGlobalStuff(mSavedDataId) as ArrayList<E>?
+                newData = sDataMap.get(mSavedDataId) as? ArrayList<E>
+                sDataMap.remove(mSavedDataId)
                 mSavedDataId = IntIdGenerator.INVALID_ID
                 if (newData != null) {
                     mData = newData
@@ -892,6 +892,8 @@ class ContentLayout @JvmOverloads constructor(
             private const val KEY_PAGES = "pages"
             private const val KEY_PREV = "prev"
             private const val KEY_NEXT = "next"
+            private val sDataMap = SparseArray<Any>()
+            private val sIdGenerator = IntIdGenerator()
         }
     }
 }
