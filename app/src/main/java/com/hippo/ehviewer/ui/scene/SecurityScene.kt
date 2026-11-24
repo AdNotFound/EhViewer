@@ -24,6 +24,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
+import androidx.core.content.ContextCompat
 import com.hippo.ehviewer.R
 import com.hippo.ehviewer.Settings
 import com.hippo.widget.lockpattern.LockPatternUtils
@@ -31,7 +32,6 @@ import com.hippo.widget.lockpattern.LockPatternView
 import com.hippo.widget.lockpattern.LockPatternView.OnPatternListener
 import com.hippo.yorozuya.ObjectUtils
 import com.hippo.yorozuya.ViewUtils
-import java.util.concurrent.Executors
 
 class SecurityScene :
     SolidScene(),
@@ -58,7 +58,7 @@ class SecurityScene :
             BiometricManager.from(context).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS
         biometricPrompt = BiometricPrompt(
             this,
-            Executors.newSingleThreadExecutor(),
+            ContextCompat.getMainExecutor(context),
             object : BiometricPrompt.AuthenticationCallback() {
                 override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
                     startSceneForCheckStep(CHECK_STEP_SECURITY, arguments)

@@ -50,7 +50,6 @@ import com.hippo.util.withUIContext
 import com.hippo.yorozuya.IOUtils
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.File
@@ -394,18 +393,11 @@ class AdvancedFragment : BasePreferenceFragment() {
                         Log.d("LocalFavorites", "now backup page $status")
                         EhDB.putLocalFavorites(result.galleryInfoList)
                         if (result.next != null) {
-                            try {
-                                runBlocking {
-                                    delay(AppSettings.downloadDelay.toLong())
-                                }
-                            } catch (e: InterruptedException) {
-                                e.printStackTrace()
-                            }
                             favIndex++
                             favListUrlBuilder.setIndex(result.next, true)
                             request.setArgs(favListUrlBuilder.build())
                             viewLifecycleOwner.lifecycleScope.launch {
-                                delay(100)
+                                delay(AppSettings.downloadDelay.toLong().coerceAtLeast(100L))
                                 request.enqueue(this@AdvancedFragment)
                             }
                         } else {

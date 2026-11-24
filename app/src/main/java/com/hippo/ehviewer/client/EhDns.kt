@@ -29,7 +29,7 @@ import java.net.UnknownHostException
 
 object EhDns : Dns {
     private val hosts = EhApplication.hosts
-    private val builtInHostnames = setOf(
+    val builtInHostnames = setOf(
         "e-hentai.org",
         "forums.e-hentai.org",
         "repo.e-hentai.org",
@@ -42,7 +42,7 @@ object EhDns : Dns {
         "ul.ehgt.org",
         "exhentai.org",
         "s.exhentai.org",
-        "raw.githubusercontent.com",
+        RemoteHosts.GITHUB_HOST,
     )
     private val appCache = Cache(FileSystem.SYSTEM, EhApplication.cacheDir / "dns_cache", 5L * 1024 * 1024)
     private val bootstrapClient = OkHttpClient.Builder().cache(appCache)
@@ -84,7 +84,7 @@ object EhDns : Dns {
     @Throws(UnknownHostException::class)
     override fun lookup(hostname: String): List<InetAddress> {
         hosts[hostname]?.let { return it }
-        if (Settings.builtInHosts) {
+        if (Settings.builtInHosts || hostname == RemoteHosts.GITHUB_HOST) {
             val ips = RemoteHosts.lookup(hostname)
             if (!ips.isNullOrEmpty()) {
                 return ips

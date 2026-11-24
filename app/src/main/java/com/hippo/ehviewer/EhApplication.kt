@@ -294,7 +294,7 @@ class EhApplication :
                         chain.proceed(request)
                     } catch (e: IOException) {
                         val host = request.url.host
-                        if (Settings.builtInHosts && EhDns.isBuiltInHost(host) && isConnectionFailure(e)) {
+                        if (Settings.builtInHosts && EhDns.isBuiltInHost(host) && host != RemoteHosts.GITHUB_HOST && isConnectionFailure(e)) {
                             if (RemoteHosts.onAllHostsFailed(host)) {
                                 return@addInterceptor chain.proceed(request)
                             }
