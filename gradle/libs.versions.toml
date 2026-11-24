@@ -58,6 +58,8 @@ coil-gif = { module = "io.coil-kt.coil3:coil-gif" }
 coil-network = { module = "io.coil-kt.coil3:coil-network-okhttp" }
 
 drawer = { module = "com.drakeet.drawer:drawer", version.ref = "drawer" }
+jsUri = "com.github.salomonbrys.kue:kue-core:1.2.0"
+json = "org.json:json:20240303"
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 re2j = { module = "com.google.re2j:re2j", version.ref = "re2j" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }

@@ -195,6 +195,7 @@ dependencies {
     coreLibraryDesugaring(libs.desugar)
 
     testImplementation(libs.junit4)
+    testImplementation(libs.json)
 }
 
 kotlin {

@@ -28,7 +28,7 @@ import java.net.InetAddress
 import java.net.UnknownHostException
 
 object EhDns : Dns {
-    private val hosts = EhApplication.hosts
+    private val hosts by lazy { EhApplication.hosts }
     val builtInHostnames = setOf(
         "e-hentai.org",
         "forums.e-hentai.org",
@@ -44,10 +44,12 @@ object EhDns : Dns {
         "s.exhentai.org",
         RemoteHosts.GITHUB_HOST,
     )
-    private val appCache = Cache(FileSystem.SYSTEM, EhApplication.cacheDir / "dns_cache", 5L * 1024 * 1024)
-    private val bootstrapClient = OkHttpClient.Builder().cache(appCache)
-        .hostnameVerifier { _, _ -> true }
-        .build()
+    private val appCache by lazy { Cache(FileSystem.SYSTEM, EhApplication.cacheDir / "dns_cache", 5L * 1024 * 1024) }
+    private val bootstrapClient by lazy {
+        OkHttpClient.Builder().cache(appCache)
+            .hostnameVerifier { _, _ -> true }
+            .build()
+    }
 
     @Volatile
     private var cachedDoh: DnsOverHttps? = null
