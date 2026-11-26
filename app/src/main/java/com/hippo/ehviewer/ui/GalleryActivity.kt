@@ -105,6 +105,7 @@ import com.hippo.ehviewer.widget.GalleryGuideView
 import com.hippo.ehviewer.widget.GalleryHeader
 import com.hippo.ehviewer.widget.ReversibleSeekBar
 import com.hippo.glgallery.GalleryProvider
+import com.hippo.glview.image.ImageWrapper
 import com.hippo.glgallery.GalleryView
 import com.hippo.glgallery.SimpleAdapter
 import com.hippo.glview.view.GLRootView
@@ -118,6 +119,7 @@ import com.hippo.util.launchIO
 import com.hippo.util.runSuspendCatching
 import com.hippo.util.sendTo
 import com.hippo.util.withUIContext
+import com.hippo.widget.BatteryView
 import com.hippo.widget.ColorView
 import com.hippo.widget.LoadImageView
 import com.hippo.yorozuya.AnimationUtils
@@ -224,6 +226,7 @@ class GalleryActivity :
     private var mClock: View? = null
     private var mProgress: TextView? = null
     private var mBattery: View? = null
+    private var mHudColor = 0
     private var mSeekBarPanel: View? = null
     private var mGLLoading: View? = null
     private var mLeftText: TextView? = null
@@ -905,6 +908,26 @@ class GalleryActivity :
         } else {
             super.onKeyUp(keyCode, event)
         }
+    }
+
+    /**
+     * Adapts the top HUD (clock / progress / battery) foreground to the
+     * current page, like the system status bar adapts to the wallpaper:
+     * dark foreground over light pages, white over dark pages. Nothing is
+     * drawn behind the text. Pages whose brightness is unknown keep the
+     * current foreground.
+     */
+    private fun updateHudColor() {
+        if (mCurrentIndex < 0) return
+        val provider = mGalleryProvider ?: return
+        val index = mGalleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
+        val light = provider.isPageTopLight(index) ?: return
+        val color = if (light) HUD_COLOR_ON_LIGHT else HUD_COLOR_ON_DARK
+        if (color == mHudColor) return
+        mHudColor = color
+        (mClock as? TextView)?.setTextColor(color)
+        mProgress?.setTextColor(color)
+        (mBattery as? BatteryView)?.setColor(color)
     }
 
     @SuppressLint("SetTextI18n")
@@ -2264,6 +2287,7 @@ class GalleryActivity :
                     mCurrentIndex = mValue
                     updateSlider()
                     updateProgress()
+                    updateHudColor()
                     if (indexChanged) {
                         mSidebarUserHasScrolled = false
                         refreshReaderSidebarStructure(forceCenter = true)
@@ -2291,6 +2315,16 @@ class GalleryActivity :
     }
 
     private inner class GalleryAdapter(glRootView: GLRootView, provider: GalleryProvider) : SimpleAdapter(glRootView, provider) {
+        override fun onPageSucceed(index: Int, image: ImageWrapper?) {
+            super.onPageSucceed(index, image)
+            // The current page may have finished loading after it became
+            // current; its brightness is only known from this point on.
+            val pairStart = mGalleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
+            if (index == pairStart || index == mCurrentIndex) {
+                SimpleHandler.getInstance().post { updateHudColor() }
+            }
+        }
+
         override fun onDataChanged() {
             super.onDataChanged()
             if (mGalleryProvider != null) {
@@ -2303,6 +2337,8 @@ class GalleryActivity :
     }
 
     companion object {
+        private val HUD_COLOR_ON_LIGHT = Color.rgb(66, 66, 66)
+        private val HUD_COLOR_ON_DARK = Color.WHITE
         private const val SIDEBAR_SCROLL_DEBOUNCE_MS = 80L
         const val ACTION_EH = "eh"
         const val KEY_ACTION = "action"
