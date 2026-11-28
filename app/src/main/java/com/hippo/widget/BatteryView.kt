@@ -105,6 +105,21 @@ class BatteryView @JvmOverloads constructor(
         setCompoundDrawables(mDrawable, null, null, null)
     }
 
+    /**
+     * Sets the normal (non-warning) foreground colour of both the text and
+     * the battery icon, e.g. when the reader adapts its HUD to the page
+     * content. The warning colour and its behaviour are left untouched.
+     */
+    fun setColor(color: Int) {
+        mColor = color
+        mDrawable?.setColor(color)
+        // While the warning colour is shown it wins; the broadcast receiver
+        // re-applies mColor on the next battery change in any case.
+        if (mLevel > BatteryDrawable.WARN_LIMIT || mCharging) {
+            setTextColor(color)
+        }
+    }
+
     override fun setTextColor(color: Int) {
         if (mCurrentColor == color) {
             return

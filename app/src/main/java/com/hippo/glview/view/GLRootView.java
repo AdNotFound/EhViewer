@@ -19,6 +19,8 @@ package com.hippo.glview.view;
 import android.content.Context;
 import android.graphics.Matrix;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
+import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 import android.os.Parcelable;
@@ -42,10 +44,15 @@ import com.hippo.glview.glrenderer.GLES11Canvas;
 import com.hippo.glview.glrenderer.GLES20Canvas;
 import com.hippo.glview.glrenderer.UploadedTexture;
 import com.hippo.glview.util.GalleryUtils;
+import com.hippo.glview.view.TopStripSampling.SampleRegion;
 import com.hippo.yorozuya.AssertUtils;
+import com.hippo.yorozuya.SimpleHandler;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -88,6 +95,201 @@ public class GLRootView extends GLSurfaceView
     private int mInvalidateColor = 0;
     private GL11 mGL;
     private GLCanvas mCanvas;
+    // ---- Top strip luminance sampling (overlay HUD adaptation) ----
+
+    /**
+     * Notified when any sampled HUD region flips between light and dark.
+     * Called on the render thread, only on change, with an immutable snapshot
+     * matching the slot indices passed to {@link #setTopStripLightListener}.
+     */
+    public interface TopStripLightListener {
+        void onTopStripLightChanged(Boolean[] lights);
+    }
+
+    private static final long TOP_STRIP_SETTLED_INTERVAL_MS = 350;
+    private static final long TOP_STRIP_ACTIVE_INTERVAL_MS = 500;
+
+    private final Object mTopStripLock = new Object();
+    private TopStripLightListener mTopStripLightListener;
+    private SampleRegion[] mTopStripRegions;
+    private Boolean[] mTopStripLights;
+    private boolean mTopStripTrailingScheduled;
+    private boolean mTopStripGLES20;
+    private int mSurfaceWidth;
+    private int mSurfaceHeight;
+    private long mLastTopStripSample;
+    private ByteBuffer mTopStripBuffer;
+
+    private final Runnable mRequestTopStripSample = () -> {
+        synchronized (mTopStripLock) {
+            if (!mTopStripTrailingScheduled || mTopStripLightListener == null) {
+                return;
+            }
+            mTopStripTrailingScheduled = false;
+        }
+        requestRender();
+    };
+
+    /**
+     * Starts sampling the rendered pixels underneath the given overlay
+     * {@code regions} (in this view's coordinates, throttled) and reports
+     * light/dark flips per slot to {@code listener}. Pass {@code null}
+     * listener or empty regions to stop sampling.
+     */
+    public void setTopStripLightListener(TopStripLightListener listener, Rect[] regions) {
+        SampleRegion[] nextRegions = null;
+        boolean hasActiveRegion = false;
+        if (listener != null && regions != null && regions.length > 0) {
+            nextRegions = new SampleRegion[regions.length];
+            for (int i = 0; i < regions.length; i++) {
+                Rect r = regions[i];
+                if (r != null && r.width() > 0 && r.height() > 0) {
+                    nextRegions[i] = new SampleRegion(r.left, r.top, r.right, r.bottom);
+                    hasActiveRegion = true;
+                }
+            }
+        }
+
+        boolean active = listener != null && hasActiveRegion;
+        boolean shouldRequestRender = false;
+        synchronized (mTopStripLock) {
+            if (!active) {
+                if (mTopStripLightListener == null && mTopStripRegions == null) {
+                    return;
+                }
+                mTopStripLightListener = null;
+                mTopStripRegions = null;
+                mTopStripLights = null;
+                mTopStripTrailingScheduled = false;
+            } else {
+                boolean listenerChanged = mTopStripLightListener != listener;
+                boolean regionsChanged = !Arrays.equals(mTopStripRegions, nextRegions);
+                if (!listenerChanged && !regionsChanged) {
+                    return;
+                }
+                boolean slotActivationChanged = false;
+                if (listenerChanged || mTopStripLights == null || mTopStripLights.length != nextRegions.length) {
+                    mTopStripLights = new Boolean[nextRegions.length];
+                    slotActivationChanged = true;
+                } else {
+                    for (int i = 0; i < nextRegions.length; i++) {
+                        boolean wasActive = mTopStripRegions != null && i < mTopStripRegions.length && mTopStripRegions[i] != null;
+                        boolean isActive = nextRegions[i] != null;
+                        if (wasActive != isActive) {
+                            mTopStripLights[i] = null;
+                            if (isActive) {
+                                slotActivationChanged = true;
+                            }
+                        }
+                    }
+                }
+                mTopStripLightListener = listener;
+                mTopStripRegions = nextRegions;
+                shouldRequestRender = listenerChanged || slotActivationChanged;
+            }
+        }
+
+        if (!active) {
+            SimpleHandler.getInstance().removeCallbacks(mRequestTopStripSample);
+        } else if (shouldRequestRender) {
+            requestRender();
+        }
+    }
+
+    private void cancelPendingTopStripSample() {
+        SimpleHandler.getInstance().removeCallbacks(mRequestTopStripSample);
+        synchronized (mTopStripLock) {
+            mTopStripTrailingScheduled = false;
+        }
+    }
+
+    private void sampleTopStripIfNeeded() {
+        TopStripLightListener listener;
+        SampleRegion[] regions;
+        long scheduleDelay = 0;
+        boolean moreFramesPending = mRenderRequested;
+        long minInterval = moreFramesPending ? TOP_STRIP_ACTIVE_INTERVAL_MS : TOP_STRIP_SETTLED_INTERVAL_MS;
+        synchronized (mTopStripLock) {
+            listener = mTopStripLightListener;
+            regions = mTopStripRegions;
+            if (listener == null || regions == null || !mTopStripGLES20) {
+                mTopStripTrailingScheduled = false;
+                mTopStripBuffer = null;
+                return;
+            }
+            long now = SystemClock.uptimeMillis();
+            long elapsed = now - mLastTopStripSample;
+            if (elapsed < minInterval) {
+                // While more frames are already queued, skip without posting a timer.
+                if (!moreFramesPending && !mTopStripTrailingScheduled) {
+                    mTopStripTrailingScheduled = true;
+                    scheduleDelay = minInterval - elapsed;
+                } else {
+                    return;
+                }
+            } else {
+                mTopStripTrailingScheduled = false;
+            }
+        }
+        if (scheduleDelay > 0) {
+            SimpleHandler.getInstance().postDelayed(mRequestTopStripSample, scheduleDelay);
+            return;
+        }
+
+        int width = mSurfaceWidth > 0 ? mSurfaceWidth : getWidth();
+        int height = mSurfaceHeight > 0 ? mSurfaceHeight : getHeight();
+        SampleRegion union = TopStripSampling.computeUnionBounds(regions, width, height);
+        if (union == null) {
+            return;
+        }
+
+        int readWidth = union.getWidth();
+        int readHeight = union.getHeight();
+        int size = readWidth * readHeight * 4;
+        if (mTopStripBuffer == null || mTopStripBuffer.capacity() != size) {
+            mTopStripBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder());
+        }
+        ByteBuffer buffer = mTopStripBuffer;
+        buffer.clear();
+        // GL origin is bottom-left: Android's union.bottom maps to height - union.bottom.
+        GLES20.glReadPixels(union.getLeft(), height - union.getBottom(), readWidth, readHeight,
+                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
+        if (GLES20.glGetError() != GLES20.GL_NO_ERROR) {
+            return;
+        }
+        mLastTopStripSample = SystemClock.uptimeMillis();
+
+        Boolean[] snapshot = null;
+        synchronized (mTopStripLock) {
+            if (mTopStripLightListener != listener || mTopStripRegions != regions || mTopStripLights == null) {
+                return;
+            }
+            boolean changed = false;
+            for (int i = 0; i < regions.length; i++) {
+                SampleRegion clamped = TopStripSampling.clampRegion(regions[i], width, height);
+                if (clamped == null) {
+                    continue;
+                }
+                Float luminance = TopStripSampling.computeRegionLuminance(buffer, union, clamped);
+                if (luminance == null) {
+                    continue;
+                }
+                Boolean wasLight = mTopStripLights[i];
+                boolean light = TopStripSampling.resolveLightState(luminance, wasLight);
+                if (wasLight == null || light != wasLight) {
+                    mTopStripLights[i] = light;
+                    changed = true;
+                }
+            }
+            if (changed) {
+                snapshot = mTopStripLights.clone();
+            }
+        }
+        if (snapshot != null) {
+            listener.onTopStripLightChanged(snapshot);
+        }
+    }
+
     private GLView mContentView;
     private OrientationSource mOrientationSource;
     // mCompensation is the difference between the UI orientation on GLCanvas
@@ -321,6 +523,8 @@ public class GLRootView extends GLSurfaceView
         if (DEBUG_DRAWING_STAT) {
             mCanvas.dumpStatisticsAndClear();
         }
+
+        sampleTopStripIfNeeded();
     }
 
     private void rotateCanvas(int degrees) {
@@ -383,6 +587,7 @@ public class GLRootView extends GLSurfaceView
 
     @Override
     public void onPause() {
+        cancelPendingTopStripSample();
         unfreeze();
         if (mContentView != null) {
             mContentView.pause();
@@ -470,6 +675,7 @@ public class GLRootView extends GLSurfaceView
 
     @Override
     protected void onDetachedFromWindow() {
+        cancelPendingTopStripSample();
         unfreeze();
         super.onDetachedFromWindow();
     }
@@ -511,6 +717,7 @@ public class GLRootView extends GLSurfaceView
             try {
                 mGL = gl;
                 mCanvas = mEGLContextClientVersion == 2 ? new GLES20Canvas() : new GLES11Canvas(gl);
+                mTopStripGLES20 = mEGLContextClientVersion == 2;
                 BasicTexture.invalidateAllTextures();
             } finally {
                 mRenderLock.unlock();
@@ -535,6 +742,8 @@ public class GLRootView extends GLSurfaceView
             GL11 gl = (GL11) gl1;
             AssertUtils.assertTrue(mGL == gl);
 
+            mSurfaceWidth = width;
+            mSurfaceHeight = height;
             mCanvas.setSize(width, height);
         }
 

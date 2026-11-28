@@ -33,6 +33,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
@@ -122,6 +123,7 @@ import com.hippo.util.launchIO
 import com.hippo.util.runSuspendCatching
 import com.hippo.util.sendTo
 import com.hippo.util.withUIContext
+import com.hippo.widget.BatteryView
 import com.hippo.widget.ColorView
 import com.hippo.widget.LoadImageView
 import com.hippo.yorozuya.AnimationUtils
@@ -225,9 +227,19 @@ class GalleryActivity :
     private var mGalleryAdapter: GalleryAdapter? = null
     private var insetsController: WindowInsetsControllerCompat? = null
     private var mMaskView: ColorView? = null
+    private var mGalleryHeader: GalleryHeader? = null
     private var mClock: View? = null
     private var mProgress: TextView? = null
     private var mBattery: View? = null
+    private val mHudColors = IntArray(HUD_SLOT_COUNT)
+
+    @Volatile
+    private var mPendingHudLights: Array<Boolean?>? = null
+    private val mApplyHudColorsRunnable = Runnable { applyPendingHudColors() }
+    private val mTopStripLightListener = GLRootView.TopStripLightListener { lights ->
+        mPendingHudLights = lights
+        SimpleHandler.getInstance().post(mApplyHudColorsRunnable)
+    }
     private var mSeekBarPanel: View? = null
     private var mGLLoading: View? = null
     private var mLeftText: TextView? = null
@@ -649,6 +661,7 @@ class GalleryActivity :
                 WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
         }
         val galleryHeader = findViewById<GalleryHeader>(R.id.gallery_header)
+        mGalleryHeader = galleryHeader
         ViewCompat.setOnApplyWindowInsetsListener(galleryHeader) { _: View?, insets: WindowInsetsCompat ->
             if (!Settings.readingFullscreen) {
                 galleryHeader.setTopInsets(insets.getInsets(WindowInsetsCompat.Type.statusBars()).top)
@@ -657,6 +670,13 @@ class GalleryActivity :
             }
             WindowInsetsCompat.CONSUMED
         }
+        // Adapt each HUD widget's foreground to whatever is rendered directly
+        // underneath it, sampled live from the GL surface on the render thread.
+        val hudLayoutListener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateHudSampleRegions()
+        }
+        galleryHeader.addOnLayoutChangeListener(hudLayoutListener)
+        mGLRootView?.addOnLayoutChangeListener(hudLayoutListener)
         mReaderSidebarContainer?.let { container ->
             val basePaddingLeft = container.paddingLeft
             val basePaddingRight = container.paddingRight
@@ -822,7 +842,11 @@ class GalleryActivity :
     override fun onDestroy() {
         super.onDestroy()
         mAutoTransferJob?.cancel()
+        mPendingHudLights = null
+        SimpleHandler.getInstance().removeCallbacks(mApplyHudColorsRunnable)
+        mGLRootView?.setTopStripLightListener(null, null)
         mGLRootView = null
+        mGalleryHeader = null
         mGalleryView = null
         if (mGalleryAdapter != null) {
             mGalleryAdapter!!.clearUploader()
@@ -947,6 +971,88 @@ class GalleryActivity :
             true
         } else {
             super.onKeyUp(keyCode, event)
+        }
+    }
+
+    /**
+     * Updates the GL sampling regions to match the currently visible HUD
+     * widgets inside [mGalleryHeader], skipping sampling altogether when
+     * the GL surface or all HUD widgets are hidden.
+     */
+    private fun updateHudSampleRegions() {
+        val glRootView = mGLRootView ?: return
+        val header = mGalleryHeader ?: return
+        if (!glRootView.isVisible || glRootView.width <= 0 || glRootView.height <= 0) {
+            glRootView.setTopStripLightListener(null, null)
+            return
+        }
+        val offsetX = header.left - glRootView.left
+        val offsetY = header.top - glRootView.top
+        val regions = arrayOf(
+            hudChildSampleRect(mClock, offsetX, offsetY),
+            hudChildSampleRect(mProgress, offsetX, offsetY),
+            hudChildSampleRect(mBattery, offsetX, offsetY),
+        )
+        if (regions.all { it == null }) {
+            glRootView.setTopStripLightListener(null, null)
+            return
+        }
+        glRootView.setTopStripLightListener(mTopStripLightListener, regions)
+    }
+
+    private fun hudChildSampleRect(view: View?, offsetX: Int, offsetY: Int): Rect? {
+        if (view == null || !view.isVisible || view.width <= 0 || view.height <= 0) {
+            return null
+        }
+        val top = view.top + offsetY
+        val bottom = view.bottom + offsetY
+        val height = bottom - top
+        val bandTop: Int
+        val bandBottom: Int
+        if (height > HUD_SAMPLE_BAND_MAX_HEIGHT) {
+            val center = (top + bottom) / 2
+            bandTop = center - HUD_SAMPLE_BAND_MAX_HEIGHT / 2
+            bandBottom = bandTop + HUD_SAMPLE_BAND_MAX_HEIGHT
+        } else {
+            bandTop = top
+            bandBottom = bottom
+        }
+        return Rect(
+            view.left + offsetX,
+            bandTop,
+            view.right + offsetX,
+            bandBottom,
+        )
+    }
+
+    /**
+     * Applies the HUD foreground for a light or dark strip underneath each
+     * header widget, as reported by the render thread's live sampling of
+     * the rendered pixels (see GLRootView.setTopStripLightListener): dark
+     * foreground over light content, white over dark content, like the
+     * system status bar adapting to the wallpaper. Nothing is drawn
+     * behind the text.
+     */
+    private fun applyPendingHudColors() {
+        if (isFinishing || isDestroyed) return
+        val lights = mPendingHudLights ?: return
+        applyHudSlotColor(HUD_SLOT_CLOCK, lights.getOrNull(HUD_SLOT_CLOCK)) {
+            (mClock as? TextView)?.setTextColor(it)
+        }
+        applyHudSlotColor(HUD_SLOT_PROGRESS, lights.getOrNull(HUD_SLOT_PROGRESS)) {
+            mProgress?.setTextColor(it)
+        }
+        applyHudSlotColor(HUD_SLOT_BATTERY, lights.getOrNull(HUD_SLOT_BATTERY)) {
+            (mBattery as? BatteryView)?.setColor(it)
+        }
+    }
+
+    private inline fun applyHudSlotColor(slot: Int, light: Boolean?, apply: (Int) -> Unit) {
+        light ?: return
+        val color = if (light) HUD_COLOR_ON_LIGHT else HUD_COLOR_ON_DARK
+        if (color != mHudColors[slot]) {
+            mHudColors[slot] = color
+            apply(color)
         }
     }
 
@@ -2256,6 +2362,7 @@ class GalleryActivity :
             mClock?.visibility = if (showClock) View.VISIBLE else View.GONE
             mProgress?.visibility = if (showProgress) View.VISIBLE else View.GONE
             mBattery?.visibility = if (showBattery) View.VISIBLE else View.GONE
+            updateHudSampleRegions()
             mGalleryView!!.setPagerInterval(
                 if (showPageInterval) {
                     resources.getDimensionPixelOffset(
@@ -2399,6 +2506,13 @@ class GalleryActivity :
     }
 
     companion object {
+        private const val HUD_SLOT_CLOCK = 0
+        private const val HUD_SLOT_PROGRESS = 1
+        private const val HUD_SLOT_BATTERY = 2
+        private const val HUD_SLOT_COUNT = 3
+        private const val HUD_SAMPLE_BAND_MAX_HEIGHT = 12
+        private val HUD_COLOR_ON_LIGHT = Color.rgb(66, 66, 66)
+        private val HUD_COLOR_ON_DARK = Color.WHITE
         private const val SIDEBAR_SCROLL_DEBOUNCE_MS = 80L
         const val ACTION_EH = "eh"
         const val KEY_ACTION = "action"
