@@ -105,7 +105,6 @@ import com.hippo.ehviewer.widget.GalleryGuideView
 import com.hippo.ehviewer.widget.GalleryHeader
 import com.hippo.ehviewer.widget.ReversibleSeekBar
 import com.hippo.glgallery.GalleryProvider
-import com.hippo.glview.image.ImageWrapper
 import com.hippo.glgallery.GalleryView
 import com.hippo.glgallery.SimpleAdapter
 import com.hippo.glview.view.GLRootView
@@ -617,6 +616,13 @@ class GalleryActivity :
             }
             WindowInsetsCompat.CONSUMED
         }
+        // Adapt the header foreground to whatever is rendered underneath
+        // it, sampled live from the GL surface on the render thread.
+        galleryHeader.post {
+            mGLRootView?.setTopStripLightListener({ light: Boolean ->
+                SimpleHandler.getInstance().post { applyHudColor(light) }
+            }, galleryHeader.height)
+        }
         mReaderSidebarContainer?.let { container ->
             val basePaddingLeft = container.paddingLeft
             val basePaddingRight = container.paddingRight
@@ -782,6 +788,7 @@ class GalleryActivity :
     override fun onDestroy() {
         super.onDestroy()
         mAutoTransferJob?.cancel()
+        mGLRootView?.setTopStripLightListener(null, 0)
         mGLRootView = null
         mGalleryView = null
         if (mGalleryAdapter != null) {
@@ -911,17 +918,14 @@ class GalleryActivity :
     }
 
     /**
-     * Adapts the top HUD (clock / progress / battery) foreground to the
-     * current page, like the system status bar adapts to the wallpaper:
-     * dark foreground over light pages, white over dark pages. Nothing is
-     * drawn behind the text. Pages whose brightness is unknown keep the
-     * current foreground.
+     * Applies the HUD foreground for a light or dark strip underneath the
+     * header, as reported by the render thread's live sampling of the
+     * rendered pixels (see GLRootView.setTopStripLightListener): dark
+     * foreground over light content, white over dark content, like the
+     * system status bar adapting to the wallpaper. Nothing is drawn
+     * behind the text.
      */
-    private fun updateHudColor() {
-        if (mCurrentIndex < 0) return
-        val provider = mGalleryProvider ?: return
-        val index = mGalleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
-        val light = provider.isPageTopLight(index) ?: return
+    private fun applyHudColor(light: Boolean) {
         val color = if (light) HUD_COLOR_ON_LIGHT else HUD_COLOR_ON_DARK
         if (color == mHudColor) return
         mHudColor = color
@@ -2287,7 +2291,6 @@ class GalleryActivity :
                     mCurrentIndex = mValue
                     updateSlider()
                     updateProgress()
-                    updateHudColor()
                     if (indexChanged) {
                         mSidebarUserHasScrolled = false
                         refreshReaderSidebarStructure(forceCenter = true)
@@ -2315,16 +2318,6 @@ class GalleryActivity :
     }
 
     private inner class GalleryAdapter(glRootView: GLRootView, provider: GalleryProvider) : SimpleAdapter(glRootView, provider) {
-        override fun onPageSucceed(index: Int, image: ImageWrapper?) {
-            super.onPageSucceed(index, image)
-            // The current page may have finished loading after it became
-            // current; its brightness is only known from this point on.
-            val pairStart = mGalleryView?.getPagePairStart(mCurrentIndex) ?: mCurrentIndex
-            if (index == pairStart || index == mCurrentIndex) {
-                SimpleHandler.getInstance().post { updateHudColor() }
-            }
-        }
-
         override fun onDataChanged() {
             super.onDataChanged()
             if (mGalleryProvider != null) {

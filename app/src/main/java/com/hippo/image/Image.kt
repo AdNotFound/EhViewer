@@ -125,36 +125,6 @@ class Image private constructor(
         }
     }
 
-    /**
-     * Mean luminance (0f..1f) of the top strip of this image, or null when
-     * it cannot be determined (animated or already recycled). Computed from
-     * a tiny downscale, so it is cheap, but still call it off the main
-     * thread. The reader uses it to adapt its HUD foreground to the page
-     * content, the way the system status bar adapts to the wallpaper.
-     */
-    fun topLuminance(): Float? {
-        if (isRecycled) return null
-        val bitmap = when (val coilImage = image) {
-            is BitmapImage -> coilImage.bitmap
-            else -> return null
-        }
-        if (bitmap.isRecycled) return null
-        val stripHeight = (bitmap.height / 5).coerceAtLeast(1)
-        val strip = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, stripHeight)
-        val small = Bitmap.createScaledBitmap(strip, 16, 4, true)
-        val pixels = IntArray(small.width * small.height)
-        small.getPixels(pixels, 0, small.width, 0, 0, small.width, small.height)
-        var sum = 0.0
-        for (pixel in pixels) {
-            sum += (0.2126 * Color.red(pixel) +
-                0.7152 * Color.green(pixel) +
-                0.0722 * Color.blue(pixel)) / 255.0
-        }
-        if (small !== strip) small.recycle()
-        if (strip !== bitmap) strip.recycle()
-        return (sum / pixels.size).toFloat()
-    }
-
     fun texImage(init: Boolean, offsetX: Int, offsetY: Int, width: Int, height: Int) {
         val bitmap = if (image is BitmapImage) {
             image.bitmap

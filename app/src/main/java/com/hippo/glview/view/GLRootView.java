@@ -19,6 +19,7 @@ package com.hippo.glview.view;
 import android.content.Context;
 import android.graphics.Matrix;
 import android.graphics.PixelFormat;
+import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.GLUtils;
 import android.os.Parcelable;
@@ -44,6 +45,8 @@ import com.hippo.glview.glrenderer.UploadedTexture;
 import com.hippo.glview.util.GalleryUtils;
 import com.hippo.yorozuya.AssertUtils;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Condition;
@@ -88,6 +91,105 @@ public class GLRootView extends GLSurfaceView
     private int mInvalidateColor = 0;
     private GL11 mGL;
     private GLCanvas mCanvas;
+    // ---- Top strip luminance sampling (overlay HUD adaptation) ----
+
+    /**
+     * Notified when the sampled top strip of the rendered content flips
+     * between light and dark. Called on the render thread, only on change.
+     */
+    public interface TopStripLightListener {
+        void onTopStripLightChanged(boolean light);
+    }
+
+    private static final long TOP_STRIP_SAMPLE_INTERVAL_MS = 150;
+    private static final float TOP_STRIP_LIGHT_ENTER = 0.60f;
+    private static final float TOP_STRIP_DARK_ENTER = 0.50f;
+
+    private TopStripLightListener mTopStripLightListener;
+    private int mTopStripHeight;
+    private boolean mTopStripGLES20;
+    private long mLastTopStripSample;
+    private Boolean mTopStripLight;
+    private ByteBuffer mTopStripBuffer;
+
+    /**
+     * Starts sampling the top {@code stripHeight} pixels of every rendered
+     * frame (throttled) and reports light/dark flips of that strip to the
+     * listener, so an overlay drawn above this view can adapt its
+     * foreground to the content actually underneath it, like the system
+     * status bar adapts to the wallpaper. Pass a null listener to stop.
+     */
+    public void setTopStripLightListener(TopStripLightListener listener, int stripHeight) {
+        mTopStripLightListener = listener;
+        mTopStripHeight = stripHeight;
+        mTopStripLight = null;
+    }
+
+    private void sampleTopStripIfNeeded() {
+        TopStripLightListener listener = mTopStripLightListener;
+        if (listener == null || mTopStripHeight <= 0 || !mTopStripGLES20) {
+            return;
+        }
+        long now = SystemClock.uptimeMillis();
+        if (now - mLastTopStripSample < TOP_STRIP_SAMPLE_INTERVAL_MS) {
+            return;
+        }
+        mLastTopStripSample = now;
+        int width = getWidth();
+        int height = getHeight();
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        int strip = Math.min(mTopStripHeight, height);
+        int size = width * strip * 4;
+        if (mTopStripBuffer == null || mTopStripBuffer.capacity() != size) {
+            mTopStripBuffer = ByteBuffer.allocateDirect(size).order(ByteOrder.nativeOrder());
+        }
+        ByteBuffer buffer = mTopStripBuffer;
+        buffer.clear();
+        // GL origin is bottom-left: the top strip starts at height - strip.
+        GLES20.glReadPixels(0, height - strip, width, strip,
+                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer);
+        if (GLES20.glGetError() != GLES20.GL_NO_ERROR) {
+            return;
+        }
+        // Mean luminance over a strided subset is enough for a light/dark
+        // verdict: every 6th pixel in x, every 3rd row in y.
+        long sum = 0;
+        int count = 0;
+        for (int y = 0; y < strip; y += 3) {
+            int row = y * width * 4;
+            for (int x = 0; x < width; x += 6) {
+                int i = row + x * 4;
+                int r = buffer.get(i) & 0xff;
+                int g = buffer.get(i + 1) & 0xff;
+                int b = buffer.get(i + 2) & 0xff;
+                sum += (int) (0.2126f * r + 0.7152f * g + 0.0722f * b);
+                count++;
+            }
+        }
+        if (count == 0) {
+            return;
+        }
+        float luminance = sum / (float) count / 255f;
+        // Local snapshot: the listener (and this field) can be reset from
+        // the UI thread while sampling runs here.
+        Boolean wasLight = mTopStripLight;
+        boolean light;
+        if (wasLight == null) {
+            light = luminance > 0.55f;
+        } else if (wasLight) {
+            // Hysteresis: only flip back when clearly dark again.
+            light = luminance >= TOP_STRIP_DARK_ENTER;
+        } else {
+            light = luminance > TOP_STRIP_LIGHT_ENTER;
+        }
+        if (wasLight == null || light != wasLight) {
+            mTopStripLight = light;
+            listener.onTopStripLightChanged(light);
+        }
+    }
+
     private GLView mContentView;
     private OrientationSource mOrientationSource;
     // mCompensation is the difference between the UI orientation on GLCanvas
@@ -321,6 +423,8 @@ public class GLRootView extends GLSurfaceView
         if (DEBUG_DRAWING_STAT) {
             mCanvas.dumpStatisticsAndClear();
         }
+
+        sampleTopStripIfNeeded();
     }
 
     private void rotateCanvas(int degrees) {
@@ -511,6 +615,7 @@ public class GLRootView extends GLSurfaceView
             try {
                 mGL = gl;
                 mCanvas = mEGLContextClientVersion == 2 ? new GLES20Canvas() : new GLES11Canvas(gl);
+                mTopStripGLES20 = mEGLContextClientVersion == 2;
                 BasicTexture.invalidateAllTextures();
                 if (mContentView != null) {
                     mContentView.onContextCreated();

@@ -29,7 +29,6 @@ import com.hippo.yorozuya.ConcurrentPool
 import com.hippo.yorozuya.MathUtils
 import com.hippo.yorozuya.OSUtils
 import com.hippo.yorozuya.collect.SieveCache
-import java.util.concurrent.ConcurrentHashMap
 
 abstract class GalleryProvider {
     private val mNotifyTaskPool = ConcurrentPool<NotifyTask>(5)
@@ -44,8 +43,6 @@ abstract class GalleryProvider {
         onEntryRemoved = { _, o, _, _ -> o.release() },
     )
     private val mPreloads = MathUtils.clamp(Settings.preloadImage, 0, 100)
-
-    private val mPageTopLight = ConcurrentHashMap<Int, Boolean>()
 
     @Volatile
     private var mListener: Listener? = null
@@ -62,14 +59,7 @@ abstract class GalleryProvider {
     @CallSuper
     open fun stop() {
         mImageCache.evictAll()
-        mPageTopLight.clear()
     }
-
-    /**
-     * Whether the top of page [index] is light, or null when it has not
-     * been determined yet (page not decoded, animated, ...).
-     */
-    fun isPageTopLight(index: Int): Boolean? = mPageTopLight[index]
 
     fun setGLRoot(glRoot: GLRoot) {
         mGLRoot = glRoot
@@ -106,7 +96,6 @@ abstract class GalleryProvider {
 
     fun removeCache(index: Int) {
         mImageCache.remove(index)
-        mPageTopLight.remove(index)
     }
 
     protected abstract fun preloadPages(pages: List<Int>, pair: Pair<Int, Int>)
@@ -146,9 +135,6 @@ abstract class GalleryProvider {
     }
 
     fun notifyPageSucceed(index: Int, image: Image) {
-        // Sample the page-top brightness once, while still on a background
-        // thread, so the reader can adapt its HUD foreground per page.
-        image.topLuminance()?.let { mPageTopLight[index] = it > LIGHT_TOP_THRESHOLD }
         val imageWrapper = ImageWrapper(image)
         if (imageWrapper.obtain()) mImageCache.put(index, imageWrapper)
         notifyPageSucceed(index, imageWrapper)
@@ -259,6 +245,5 @@ abstract class GalleryProvider {
     companion object {
         private const val MAX_CACHE_SIZE = 512 * 1024 * 1024
         private const val MIN_CACHE_SIZE = 256 * 1024 * 1024
-        private const val LIGHT_TOP_THRESHOLD = 0.6f
     }
 }
